@@ -1,0 +1,855 @@
+{
+  "businesses": [
+    {
+      "id": 1,
+      "name": "Acme Retail India",
+      "slug": "acme-retail",
+      "timezone": "Asia/Kolkata",
+      "status": "active",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "business_id": null,
+      "name": "System SuperAdmin",
+      "email": "superadmin@campaignflow.io",
+      "password_hash": "$2a$10$RBEBoydWgp62HQ7rshbGXeXwDbSZKJVoqaHmqHQ25Z2YffgDTs34C",
+      "role": "superadmin",
+      "is_email_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "name": "Rahul Sharma (Owner)",
+      "email": "owner@acmeretail.com",
+      "password_hash": "$2a$10$RBEBoydWgp62HQ7rshbGXeXwDbSZKJVoqaHmqHQ25Z2YffgDTs34C",
+      "role": "owner",
+      "is_email_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "name": "Priya Patel (Marketer)",
+      "email": "marketer@acmeretail.com",
+      "password_hash": "$2a$10$RBEBoydWgp62HQ7rshbGXeXwDbSZKJVoqaHmqHQ25Z2YffgDTs34C",
+      "role": "marketer",
+      "is_email_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 4,
+      "business_id": 1,
+      "name": "Amit Verma (Support Agent)",
+      "email": "agent@acmeretail.com",
+      "password_hash": "$2a$10$RBEBoydWgp62HQ7rshbGXeXwDbSZKJVoqaHmqHQ25Z2YffgDTs34C",
+      "role": "agent",
+      "is_email_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    }
+  ],
+  "user_sessions": [],
+  "whatsapp_accounts": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "waba_id": "28532933229644434",
+      "phone_number_id": "1353284594528559",
+      "phone_number": "+1 555-199-9056",
+      "display_name": "Official Meta Test Number",
+      "quality_rating": "GREEN",
+      "messaging_limit_tier": "STANDARD",
+      "status": "connected",
+      "access_token_encrypted": "EAAQjnGtRDZCgBS8ceAh2ZB7D1XZCNamDCOPklashRFfw5zYY9IXOjwsxyAbavCQMmQpYyTqnEFRkwKtb2PvEz1iyCznqrKBZBaFXobumlJKeLlrZCsEFccOoaedBnZC3EXqgqjoTVnspYN1O4EBJoNyrvqbZB6UdKRkoeoZB8mnqrEGSF6p2wapJr84pJ0h32Y162FJYzGTL2pkITZCqzsuvIEgXgHX9VL4rRkudB7ghDzrjhIS0Hce7X3E989xQZBsMeI2XFNcCpHo1w9nZBJqckOha9Di03notllphC4Uvg4ZD",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    }
+  ],
+  "contacts": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "phone": "+919811122233",
+      "country_code": "91",
+      "name": "Ananya Gupta",
+      "email": "ananya@example.com",
+      "is_opted_in": 1,
+      "status": "active",
+      "custom_fields": {
+        "tier": "gold"
+      },
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "phone": "+919822233344",
+      "country_code": "91",
+      "name": "Vikram Malhotra",
+      "email": "vikram@example.com",
+      "is_opted_in": 1,
+      "status": "active",
+      "custom_fields": {
+        "tier": "silver"
+      },
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "phone": "+919833344455",
+      "country_code": "91",
+      "name": "Sunita Rao",
+      "email": "sunita@example.com",
+      "is_opted_in": 1,
+      "status": "active",
+      "custom_fields": {
+        "tier": "platinum"
+      },
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 4,
+      "business_id": 1,
+      "phone": "+919844455566",
+      "country_code": "91",
+      "name": "Rohan Mehra",
+      "email": "rohan@example.com",
+      "is_opted_in": 1,
+      "status": "active",
+      "custom_fields": {
+        "tier": "silver"
+      },
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 5,
+      "business_id": 1,
+      "phone": "+919855566677",
+      "country_code": "91",
+      "name": "Deepa Nair",
+      "email": "deepa@example.com",
+      "is_opted_in": 1,
+      "status": "active",
+      "custom_fields": {
+        "tier": "gold"
+      },
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 6,
+      "business_id": 1,
+      "phone": "+919565763089",
+      "country_code": "91",
+      "name": "Yuvraj Kushawaha",
+      "email": "yuvrajkushwaha49@gmail.com",
+      "is_opted_in": 1,
+      "status": "active",
+      "custom_fields": {},
+      "created_at": "2026-10-29T13:21:25.975Z"
+    }
+  ],
+  "contact_consents": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "contact_id": 1,
+      "consent_status": "opted_in",
+      "consent_source": "website_checkout",
+      "consent_category": "promotional",
+      "proof_notes": "Explicit opt-in checkout checkbox",
+      "withdrawn_at": null,
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "contact_id": 2,
+      "consent_status": "opted_in",
+      "consent_source": "website_checkout",
+      "consent_category": "promotional",
+      "proof_notes": "Explicit opt-in checkout checkbox",
+      "withdrawn_at": null,
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "contact_id": 3,
+      "consent_status": "opted_in",
+      "consent_source": "website_checkout",
+      "consent_category": "promotional",
+      "proof_notes": "Explicit opt-in checkout checkbox",
+      "withdrawn_at": null,
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 4,
+      "business_id": 1,
+      "contact_id": 4,
+      "consent_status": "opted_in",
+      "consent_source": "website_checkout",
+      "consent_category": "promotional",
+      "proof_notes": "Explicit opt-in checkout checkbox",
+      "withdrawn_at": null,
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 5,
+      "business_id": 1,
+      "contact_id": 5,
+      "consent_status": "opted_in",
+      "consent_source": "website_checkout",
+      "consent_category": "promotional",
+      "proof_notes": "Explicit opt-in checkout checkbox",
+      "withdrawn_at": null,
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 6,
+      "business_id": 1,
+      "contact_id": 6,
+      "consent_status": "opted_in",
+      "consent_source": "manual_entry",
+      "consent_category": "promotional",
+      "proof_notes": "Explicit opt-in received from customer",
+      "created_at": "2026-10-29T13:21:25.975Z"
+    }
+  ],
+  "tags": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "name": "VIP Customer",
+      "color": "#7952b3",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "name": "Festive Shopper",
+      "color": "#fd7e14",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "name": "Weekend Buyer",
+      "color": "#20c997",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    }
+  ],
+  "contact_tags": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "contact_id": 1,
+      "tag_id": 1
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "contact_id": 2,
+      "tag_id": 2
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "contact_id": 3,
+      "tag_id": 1
+    },
+    {
+      "id": 4,
+      "business_id": 1,
+      "contact_id": 4,
+      "tag_id": 3
+    },
+    {
+      "id": 5,
+      "business_id": 1,
+      "contact_id": 5,
+      "tag_id": 2
+    }
+  ],
+  "import_jobs": [],
+  "import_rows": [],
+  "templates": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "meta_template_id": "meta_tpl_hello_world",
+      "name": "hello_world",
+      "language": "en_US",
+      "category": "UTILITY",
+      "status": "APPROVED",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "Hello World"
+        },
+        {
+          "type": "BODY",
+          "text": "Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta. Thank you for taking the time to test with us."
+        },
+        {
+          "type": "FOOTER",
+          "text": "WhatsApp Business Platform sample message"
+        }
+      ],
+      "created_at": "2026-10-29T13:28:05.418Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "meta_template_id": "meta_tpl_hello",
+      "name": "hello",
+      "language": "en",
+      "category": "MARKETING",
+      "status": "APPROVED",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "IMAGE"
+        },
+        {
+          "type": "BODY",
+          "text": "Hello"
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Visit website",
+              "url": "https://www.kalaakchar.in/"
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-10-29T13:28:05.418Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "meta_template_id": "meta_tpl_jaspers_plain_text",
+      "name": "jaspers_market_plain_text_v1",
+      "language": "en_US",
+      "category": "MARKETING",
+      "status": "APPROVED",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Welcome to Jasper’s Market, your local grocery store providing farm-fresh produce and high-quality goods!"
+        }
+      ],
+      "created_at": "2026-10-29T13:28:05.418Z"
+    },
+    {
+      "id": 4,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "meta_template_id": "meta_tpl_jaspers_order_conf",
+      "name": "jaspers_market_order_confirmation_v1",
+      "language": "en_US",
+      "category": "UTILITY",
+      "status": "APPROVED",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "Order confirmed"
+        },
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nThank you for your purchase! Your order number is {{2}}.\n\nWe'll start getting your farm fresh groceries ready to ship.\n\nEstimated delivery:  {{3}}.\n\nWe will let you know when your order ships."
+        },
+        {
+          "type": "FOOTER",
+          "text": "developers.facebook.com"
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Visit order details",
+              "url": "https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/utility-templates"
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-10-29T13:28:05.418Z"
+    },
+    {
+      "id": 5,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "meta_template_id": "meta_tpl_jaspers_img_cta",
+      "name": "jaspers_market_image_cta_v1",
+      "language": "en_US",
+      "category": "MARKETING",
+      "status": "APPROVED",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "IMAGE"
+        },
+        {
+          "type": "BODY",
+          "text": "Free delivery for all online orders with Jasper's Market"
+        },
+        {
+          "type": "FOOTER",
+          "text": "developers.facebook.com"
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Get free delivery",
+              "url": "https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/utility-templates"
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-10-29T13:28:05.418Z"
+    }
+  ],
+  "campaigns": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "template_id": 1,
+      "name": "Diwali Mega Sale Early Access",
+      "purpose": "Festive Customer Activation",
+      "status": "completed",
+      "total_recipients": 5,
+      "sent_count": 5,
+      "delivered_count": 5,
+      "read_count": 4,
+      "failed_count": 0,
+      "variable_mappings": {
+        "var_1": "contact.name",
+        "var_2": "30",
+        "var_3": "FESTIVE30"
+      },
+      "scheduled_at": "2026-10-27T13:16:39.024Z",
+      "started_at": "2026-10-27T13:16:39.024Z",
+      "completed_at": "2026-10-27T13:16:39.024Z",
+      "created_at": "2026-10-27T13:16:39.024Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "template_id": 1,
+      "name": "Festive Broadcast #2",
+      "purpose": "Festive & Promotional Broadcast",
+      "status": "completed",
+      "total_recipients": 1,
+      "sent_count": 1,
+      "delivered_count": 1,
+      "read_count": 1,
+      "failed_count": 0,
+      "variable_mappings": {
+        "var_1": "contact.name",
+        "var_2": "30",
+        "var_3": "FESTIVE30"
+      },
+      "scheduled_at": "2026-10-29T13:16:39.024Z",
+      "started_at": "2026-10-29T13:16:39.024Z",
+      "completed_at": "2026-10-29T13:16:39.024Z",
+      "created_at": "2026-10-29T13:16:39.024Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "template_id": 1,
+      "name": "Diwali",
+      "purpose": "Festive & Promotional Broadcast",
+      "status": "completed",
+      "total_recipients": 1,
+      "sent_count": 0,
+      "delivered_count": 0,
+      "read_count": 0,
+      "failed_count": 1,
+      "variable_mappings": {
+        "var_1": "contact.name",
+        "var_2": "30",
+        "var_3": "FESTIVE30",
+        "sender_account_ids": [
+          1
+        ]
+      },
+      "created_at": "2026-10-29T13:21:49.442Z",
+      "started_at": "2026-10-29T13:21:49.457Z",
+      "completed_at": "2026-10-29T13:21:50.651Z"
+    },
+    {
+      "id": 4,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "template_id": 1,
+      "name": "Verification Live Meta Send",
+      "purpose": "Live Meta API Test",
+      "status": "completed",
+      "total_recipients": 1,
+      "sent_count": 0,
+      "delivered_count": 0,
+      "read_count": 0,
+      "failed_count": 1,
+      "variable_mappings": {
+        "sender_account_ids": [
+          1
+        ]
+      },
+      "created_at": "2026-10-29T13:26:16.323Z",
+      "started_at": "2026-10-29T13:26:16.328Z",
+      "completed_at": "2026-10-29T13:26:17.415Z"
+    },
+    {
+      "id": 5,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "template_id": 1,
+      "name": "Meta Live Test Campaign",
+      "purpose": "Live WhatsApp Send Verification",
+      "status": "completed",
+      "total_recipients": 1,
+      "sent_count": 1,
+      "delivered_count": 0,
+      "read_count": 0,
+      "failed_count": 0,
+      "variable_mappings": {
+        "sender_account_ids": [
+          1
+        ]
+      },
+      "created_at": "2026-10-29T13:27:20.470Z",
+      "started_at": "2026-10-29T13:27:20.477Z",
+      "completed_at": "2026-10-29T13:27:22.213Z"
+    },
+    {
+      "id": 6,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "template_id": 1,
+      "name": "Real WhatsApp Live Test #2",
+      "purpose": "Verification",
+      "status": "completed",
+      "total_recipients": 1,
+      "sent_count": 1,
+      "delivered_count": 0,
+      "read_count": 0,
+      "failed_count": 0,
+      "variable_mappings": {
+        "sender_account_ids": [
+          1
+        ]
+      },
+      "created_at": "2026-10-29T13:28:17.486Z",
+      "started_at": "2026-10-29T13:28:17.491Z",
+      "completed_at": "2026-10-29T13:28:19.063Z"
+    },
+    {
+      "id": 7,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "template_id": 1,
+      "name": "Diwali",
+      "purpose": "Festive & Promotional Broadcast",
+      "status": "completed",
+      "total_recipients": 1,
+      "sent_count": 1,
+      "delivered_count": 0,
+      "read_count": 0,
+      "failed_count": 0,
+      "variable_mappings": {
+        "var_1": "contact.name",
+        "var_2": "30",
+        "var_3": "FESTIVE30",
+        "sender_account_ids": [
+          1
+        ]
+      },
+      "created_at": "2026-10-29T13:29:20.922Z",
+      "started_at": "2026-10-29T13:29:20.937Z",
+      "completed_at": "2026-10-29T13:29:22.545Z"
+    }
+  ],
+  "campaign_recipients": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "campaign_id": 1,
+      "contact_id": 1,
+      "phone": "+919811122233",
+      "status": "read",
+      "provider_message_id": "wamid.mock_1_1793279799024",
+      "sent_at": "2026-10-27T13:16:39.024Z",
+      "delivered_at": "2026-10-27T13:16:39.024Z",
+      "read_at": "2026-10-27T13:16:39.024Z",
+      "created_at": "2026-10-27T13:16:39.024Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "campaign_id": 1,
+      "contact_id": 2,
+      "phone": "+919822233344",
+      "status": "read",
+      "provider_message_id": "wamid.mock_2_1793279799024",
+      "sent_at": "2026-10-27T13:16:39.024Z",
+      "delivered_at": "2026-10-27T13:16:39.024Z",
+      "read_at": "2026-10-27T13:16:39.024Z",
+      "created_at": "2026-10-27T13:16:39.024Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "campaign_id": 1,
+      "contact_id": 3,
+      "phone": "+919833344455",
+      "status": "read",
+      "provider_message_id": "wamid.mock_3_1793279799024",
+      "sent_at": "2026-10-27T13:16:39.024Z",
+      "delivered_at": "2026-10-27T13:16:39.024Z",
+      "read_at": "2026-10-27T13:16:39.024Z",
+      "created_at": "2026-10-27T13:16:39.024Z"
+    },
+    {
+      "id": 4,
+      "business_id": 1,
+      "campaign_id": 1,
+      "contact_id": 4,
+      "phone": "+919844455566",
+      "status": "read",
+      "provider_message_id": "wamid.mock_4_1793279799024",
+      "sent_at": "2026-10-27T13:16:39.024Z",
+      "delivered_at": "2026-10-27T13:16:39.024Z",
+      "read_at": "2026-10-27T13:16:39.024Z",
+      "created_at": "2026-10-27T13:16:39.024Z"
+    },
+    {
+      "id": 5,
+      "business_id": 1,
+      "campaign_id": 1,
+      "contact_id": 5,
+      "phone": "+919855566677",
+      "status": "delivered",
+      "provider_message_id": "wamid.mock_5_1793279799025",
+      "sent_at": "2026-10-27T13:16:39.025Z",
+      "delivered_at": "2026-10-27T13:16:39.025Z",
+      "read_at": null,
+      "created_at": "2026-10-27T13:16:39.025Z"
+    },
+    {
+      "id": 6,
+      "business_id": 1,
+      "campaign_id": 2,
+      "contact_id": 1,
+      "phone": "+919811122233",
+      "status": "read",
+      "provider_message_id": "wamid.mock_2_1",
+      "sent_at": "2026-10-29T13:16:39.025Z",
+      "delivered_at": "2026-10-29T13:16:39.025Z",
+      "read_at": "2026-10-29T13:16:39.025Z",
+      "created_at": "2026-10-29T13:16:39.025Z"
+    },
+    {
+      "id": 7,
+      "business_id": 1,
+      "campaign_id": 3,
+      "contact_id": 6,
+      "phone": "+919565763089",
+      "status": "pending",
+      "created_at": "2026-10-29T13:21:49.442Z"
+    },
+    {
+      "id": 8,
+      "business_id": 1,
+      "campaign_id": 4,
+      "contact_id": 1,
+      "phone": "+919811122233",
+      "status": "pending",
+      "created_at": "2026-10-29T13:26:16.323Z"
+    },
+    {
+      "id": 9,
+      "business_id": 1,
+      "campaign_id": 5,
+      "contact_id": 6,
+      "phone": "+919565763089",
+      "status": "pending",
+      "created_at": "2026-10-29T13:27:20.470Z"
+    },
+    {
+      "id": 10,
+      "business_id": 1,
+      "campaign_id": 6,
+      "contact_id": 6,
+      "phone": "+919565763089",
+      "status": "sent",
+      "created_at": "2026-10-29T13:28:17.486Z",
+      "sent_at": "2026-10-29T13:28:19.063Z",
+      "provider_message_id": "wamid.HBgMOTE5NTY1NzYzMDg5FQIAERgSQjhBNkZFNkNEOTc2RjRGNjQzAA=="
+    },
+    {
+      "id": 11,
+      "business_id": 1,
+      "campaign_id": 7,
+      "contact_id": 6,
+      "phone": "+919565763089",
+      "status": "sent",
+      "created_at": "2026-10-29T13:29:20.922Z",
+      "sent_at": "2026-10-29T13:29:22.545Z",
+      "provider_message_id": "wamid.HBgMOTE5NTY1NzYzMDg5FQIAERgSQ0NEOTdGRUY1NTVBQTE2NTQxAA=="
+    }
+  ],
+  "messages": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "campaign_id": 5,
+      "contact_id": 6,
+      "whatsapp_account_id": 1,
+      "direction": "outbound",
+      "provider_message_id": "wamid.HBgMOTE5NTY1NzYzMDg5FQIAERgSOTlEODFBNzcyQkEyODEyQTkxAA==",
+      "phone": "+919565763089",
+      "status": "sent",
+      "created_at": "2026-10-29T13:27:22.213Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "campaign_id": 6,
+      "contact_id": 6,
+      "whatsapp_account_id": 1,
+      "direction": "outbound",
+      "provider_message_id": "wamid.HBgMOTE5NTY1NzYzMDg5FQIAERgSQjhBNkZFNkNEOTc2RjRGNjQzAA==",
+      "phone": "+919565763089",
+      "status": "sent",
+      "created_at": "2026-10-29T13:28:19.063Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "campaign_id": 7,
+      "contact_id": 6,
+      "whatsapp_account_id": 1,
+      "direction": "outbound",
+      "provider_message_id": "wamid.HBgMOTE5NTY1NzYzMDg5FQIAERgSQ0NEOTdGRUY1NTVBQTE2NTQxAA==",
+      "phone": "+919565763089",
+      "status": "sent",
+      "created_at": "2026-10-29T13:29:22.545Z"
+    }
+  ],
+  "webhook_events": [],
+  "inbound_conversations": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "contact_id": 5,
+      "whatsapp_account_id": 1,
+      "last_message_text": "Thanks for the offer! Can I apply this offline in store too?",
+      "last_message_at": "2026-10-29T13:16:39.025Z",
+      "is_resolved": 0,
+      "created_at": "2026-10-29T13:16:39.025Z"
+    }
+  ],
+  "subscription_plans": [
+    {
+      "id": 1,
+      "name": "Free Trial",
+      "slug": "free",
+      "monthly_price": 0,
+      "max_contacts": 250,
+      "max_campaigns_per_month": 2,
+      "max_messages_per_month": 500,
+      "max_team_members": 1,
+      "features": {
+        "analytics": "basic",
+        "ai_assistant": false
+      }
+    },
+    {
+      "id": 2,
+      "name": "Starter Growth",
+      "slug": "starter",
+      "monthly_price": 29,
+      "max_contacts": 2500,
+      "max_campaigns_per_month": 15,
+      "max_messages_per_month": 10000,
+      "max_team_members": 3,
+      "features": {
+        "analytics": "standard",
+        "ai_assistant": true
+      }
+    },
+    {
+      "id": 3,
+      "name": "Pro Automation",
+      "slug": "pro",
+      "monthly_price": 79,
+      "max_contacts": 15000,
+      "max_campaigns_per_month": 50,
+      "max_messages_per_month": 75000,
+      "max_team_members": 10,
+      "features": {
+        "analytics": "advanced",
+        "ai_assistant": true,
+        "api_access": true
+      }
+    },
+    {
+      "id": 4,
+      "name": "Enterprise Scale",
+      "slug": "enterprise",
+      "monthly_price": 249,
+      "max_contacts": 100000,
+      "max_campaigns_per_month": 9999,
+      "max_messages_per_month": 500000,
+      "max_team_members": 50,
+      "features": {
+        "analytics": "custom",
+        "ai_assistant": true,
+        "api_access": true
+      }
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "plan_id": 3,
+      "status": "active",
+      "current_period_start": "2026-10-29T13:16:39.024Z",
+      "current_period_end": "2026-11-28T13:16:39.024Z"
+    }
+  ],
+  "usage_ledger": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "metric_type": "messages_sent",
+      "quantity": 5,
+      "period_month": "2026-10",
+      "recorded_at": "2026-10-29T13:16:39.025Z"
+    }
+  ],
+  "audit_logs": [],
+  "notifications": []
+}
