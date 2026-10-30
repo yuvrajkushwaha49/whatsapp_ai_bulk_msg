@@ -37,7 +37,13 @@ const memoryStore = {
   subscriptions: [],
   usage_ledger: [],
   audit_logs: [],
-  notifications: []
+  notifications: [],
+  whatsapp_conversations: [],
+  whatsapp_messages: [],
+  whatsapp_message_media: [],
+  whatsapp_conversation_assignments: [],
+  whatsapp_conversation_notes: [],
+  whatsapp_conversation_events: []
 };
 
 // Real Meta Approved Templates for live Cloud API sending
@@ -121,6 +127,22 @@ const realApprovedMetaTemplates = [
       { type: 'BUTTONS', buttons: [{ type: 'URL', text: 'Get free delivery', url: 'https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/utility-templates' }] }
     ],
     created_at: new Date()
+  },
+  {
+    id: 6,
+    business_id: 1,
+    whatsapp_account_id: 1,
+    meta_template_id: '1447518427357464',
+    name: 'welcome_msg',
+    language: 'en',
+    category: 'MARKETING',
+    parameter_format: 'NAMED',
+    status: 'PENDING',
+    components: [
+      { type: 'HEADER', format: 'TEXT', text: 'Hello' },
+      { type: 'BODY', text: 'Hello! {{customer_name}} Welcome to our official WhatsApp channel. Thank you for connecting with us.' }
+    ],
+    created_at: new Date()
   }
 ];
 
@@ -136,6 +158,43 @@ async function initFallbackStore() {
       });
       // Always guarantee real Meta templates are present
       memoryStore.templates = realApprovedMetaTemplates;
+
+      // Always guarantee connected WhatsApp accounts use the latest permanent token & Indian phone number
+      const liveToken = process.env.META_ACCESS_TOKEN || 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
+      const livePhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
+      const liveWabaId = process.env.META_WABA_ID || '28532933229644434';
+
+      memoryStore.whatsapp_accounts = [
+        {
+          id: 1,
+          business_id: 1,
+          waba_id: liveWabaId,
+          phone_number_id: livePhoneId,
+          phone_number: '+91 86014 67210',
+          display_name: 'Yuvraj (Indian Number)',
+          quality_rating: 'GREEN',
+          messaging_limit_tier: 'STANDARD',
+          status: 'connected',
+          access_token_encrypted: liveToken,
+          created_at: new Date()
+        },
+        {
+          id: 2,
+          business_id: 1,
+          waba_id: '28532933229644434',
+          phone_number_id: '1353284594528559',
+          phone_number: '+1 555-199-9056',
+          display_name: 'Meta Official Test Sender',
+          quality_rating: 'GREEN',
+          messaging_limit_tier: 'STANDARD',
+          status: 'connected',
+          access_token_encrypted: liveToken,
+          created_at: new Date()
+        }
+      ];
+
+      seedInboxData(memoryStore);
+
       fallbackInitialized = true;
       saveMemoryStore();
       startAutoPersistence();
@@ -299,6 +358,22 @@ async function initFallbackStore() {
         { type: 'BUTTONS', buttons: [{ type: 'URL', text: 'Get free delivery', url: 'https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/utility-templates' }] }
       ],
       created_at: new Date()
+    },
+    {
+      id: 6,
+      business_id: 1,
+      whatsapp_account_id: 1,
+      meta_template_id: '1447518427357464',
+      name: 'welcome_msg',
+      language: 'en',
+      category: 'MARKETING',
+      parameter_format: 'NAMED',
+      status: 'PENDING',
+      components: [
+        { type: 'HEADER', format: 'TEXT', text: 'Hello' },
+        { type: 'BODY', text: 'Hello! {{customer_name}} Welcome to our official WhatsApp channel. Thank you for connecting with us.' }
+      ],
+      created_at: new Date()
     }
   ];
 
@@ -389,9 +464,176 @@ async function initFallbackStore() {
     { id: 1, business_id: 1, metric_type: 'messages_sent', quantity: 5, period_month: '2026-10', recorded_at: new Date() }
   ];
 
+  seedInboxData(memoryStore);
+
   fallbackInitialized = true;
   saveMemoryStore();
   startAutoPersistence();
+}
+
+function seedInboxData(store) {
+  if (!store.whatsapp_conversations) store.whatsapp_conversations = [];
+  if (!store.whatsapp_messages) store.whatsapp_messages = [];
+  if (!store.whatsapp_message_media) store.whatsapp_message_media = [];
+  if (!store.whatsapp_conversation_assignments) store.whatsapp_conversation_assignments = [];
+  if (!store.whatsapp_conversation_notes) store.whatsapp_conversation_notes = [];
+  if (!store.whatsapp_conversation_events) store.whatsapp_conversation_events = [];
+
+  if (store.whatsapp_conversations.length === 0) {
+    const now = Date.now();
+    // Conversation 1: Ananya Gupta (Active 24h window open)
+    store.whatsapp_conversations.push({
+      id: 1,
+      business_id: 1,
+      whatsapp_account_id: 1,
+      contact_id: 1,
+      customer_phone: '+919811122233',
+      assigned_user_id: 4, // Amit Verma (Agent)
+      status: 'open',
+      unread_count: 1,
+      last_message_id: 3,
+      last_message_text: 'Great! Can you share the festive catalogue link?',
+      last_message_at: new Date(now - 12 * 60000), // 12 mins ago
+      last_incoming_message_at: new Date(now - 12 * 60000),
+      service_window_expires_at: new Date(now + 23 * 3600000), // Window open for 23 hrs
+      created_at: new Date(now - 2 * 3600000),
+      updated_at: new Date(now - 12 * 60000)
+    });
+
+    store.whatsapp_messages.push(
+      {
+        id: 1,
+        business_id: 1,
+        conversation_id: 1,
+        contact_id: 1,
+        whatsapp_account_id: 1,
+        meta_message_id: `wamid.seed_in_1_${now}`,
+        direction: 'INBOUND',
+        message_type: 'text',
+        message_body: 'Hi, I saw your festive collection. Is delivery available in Delhi NCR?',
+        message_status: 'delivered',
+        created_at: new Date(now - 45 * 60000),
+        updated_at: new Date(now - 45 * 60000)
+      },
+      {
+        id: 2,
+        business_id: 1,
+        conversation_id: 1,
+        contact_id: 1,
+        whatsapp_account_id: 1,
+        meta_message_id: `wamid.seed_out_2_${now}`,
+        direction: 'OUTBOUND',
+        message_type: 'text',
+        message_body: 'Hello Ananya! Yes, we offer express same-day delivery in Delhi NCR.',
+        message_status: 'read',
+        sender_user_id: 4,
+        sent_at: new Date(now - 30 * 60000),
+        delivered_at: new Date(now - 29 * 60000),
+        read_at: new Date(now - 25 * 60000),
+        created_at: new Date(now - 30 * 60000),
+        updated_at: new Date(now - 25 * 60000)
+      },
+      {
+        id: 3,
+        business_id: 1,
+        conversation_id: 1,
+        contact_id: 1,
+        whatsapp_account_id: 1,
+        meta_message_id: `wamid.seed_in_3_${now}`,
+        direction: 'INBOUND',
+        message_type: 'text',
+        message_body: 'Great! Can you share the festive catalogue link?',
+        message_status: 'delivered',
+        created_at: new Date(now - 12 * 60000),
+        updated_at: new Date(now - 12 * 60000)
+      }
+    );
+
+    // Conversation 2: Vikram Malhotra (24h Window EXPIRED)
+    store.whatsapp_conversations.push({
+      id: 2,
+      business_id: 1,
+      whatsapp_account_id: 1,
+      contact_id: 2,
+      customer_phone: '+919822233344',
+      assigned_user_id: null, // Unassigned
+      status: 'open',
+      unread_count: 0,
+      last_message_id: 4,
+      last_message_text: 'Thank you for connecting with us.',
+      last_message_at: new Date(now - 26 * 3600000), // 26 hrs ago
+      last_incoming_message_at: new Date(now - 28 * 3600000),
+      service_window_expires_at: new Date(now - 4 * 3600000), // Expired 4 hours ago!
+      created_at: new Date(now - 28 * 3600000),
+      updated_at: new Date(now - 26 * 3600000)
+    });
+
+    store.whatsapp_messages.push(
+      {
+        id: 4,
+        business_id: 1,
+        conversation_id: 2,
+        contact_id: 2,
+        whatsapp_account_id: 1,
+        meta_message_id: `wamid.seed_out_4_${now}`,
+        direction: 'OUTBOUND',
+        message_type: 'text',
+        message_body: 'Thank you for connecting with us.',
+        message_status: 'read',
+        sender_user_id: 2,
+        created_at: new Date(now - 26 * 3600000),
+        updated_at: new Date(now - 26 * 3600000)
+      }
+    );
+
+    // Conversation 3: Closed Conversation for filtering verification
+    store.whatsapp_conversations.push({
+      id: 3,
+      business_id: 1,
+      whatsapp_account_id: 1,
+      contact_id: 3,
+      customer_phone: '+919833344455',
+      assigned_user_id: 2, // Rahul (Owner)
+      status: 'closed',
+      unread_count: 0,
+      last_message_id: 5,
+      last_message_text: 'Your order #ORD-9821 has been marked resolved.',
+      last_message_at: new Date(now - 48 * 3600000),
+      last_incoming_message_at: new Date(now - 50 * 3600000),
+      service_window_expires_at: new Date(now - 26 * 3600000),
+      created_at: new Date(now - 50 * 3600000),
+      updated_at: new Date(now - 48 * 3600000)
+    });
+
+    store.whatsapp_messages.push(
+      {
+        id: 5,
+        business_id: 1,
+        conversation_id: 3,
+        contact_id: 3,
+        whatsapp_account_id: 1,
+        meta_message_id: `wamid.seed_out_5_${now}`,
+        direction: 'OUTBOUND',
+        message_type: 'text',
+        message_body: 'Your order #ORD-9821 has been marked resolved.',
+        message_status: 'read',
+        sender_user_id: 2,
+        created_at: new Date(now - 48 * 3600000),
+        updated_at: new Date(now - 48 * 3600000)
+      }
+    );
+
+    // Initial note on Ananya Gupta
+    store.whatsapp_conversation_notes.push({
+      id: 1,
+      business_id: 1,
+      conversation_id: 1,
+      user_id: 4,
+      note: 'Customer is looking for premium festive hampers. Follow up with catalog by evening.',
+      created_at: new Date(now - 20 * 60000),
+      updated_at: new Date(now - 20 * 60000)
+    });
+  }
 }
 
 let persistenceInterval = null;

@@ -128,6 +128,7 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
   let successful = 0;
   let failed = 0;
   let duplicates = 0;
+  const contactIds = [];
   const rowReports = [];
 
   for (let i = 0; i < rows.length; i++) {
@@ -193,6 +194,7 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
       }
 
       successful++;
+      contactIds.push(Number(existing.id));
       rowReports.push({ row_number: rowNum, phone, status: 'imported', error_reason: 'Existing contact updated' });
       continue;
     }
@@ -212,9 +214,11 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
     }
 
     // 5. Insert new contact and record verifiable consent
+    let insertedContactId;
     if (isUsingFallback()) {
       const store = getMemoryStore();
       const newContactId = store.contacts.length + 1;
+      insertedContactId = newContactId;
       store.contacts.push({
         id: newContactId,
         business_id: Number(businessId),
@@ -255,6 +259,7 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
         [businessId, phone, defaultCountryCode, name || null, email || null]
       );
       const contactId = insertRes.insertId;
+      insertedContactId = contactId;
 
       await executeQuery(
         `INSERT INTO contact_consents (business_id, contact_id, consent_status, consent_source, consent_category, proof_notes)
@@ -276,6 +281,7 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
     }
 
     successful++;
+    contactIds.push(Number(insertedContactId));
     rowReports.push({ row_number: rowNum, phone, status: 'imported', error_reason: null });
   }
 
@@ -315,6 +321,7 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
     failed,
     duplicates,
     status: 'completed',
+    contactIds,
     rowReports: rowReports.filter(r => r.status !== 'imported')
   };
 }

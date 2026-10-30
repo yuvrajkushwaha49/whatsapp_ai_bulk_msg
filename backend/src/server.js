@@ -1,5 +1,7 @@
+import http from 'http';
 import app from './app.js';
 import { checkConnection } from './database/db.js';
+import { initSocketServer } from './socket.js';
 import logger from './utils/logger.js';
 import dotenv from 'dotenv';
 
@@ -11,14 +13,17 @@ async function startServer() {
   logger.info('⚡ [Server] Checking database connection...');
   await checkConnection();
 
-  const server = app.listen(PORT, () => {
+  const httpServer = http.createServer(app);
+  initSocketServer(httpServer);
+
+  httpServer.listen(PORT, () => {
     logger.info(`✨ CampaignFlow Backend API listening on port ${PORT}`);
     logger.info(`🌐 Health check available at http://localhost:${PORT}/api/health`);
   });
 
   const handleShutdown = (signal) => {
     logger.info(`🛑 Received ${signal}. Shutting down gracefully...`);
-    server.close(() => {
+    httpServer.close(() => {
       logger.info('👋 Server closed. Exiting process.');
       process.exit(0);
     });

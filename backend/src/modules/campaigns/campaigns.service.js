@@ -100,20 +100,31 @@ export async function previewAudience(businessId, { tagIds = [], contactIds = []
   };
 }
 
-export async function preflightCheck(businessId, { whatsappAccountId, templateId, tagIds = [], contactIds = [] }) {
+export async function preflightCheck(businessId, { whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [] }) {
   const issues = [];
 
-  // 1. Verify WhatsApp Account
-  let account;
+  const accountIdsList = Array.isArray(whatsappAccountIds) && whatsappAccountIds.length > 0
+    ? whatsappAccountIds.map(Number)
+    : (whatsappAccountId ? [Number(whatsappAccountId)] : []);
+
+  // 1. Verify WhatsApp Account(s)
+  let accounts = [];
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    account = store.whatsapp_accounts.find(a => a.id === Number(whatsappAccountId) && a.business_id === Number(businessId));
+    accounts = store.whatsapp_accounts.filter(a => accountIdsList.includes(a.id) && a.business_id === Number(businessId));
+    if (accounts.length === 0 && whatsappAccountId) {
+      const single = store.whatsapp_accounts.find(a => a.id === Number(whatsappAccountId) && a.business_id === Number(businessId));
+      if (single) accounts = [single];
+    }
   } else {
-    const aRows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ? AND business_id = ?', [whatsappAccountId, businessId]);
-    account = aRows[0];
+    if (accountIdsList.length > 0) {
+      accounts = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id IN (?) AND business_id = ?', [accountIdsList, businessId]);
+    }
   }
 
-  if (!account || account.status !== 'connected') {
+  const primaryAccount = accounts[0];
+
+  if (!primaryAccount || accounts.some(a => a.status !== 'connected')) {
     issues.push('WhatsApp Account is not connected or requires reauthorization.');
   }
 
@@ -131,6 +142,8 @@ export async function preflightCheck(businessId, { whatsappAccountId, templateId
     issues.push('Selected template was not found.');
   } else if (template.status !== 'APPROVED') {
     issues.push(`Selected template status is "${template.status}". Only Meta-APPROVED templates can be sent.`);
+  } else if (template.name === 'hello_world' && accounts.some(a => a.phone_number?.includes('+91') || a.display_name?.includes('Indian'))) {
+    issues.push("Meta Policy Restriction (#131058): The 'hello_world' sample template can only be sent from Meta Public Test Numbers (+1 555-199-9056). Real Indian registered numbers require custom approved templates (e.g. welcome_msg).");
   }
 
   // 3. Audience Count

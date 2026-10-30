@@ -116,6 +116,18 @@ export default function CsvImport() {
     setFileName('sample_festive_audience.csv');
   };
 
+  const handleDownloadSampleCsv = () => {
+    const blob = new Blob([SAMPLE_CSV], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_audience_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
@@ -123,6 +135,15 @@ export default function CsvImport() {
           <h2 className="brand-font mb-1">CSV Audience Importer</h2>
           <p className="text-muted mb-0">Bulk contact ingestion with E.164 normalization, intra-file deduplication & consent checks</p>
         </div>
+        <button
+          type="button"
+          onClick={handleDownloadSampleCsv}
+          className="btn btn-outline-primary d-inline-flex align-items-center gap-2 shadow-sm fw-semibold"
+          title="Download sample CSV template"
+        >
+          <i className="bi bi-cloud-arrow-down-fill fs-5"></i>
+          <span>Download Sample CSV Template</span>
+        </button>
       </div>
 
       {/* Wizard Stepper */}
@@ -152,17 +173,43 @@ export default function CsvImport() {
       {/* Step 1: Upload or Paste */}
       {step === 1 && (
         <div className="cf-card mb-4">
-          <div className="cf-card-header">
+          <div className="cf-card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h5 className="mb-0">Step 1: Choose CSV File or Paste Data</h5>
-            <button onClick={loadSampleData} className="btn btn-sm btn-outline-success">
-              <i className="bi bi-magic me-1"></i> Load Test Sample CSV
-            </button>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleDownloadSampleCsv}
+                className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm fw-semibold"
+                title="Download CSV format with standard headers"
+              >
+                <i className="bi bi-cloud-arrow-down-fill"></i>
+                Download Sample CSV
+              </button>
+              <button
+                type="button"
+                onClick={loadSampleData}
+                className="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1"
+                title="Populate test data into the input box"
+              >
+                <i className="bi bi-magic"></i>
+                Load Test Sample CSV
+              </button>
+            </div>
           </div>
           <div className="cf-card-body">
             <div className="mb-4 text-center p-4 border border-2 border-dashed rounded-3 bg-light">
               <i className="bi bi-filetype-csv fs-1 text-success mb-2"></i>
               <div className="fw-semibold">Upload your customer CSV file</div>
-              <p className="text-muted small">Max 50,000 rows. Formats supported: .csv (UTF-8)</p>
+              <p className="text-muted small mb-3">
+                Max 50,000 rows. Formats supported: .csv (UTF-8) • Need a starting template?{' '}
+                <button
+                  type="button"
+                  onClick={handleDownloadSampleCsv}
+                  className="btn btn-link btn-sm p-0 text-decoration-none fw-semibold"
+                >
+                  <i className="bi bi-download me-1"></i>Download CSV Template
+                </button>
+              </p>
               <input 
                 type="file" 
                 accept=".csv" 

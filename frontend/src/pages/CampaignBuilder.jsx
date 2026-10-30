@@ -20,13 +20,24 @@ export default function CampaignBuilder() {
     var_3: 'FESTIVE30'
   });
 
-  // Audience Targeting Mode: 'tags' (Segment Tags / All) vs 'specific' (Select Specific Contacts)
+  // Audience Targeting Mode: 'tags' (Segment Tags / All), 'specific' (Pick Specific Contacts), 'csv' (Upload CSV Audience)
   const [audienceMode, setAudienceMode] = useState('tags');
   const [selectedContactIds, setSelectedContactIds] = useState([]);
   const [availableContacts, setAvailableContacts] = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
   const [optedInOnly, setOptedInOnly] = useState(true);
+
+  // CSV Upload, Validation & Review State
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvRawText, setCsvRawText] = useState('');
+  const [csvReviewRows, setCsvReviewRows] = useState([]);
+  const [csvStats, setCsvStats] = useState({ total: 0, valid: 0, duplicates: 0, invalid: 0 });
+  const [csvFilterTab, setCsvFilterTab] = useState('all'); // 'all' | 'valid' | 'duplicates' | 'invalid'
+  const [csvSearchTerm, setCsvSearchTerm] = useState('');
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
+  const [csvAppliedMessage, setCsvAppliedMessage] = useState(null);
+  const [csvColumnMapping, setCsvColumnMapping] = useState({ phone: '', name: '', email: '', tag: '' });
 
   // Resources
   const [accounts, setAccounts] = useState([]);
@@ -143,6 +154,236 @@ export default function CampaignBuilder() {
     }
   };
 
+  // Download CSV Template
+  const handleDownloadCsvTemplate = () => {
+    const headers = 'Phone,Name,Email,City,Tag\n';
+    const sampleRows = [
+      '+919565763089,Yuvraj Kushwaha,yuvi@example.com,Lucknow,VIP',
+      '+918601467210,Rahul Sharma,rahul@example.com,Delhi,Customer',
+      '+919876543210,Pooja Verma,pooja@example.com,Mumbai,FestiveLead',
+      '+919123456780,Amit Patel,amit@example.com,Bangalore,Retail',
+      '+919988776655,Sneha Gupta,sneha@example.com,Pune,NewLead'
+    ].join('\n');
+    const blob = new Blob([headers + sampleRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'campaignflow_audience_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Helper to parse line with quotes
+  const parseCsvLine = (line) => {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === ',' && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
+  // Phone normalizer for Indian & International numbers
+  const normalizePhoneNumber = (raw) => {
+    if (!raw) return { isValid: false, phone: '', error: 'Empty phone number' };
+    const cleaned = String(raw).replace(/[^\d+]/g, '');
+    if (!cleaned) return { isValid: false, phone: '', error: 'Invalid characters in phone' };
+
+    let formatted = cleaned;
+    if (formatted.startsWith('+')) {
+      // E.164 already
+    } else if (formatted.startsWith('00')) {
+      formatted = '+' + formatted.slice(2);
+    } else if (formatted.length === 10 && /^[6-9]/.test(formatted)) {
+      formatted = '+91' + formatted;
+    } else if (formatted.length === 12 && formatted.startsWith('91')) {
+      formatted = '+' + formatted;
+    } else if (formatted.length >= 10 && formatted.length <= 15) {
+      formatted = '+' + formatted;
+    }
+
+    const isValid = /^\+[1-9]\d{9,14}$/.test(formatted);
+    return {
+      isValid,
+      phone: formatted,
+      error: isValid ? null : 'Invalid phone format (must be 10-15 digits E.164, e.g. +919565763089)'
+    };
+  };
+
+  // Process raw CSV text into review rows & stats
+  const processCsvText = (text, fileName = 'contacts.csv') => {
+    setCsvRawText(text);
+    setCsvFileName(fileName);
+    setCsvAppliedMessage(null);
+    setError('');
+
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length === 0) {
+      setCsvReviewRows([]);
+      setCsvStats({ total: 0, valid: 0, duplicates: 0, invalid: 0 });
+      return;
+    }
+
+    const headers = parseCsvLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+    
+    // Auto-detect columns
+    let phoneCol = headers.find(h => /phone|mobile|contact|number|whatsapp/i.test(h)) || headers[0];
+    let nameCol = headers.find(h => /name|customer|full_name/i.test(h)) || '';
+    let emailCol = headers.find(h => /email|mail/i.test(h)) || '';
+    let tagCol = headers.find(h => /tag|segment|group|city/i.test(h)) || '';
+
+    setCsvColumnMapping({ phone: phoneCol, name: nameCol, email: emailCol, tag: tagCol });
+
+    const seenPhones = new Set();
+    const rows = [];
+    let validCount = 0;
+    let duplicateCount = 0;
+    let invalidCount = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+      const vals = parseCsvLine(lines[i]);
+      const rowObj = {};
+      headers.forEach((h, idx) => {
+        rowObj[h] = vals[idx] !== undefined ? vals[idx] : '';
+      });
+
+      const rawPhone = rowObj[phoneCol] || '';
+      const name = nameCol ? rowObj[nameCol] : '';
+      const email = emailCol ? rowObj[emailCol] : '';
+      const tag = tagCol ? rowObj[tagCol] : '';
+
+      const norm = normalizePhoneNumber(rawPhone);
+      let status = 'valid';
+      let note = 'Ready for broadcast';
+
+      if (!norm.isValid) {
+        status = 'invalid';
+        note = norm.error || 'Invalid phone format';
+        invalidCount++;
+      } else if (seenPhones.has(norm.phone)) {
+        status = 'duplicate';
+        note = 'Duplicate phone number in file';
+        duplicateCount++;
+      } else {
+        seenPhones.add(norm.phone);
+        validCount++;
+      }
+
+      rows.push({
+        id: i,
+        rowNumber: i,
+        rawPhone,
+        phone: norm.phone || rawPhone,
+        name: name || '—',
+        email: email || '—',
+        tag: tag || '—',
+        status,
+        note
+      });
+    }
+
+    setCsvReviewRows(rows);
+    setCsvStats({
+      total: rows.length,
+      valid: validCount,
+      duplicates: duplicateCount,
+      invalid: invalidCount
+    });
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const content = evt.target.result;
+      processCsvText(content, file.name);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleLoadDemoCsv = () => {
+    const demoData = `Phone,Name,Email,City,Tag
++919565763089,Yuvraj Kushwaha,yuvi@example.com,Lucknow,VIP
++918601467210,Rahul Sharma,rahul@example.com,Delhi,Customer
++919876543210,Pooja Patel,pooja@example.com,Mumbai,FestiveLead
++919876543210,Pooja Duplicate,pooja.dup@example.com,Mumbai,FestiveLead
+9811223344,Amit Verma,amit@example.com,Bangalore,Retail
+9988776655,Sneha Rao,sneha@example.com,Pune,NewLead
+12345,Invalid Entry,invalid@example.com,Goa,Test`;
+    processCsvText(demoData, 'festive_demo_audience.csv');
+  };
+
+  // Import and attach CSV contacts to campaign
+  const handleApplyCsvContacts = async () => {
+    if (!csvRawText || csvStats.valid === 0) {
+      setError('Please upload a valid CSV file with at least one valid phone number.');
+      return;
+    }
+
+    try {
+      setIsImportingCsv(true);
+      setError('');
+      setCsvAppliedMessage(null);
+
+      const res = await api.post('/imports/execute', {
+        csvText: csvRawText,
+        fileName: csvFileName || 'campaign_audience.csv',
+        columnMapping: {
+          phone: csvColumnMapping.phone,
+          name: csvColumnMapping.name || undefined,
+          email: csvColumnMapping.email || undefined,
+          tag: csvColumnMapping.tag || undefined,
+          consent: 'consent'
+        },
+        consentSource: 'csv_campaign_audience_builder',
+        defaultCountryCode: '91'
+      });
+
+      if (res.data?.success) {
+        const importData = res.data.data;
+        const importedIds = importData.contactIds || [];
+
+        // Refresh available contacts in workspace
+        const contactsRes = await api.get('/contacts?limit=500');
+        if (contactsRes.data?.contacts) {
+          setAvailableContacts(contactsRes.data.contacts);
+        }
+
+        // Set selected contacts to the imported ones
+        if (importedIds.length > 0) {
+          setSelectedContactIds(importedIds);
+        }
+
+        setCsvAppliedMessage({
+          type: 'success',
+          text: `Successfully verified and imported ${importData.successful} contact(s) (${importData.duplicates} duplicates skipped, ${importData.failed} invalid). They are now applied to this campaign broadcast! You can proceed to Next: Select Template.`
+        });
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Failed to import and apply CSV audience.');
+    } finally {
+      setIsImportingCsv(false);
+    }
+  };
+
   const handleAudiencePreview = async () => {
     try {
       setLoading(true);
@@ -156,7 +397,15 @@ export default function CampaignBuilder() {
         }
       }
 
-      const payload = audienceMode === 'specific'
+      if (audienceMode === 'csv') {
+        if (selectedContactIds.length === 0) {
+          setError('Please click "Confirm & Apply CSV Contacts to Campaign" to verify and target your audience before proceeding.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      const payload = (audienceMode === 'specific' || audienceMode === 'csv')
         ? { contactIds: selectedContactIds }
         : { tagIds: selectedTagIds };
 
@@ -179,7 +428,7 @@ export default function CampaignBuilder() {
       const payload = {
         whatsappAccountId: selectedAccountIds[0],
         templateId,
-        ...(audienceMode === 'specific'
+        ...((audienceMode === 'specific' || audienceMode === 'csv')
           ? { contactIds: selectedContactIds }
           : { tagIds: selectedTagIds })
       };
@@ -208,7 +457,7 @@ export default function CampaignBuilder() {
         whatsappAccountIds: selectedAccountIds,
         templateId,
         variableMappings,
-        ...(audienceMode === 'specific'
+        ...((audienceMode === 'specific' || audienceMode === 'csv')
           ? { contactIds: selectedContactIds }
           : { tagIds: selectedTagIds })
       };
@@ -241,6 +490,24 @@ export default function CampaignBuilder() {
       (c.phone && c.phone.includes(q)) ||
       (c.email && c.email.toLowerCase().includes(q))
     );
+  });
+
+  // Filter CSV review rows by active tab and search query
+  const filteredCsvReviewRows = csvReviewRows.filter((row) => {
+    if (csvFilterTab === 'valid' && row.status !== 'valid') return false;
+    if (csvFilterTab === 'duplicates' && row.status !== 'duplicate') return false;
+    if (csvFilterTab === 'invalid' && row.status !== 'invalid') return false;
+    if (csvSearchTerm.trim()) {
+      const q = csvSearchTerm.toLowerCase();
+      return (
+        row.phone.toLowerCase().includes(q) ||
+        row.rawPhone.toLowerCase().includes(q) ||
+        (row.name && row.name.toLowerCase().includes(q)) ||
+        (row.email && row.email.toLowerCase().includes(q)) ||
+        (row.tag && row.tag.toLowerCase().includes(q))
+      );
+    }
+    return true;
   });
 
   return (
@@ -433,7 +700,7 @@ export default function CampaignBuilder() {
           <div className="cf-card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h5 className="mb-0">Step 2: Audience Selection & Segment Filters</h5>
-              <div className="text-muted small">Choose whether to broadcast by segment tags, target all contacts, or hand-pick specific contacts.</div>
+              <div className="text-muted small">Choose whether to broadcast by segment tags, target all contacts, hand-pick specific contacts, or upload a CSV file.</div>
             </div>
             {/* Mode Switcher Tabs */}
             <div className="btn-group" role="group">
@@ -452,14 +719,27 @@ export default function CampaignBuilder() {
               >
                 <i className="bi bi-people-fill me-1"></i>
                 Pick Specific Contacts
-                {selectedContactIds.length > 0 && (
+                {selectedContactIds.length > 0 && audienceMode !== 'csv' && (
                   <span className="badge bg-light text-success ms-1">{selectedContactIds.length}</span>
                 )}
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${audienceMode === 'csv' ? 'btn-success fw-bold' : 'btn-outline-secondary'}`}
+                onClick={() => setAudienceMode('csv')}
+              >
+                <i className="bi bi-file-earmark-spreadsheet-fill me-1"></i>
+                Upload CSV Audience
+                {audienceMode === 'csv' && selectedContactIds.length > 0 ? (
+                  <span className="badge bg-light text-success ms-1">{selectedContactIds.length}</span>
+                ) : csvStats.valid > 0 ? (
+                  <span className="badge bg-light text-success ms-1">{csvStats.valid}</span>
+                ) : null}
               </button>
             </div>
           </div>
           <div className="cf-card-body">
-            {audienceMode === 'tags' ? (
+            {audienceMode === 'tags' && (
               <div>
                 <p className="text-muted small mb-3">
                   Choose segment tags to target specific customer groups. Only contacts with active, verified marketing opt-in consent will be included.
@@ -494,11 +774,13 @@ export default function CampaignBuilder() {
                   </div>
                   <div className="form-text small mt-2">
                     <i className="bi bi-info-circle me-1"></i>
-                    Leave empty to target all eligible opted-in contacts in your workspace. Or switch to <strong>"Pick Specific Contacts"</strong> above to hand-pick individual numbers.
+                    Leave empty to target all eligible opted-in contacts in your workspace. Or switch to <strong>"Pick Specific Contacts"</strong> or <strong>"Upload CSV Audience"</strong> above.
                   </div>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {audienceMode === 'specific' && (
               <div>
                 <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
                   <div>
@@ -716,10 +998,332 @@ export default function CampaignBuilder() {
                     <strong>Targeting Mode:</strong> {selectedContactIds.length > 0 ? (
                       <span>You have hand-picked <strong>{selectedContactIds.length}</strong> contact(s). Only these specific numbers will receive this WhatsApp broadcast.</span>
                     ) : (
-                      <span>Please check one or more contact checkboxes to create a targeted list, or click <strong>"Target by Tags / All"</strong> to send to entire segments.</span>
+                      <span>Please check one or more contact checkboxes to create a targeted list, or click <strong>"Target by Tags / All"</strong> or <strong>"Upload CSV Audience"</strong> above.</span>
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* AUDIENCE MODE 3: UPLOAD CSV AUDIENCE */}
+            {audienceMode === 'csv' && (
+              <div>
+                {/* Header Action Bar with Download Template & Load Sample */}
+                <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
+                  <div>
+                    <h6 className="fw-bold mb-1 d-flex align-items-center gap-2">
+                      <i className="bi bi-file-earmark-spreadsheet-fill text-success"></i>
+                      Upload Audience CSV with Live Phone Validation & Review
+                    </h6>
+                    <p className="text-muted small mb-0">
+                      Upload your customer list in CSV format. We will automatically format phone numbers to E.164 (+91...), flag duplicates, and allow you to review all rows before attaching.
+                    </p>
+                  </div>
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      id="downloadCsvTemplateBtn"
+                      onClick={handleDownloadCsvTemplate}
+                      className="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1 fw-semibold shadow-sm"
+                      title="Download clean CSV format with sample headers"
+                    >
+                      <i className="bi bi-cloud-arrow-down-fill"></i>
+                      Download CSV Template
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLoadDemoCsv}
+                      className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                      title="Quickly test with demo audience numbers"
+                    >
+                      <i className="bi bi-magic"></i>
+                      Load Sample Demo Data
+                    </button>
+                  </div>
+                </div>
+
+                {/* Upload Zone */}
+                <div className="p-4 mb-4 border border-2 border-dashed rounded-3 bg-light text-center">
+                  <div className="d-flex flex-column align-items-center justify-content-center">
+                    <div className="rounded-circle bg-success-subtle text-success p-3 mb-2">
+                      <i className="bi bi-filetype-csv fs-1"></i>
+                    </div>
+                    <h6 className="fw-bold mb-1">
+                      {csvFileName ? `File Selected: ${csvFileName}` : 'Choose or Drag & Drop your Audience CSV file'}
+                    </h6>
+                    <p className="text-muted small mb-3">
+                      Columns expected: <code>Phone</code>, <code>Name</code>, <code>Email</code>, <code>City / Tag</code> (Supported: .csv, .txt)
+                    </p>
+                    <div className="d-flex align-items-center gap-2">
+                      <label className="btn btn-sm btn-success px-4 py-2 cursor-pointer shadow-sm fw-semibold">
+                        <i className="bi bi-folder2-open me-2"></i>
+                        {csvFileName ? 'Change CSV File' : 'Browse CSV File'}
+                        <input
+                          type="file"
+                          accept=".csv, text/csv, text/plain"
+                          className="d-none"
+                          onChange={handleFileUpload}
+                        />
+                      </label>
+                      {csvFileName && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => {
+                            setCsvRawText('');
+                            setCsvFileName('');
+                            setCsvReviewRows([]);
+                            setCsvStats({ total: 0, valid: 0, duplicates: 0, invalid: 0 });
+                            setCsvAppliedMessage(null);
+                          }}
+                        >
+                          <i className="bi bi-trash me-1"></i> Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Applied / Success Feedback Notification */}
+                {csvAppliedMessage && (
+                  <div className={`alert alert-${csvAppliedMessage.type} alert-dismissible fade show d-flex align-items-center gap-2 mb-4 shadow-sm`} role="alert">
+                    <i className="bi bi-check-circle-fill fs-5 text-success"></i>
+                    <div className="flex-grow-1">
+                      <strong>Audience Attached:</strong> {csvAppliedMessage.text}
+                    </div>
+                    <button type="button" className="btn-close" onClick={() => setCsvAppliedMessage(null)}></button>
+                  </div>
+                )}
+
+                {/* Review Section (shown when rows are parsed) */}
+                {csvReviewRows.length > 0 ? (
+                  <div>
+                    {/* Validation Metrics Summary Cards */}
+                    <div className="row g-2 mb-3 text-center">
+                      <div className="col-6 col-md-3">
+                        <div
+                          className={`p-3 border rounded-3 bg-white h-100 ${csvFilterTab === 'all' ? 'border-primary ring-2 shadow-sm' : ''}`}
+                          onClick={() => setCsvFilterTab('all')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="text-muted small fw-semibold">Total Rows</div>
+                          <div className="fs-4 fw-bold text-dark">{csvStats.total}</div>
+                          <span className="badge bg-light text-dark border small">All records</span>
+                        </div>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <div
+                          className={`p-3 border rounded-3 bg-success-subtle border-success-subtle h-100 ${csvFilterTab === 'valid' ? 'border-success shadow-sm' : ''}`}
+                          onClick={() => setCsvFilterTab('valid')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="text-success small fw-semibold">Valid & Ready</div>
+                          <div className="fs-4 fw-bold text-success">{csvStats.valid}</div>
+                          <span className="badge bg-success small">Targetable</span>
+                        </div>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <div
+                          className={`p-3 border rounded-3 bg-warning-subtle border-warning-subtle h-100 ${csvFilterTab === 'duplicates' ? 'border-warning shadow-sm' : ''}`}
+                          onClick={() => setCsvFilterTab('duplicates')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="text-warning-emphasis small fw-semibold">Duplicates in File</div>
+                          <div className="fs-4 fw-bold text-warning-emphasis">{csvStats.duplicates}</div>
+                          <span className="badge bg-warning text-dark small">Skipped</span>
+                        </div>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <div
+                          className={`p-3 border rounded-3 bg-danger-subtle border-danger-subtle h-100 ${csvFilterTab === 'invalid' ? 'border-danger shadow-sm' : ''}`}
+                          onClick={() => setCsvFilterTab('invalid')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="text-danger small fw-semibold">Invalid / Ineligible</div>
+                          <div className="fs-4 fw-bold text-danger">{csvStats.invalid}</div>
+                          <span className="badge bg-danger small">Needs Fix</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Filter Tabs and Search Bar inside Review */}
+                    <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                      <div className="btn-group btn-group-sm" role="group">
+                        <button
+                          type="button"
+                          className={`btn ${csvFilterTab === 'all' ? 'btn-dark' : 'btn-outline-secondary'}`}
+                          onClick={() => setCsvFilterTab('all')}
+                        >
+                          All ({csvStats.total})
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn ${csvFilterTab === 'valid' ? 'btn-success' : 'btn-outline-success'}`}
+                          onClick={() => setCsvFilterTab('valid')}
+                        >
+                          Valid Only ({csvStats.valid})
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn ${csvFilterTab === 'duplicates' ? 'btn-warning text-dark' : 'btn-outline-warning'}`}
+                          onClick={() => setCsvFilterTab('duplicates')}
+                        >
+                          Duplicates ({csvStats.duplicates})
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn ${csvFilterTab === 'invalid' ? 'btn-danger' : 'btn-outline-danger'}`}
+                          onClick={() => setCsvFilterTab('invalid')}
+                        >
+                          Invalid ({csvStats.invalid})
+                        </button>
+                      </div>
+
+                      <div className="input-group input-group-sm" style={{ maxWidth: '320px' }}>
+                        <span className="input-group-text bg-white">
+                          <i className="bi bi-search text-muted"></i>
+                        </span>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Search in CSV rows..."
+                          value={csvSearchTerm}
+                          onChange={(e) => setCsvSearchTerm(e.target.value)}
+                        />
+                        {csvSearchTerm && (
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            onClick={() => setCsvSearchTerm('')}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Review Table */}
+                    <div className="table-responsive border rounded-3 mb-3" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                      <table className="table table-hover align-middle mb-0 cf-table">
+                        <thead className="table-light sticky-top">
+                          <tr>
+                            <th style={{ width: '40px' }} className="text-center">#</th>
+                            <th>Phone Number (Normalized E.164)</th>
+                            <th>Contact Name</th>
+                            <th>Email</th>
+                            <th>Tag / City</th>
+                            <th>Status</th>
+                            <th>Audit Note</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredCsvReviewRows.length === 0 ? (
+                            <tr>
+                              <td colSpan="7" className="text-center py-4 text-muted">
+                                No records match the active filter "{csvFilterTab}".
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredCsvReviewRows.map((r) => (
+                              <tr
+                                key={r.id}
+                                className={
+                                  r.status === 'valid'
+                                    ? ''
+                                    : r.status === 'duplicate'
+                                    ? 'table-warning bg-opacity-10'
+                                    : 'table-danger bg-opacity-10'
+                                }
+                              >
+                                <td className="text-center text-muted small">{r.rowNumber}</td>
+                                <td>
+                                  <div className="font-monospace fw-semibold">
+                                    <i className={`bi ${r.status === 'valid' ? 'bi-whatsapp text-success' : 'bi-telephone text-muted'} me-1`}></i>
+                                    {r.phone}
+                                  </div>
+                                  {r.rawPhone !== r.phone && (
+                                    <div className="text-muted small" style={{ fontSize: '0.75rem' }}>
+                                      Raw: {r.rawPhone}
+                                    </div>
+                                  )}
+                                </td>
+                                <td>
+                                  <div className="fw-bold text-dark">{r.name}</div>
+                                </td>
+                                <td className="text-muted small">{r.email}</td>
+                                <td>
+                                  {r.tag !== '—' ? (
+                                    <span className="badge bg-light text-dark border">{r.tag}</span>
+                                  ) : (
+                                    <span className="text-muted small">—</span>
+                                  )}
+                                </td>
+                                <td>
+                                  {r.status === 'valid' && (
+                                    <span className="badge bg-success-subtle text-success border border-success-subtle">
+                                      <i className="bi bi-check-circle-fill me-1"></i>
+                                      Valid & Ready
+                                    </span>
+                                  )}
+                                  {r.status === 'duplicate' && (
+                                    <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                      <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                                      Duplicate
+                                    </span>
+                                  )}
+                                  {r.status === 'invalid' && (
+                                    <span className="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                      <i className="bi bi-x-circle-fill me-1"></i>
+                                      Invalid
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="text-muted small">{r.note}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Bottom Action Bar for CSV */}
+                    <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between p-3 bg-light border rounded-3 gap-3">
+                      <div>
+                        <div className="fw-semibold text-dark">
+                          Ready to target {csvStats.valid} valid recipient(s)
+                        </div>
+                        <div className="text-muted small">
+                          Clicking below will save and verify consent for these contacts and immediately link them to this campaign broadcast.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleApplyCsvContacts}
+                        disabled={isImportingCsv || csvStats.valid === 0}
+                        className="btn btn-success fw-bold d-inline-flex align-items-center gap-2 px-4 shadow-sm"
+                      >
+                        {isImportingCsv ? (
+                          <>
+                            <div className="spinner-border spinner-border-sm" role="status"></div>
+                            <span>Applying Audience ({csvStats.valid})...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-check2-all fs-5"></i>
+                            <span>Confirm & Apply CSV Contacts ({csvStats.valid})</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="alert alert-secondary py-3 text-center mb-0">
+                    <i className="bi bi-cloud-arrow-up fs-3 text-muted d-block mb-1"></i>
+                    <span className="text-muted small">
+                      Please upload a CSV file above or click <strong>"Load Sample Demo Data"</strong> to preview your contacts.
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -730,7 +1334,7 @@ export default function CampaignBuilder() {
               <button
                 type="button"
                 onClick={handleAudiencePreview}
-                disabled={loading || (audienceMode === 'specific' && selectedContactIds.length === 0)}
+                disabled={loading || ((audienceMode === 'specific' || audienceMode === 'csv') && selectedContactIds.length === 0)}
                 className="btn btn-cf-primary d-flex align-items-center gap-2"
               >
                 {loading ? 'Estimating Audience...' : (
@@ -777,16 +1381,27 @@ export default function CampaignBuilder() {
                     : (typeof selectedTemplateObj?.components === 'string' ? JSON.parse(selectedTemplateObj?.components || '[]') : []);
                   const bodyComp = tplComps.find(c => c.type === 'BODY' || c.type === 'body');
                   const bodyText = bodyComp?.text || '';
-                  const placeholders = Array.from(new Set(bodyText.match(/\{\{\d+\}\}/g) || [])).sort();
+                  const placeholders = Array.from(new Set(bodyText.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [])).sort();
 
                   if (placeholders.length === 0) {
+                    const isHelloWorld = selectedTemplateObj?.name === 'hello_world';
+                    const hasIndianSender = selectedAccounts.some(acc => acc.phone_number?.includes('+91') || acc.display_name?.includes('Indian'));
+
                     return (
-                      <div className="alert alert-info py-3 small d-flex align-items-start gap-2 mt-3 mb-0">
-                        <i className="bi bi-check-circle-fill text-info fs-5 mt-1"></i>
+                      <div className={`alert ${isHelloWorld && hasIndianSender ? 'alert-warning' : 'alert-info'} py-3 small d-flex align-items-start gap-2 mt-3 mb-0`}>
+                        <i className={`bi ${isHelloWorld && hasIndianSender ? 'bi-exclamation-triangle-fill text-warning' : 'bi-check-circle-fill text-info'} fs-5 mt-1`}></i>
                         <div>
-                          <strong>Official Approved Fixed Template:</strong>
+                          <strong>{isHelloWorld && hasIndianSender ? 'Meta Cloud API Policy Notice (#131058):' : 'Official Approved Fixed Template:'}</strong>
                           <p className="mb-1 mt-1 text-muted">
-                            Template <code>{selectedTemplateObj?.name}</code> does not require custom parameter mapping. It is pre-approved by Meta and ready to send directly.
+                            {isHelloWorld && hasIndianSender ? (
+                              <>
+                                Meta strictly enforces that <code>hello_world</code> can <strong>ONLY</strong> be sent from Public Test Numbers (<code>+1 555-199-9056</code>). To broadcast from your Indian number (<code>+91 86014 67210</code>), select a custom approved template like <code>welcome_msg</code>.
+                              </>
+                            ) : (
+                              <>
+                                Template <code>{selectedTemplateObj?.name}</code> does not require custom parameter mapping. It is pre-approved by Meta and ready to send directly.
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -798,17 +1413,25 @@ export default function CampaignBuilder() {
                       <h6 className="fw-bold mt-4 mb-2">Map Template Placeholders ({placeholders.length} Required)</h6>
                       {placeholders.map((ph, idx) => {
                         const varKey = `var_${idx + 1}`;
+                        const cleanKey = ph.replace(/[{}]/g, '');
                         return (
                           <div key={ph} className="mb-3">
                             <label className="form-label small fw-semibold">
-                              Variable {ph} {idx === 0 ? '(e.g. Customer Name)' : `(Parameter ${idx + 1})`}
+                              Variable {ph} {idx === 0 ? '(e.g. Customer Name)' : `(Parameter: ${cleanKey})`}
                             </label>
                             <input
                               type="text"
                               className="form-control"
-                              placeholder={idx === 0 ? 'contact.name' : `Value for ${ph}`}
-                              value={variableMappings[varKey] || ''}
-                              onChange={(e) => setVariableMappings({ ...variableMappings, [varKey]: e.target.value })}
+                              placeholder={idx === 0 ? 'contact.name' : `Value for ${cleanKey}`}
+                              value={variableMappings[cleanKey] || variableMappings[varKey] || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setVariableMappings({
+                                  ...variableMappings,
+                                  [varKey]: val,
+                                  [cleanKey]: val
+                                });
+                              }}
                             />
                             {idx === 0 && <div className="form-text small">Use "contact.name" for recipient personalization.</div>}
                           </div>
@@ -834,10 +1457,14 @@ export default function CampaignBuilder() {
                       const btnComp = tplComps.find(c => c.type === 'BUTTONS' || c.type === 'buttons');
 
                       let previewBody = bodyComp?.text || 'Hello from WhatsApp';
-                      previewBody = previewBody
-                        .replace('{{1}}', variableMappings.var_1 === 'contact.name' ? 'Ananya Gupta' : (variableMappings.var_1 || 'Customer'))
-                        .replace('{{2}}', variableMappings.var_2 || '30')
-                        .replace('{{3}}', variableMappings.var_3 || 'FESTIVE30');
+                      const phMatches = Array.from(new Set(previewBody.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []));
+                      phMatches.forEach((ph, idx) => {
+                        const varKey = `var_${idx + 1}`;
+                        const cleanKey = ph.replace(/[{}]/g, '');
+                        const mappedVal = variableMappings[cleanKey] || variableMappings[varKey];
+                        const displayVal = (mappedVal === 'contact.name' || (!mappedVal && idx === 0)) ? 'Ananya Gupta' : (mappedVal || `[${cleanKey}]`);
+                        previewBody = previewBody.split(ph).join(displayVal);
+                      });
 
                       return (
                         <>

@@ -60,6 +60,36 @@ export async function executeCampaignDispatch(campaignId, businessId) {
     template = tRows[0];
   }
 
+  // Extract body component and text for placeholder substitution
+  const templateComps = Array.isArray(template?.components)
+    ? template.components
+    : (typeof template?.components === 'string' ? JSON.parse(template?.components || '[]') : []);
+  const bodyComponent = templateComps.find(c => c.type === 'BODY' || c.type === 'body');
+  const templateBodyText = bodyComponent?.text || '';
+
+  // Safety check: ensure template is APPROVED by Meta
+  if (template?.status !== 'APPROVED') {
+    logger.warn(`[CampaignWorker] Campaign #${campaignId} aborted: Template "${template?.name}" is ${template?.status}. Only Meta-APPROVED templates can be sent.`);
+    if (isUsingFallback()) {
+      campaign.status = 'failed';
+      const store = getMemoryStore();
+      store.campaign_recipients
+        .filter(r => r.campaign_id === Number(campaignId) && r.status === 'pending')
+        .forEach(r => {
+          r.status = 'failed';
+          r.skip_reason = `Template "${template?.name}" is not approved on Meta (Status: ${template?.status}).`;
+        });
+      saveMemoryStore();
+    } else {
+      await executeQuery('UPDATE campaigns SET status = "failed" WHERE id = ?', [campaignId]);
+      await executeQuery('UPDATE campaign_recipients SET status = "failed", skip_reason = ? WHERE campaign_id = ? AND status = "pending"', [
+        `Template "${template?.name}" is not approved on Meta.`,
+        campaignId
+      ]);
+    }
+    return;
+  }
+
   // Ensure campaign is not paused or cancelled
   if (['paused', 'cancelled', 'completed'].includes(campaign.status)) {
     logger.info(`[CampaignWorker] Campaign #${campaignId} is ${campaign.status}. Halting dispatch.`);
@@ -125,7 +155,10 @@ export async function executeCampaignDispatch(campaignId, businessId) {
       : (account || {});
 
     const tokenToUse = activeAccount?.access_token_encrypted || process.env.META_ACCESS_TOKEN;
-    const client = new MetaCloudApiClient(tokenToUse, activeAccount?.phone_number_id, activeAccount?.waba_id);
+    const phoneIdToUse = activeAccount?.phone_number_id || process.env.META_PHONE_NUMBER_ID;
+    const wabaIdToUse = activeAccount?.waba_id || process.env.META_WABA_ID;
+
+    const client = new MetaCloudApiClient(tokenToUse, phoneIdToUse, wabaIdToUse);
 
     // Check if campaign was paused or cancelled during loop
     if (isUsingFallback()) {
@@ -172,35 +205,32 @@ export async function executeCampaignDispatch(campaignId, businessId) {
       continue;
     }
 
-    // Inspect template components to check how many {{n}} placeholders exist in BODY
-    let templateBodyText = '';
-    const tplComponents = Array.isArray(template?.components) 
-      ? template.components 
-      : (typeof template?.components === 'string' ? JSON.parse(template.components || '[]') : []);
-    
-    const bodyComp = tplComponents.find(c => c.type === 'BODY' || c.type === 'body');
-    if (bodyComp && bodyComp.text) {
-      templateBodyText = bodyComp.text;
-    }
-
-    const placeholderMatches = templateBodyText.match(/\{\{\d+\}\}/g) || [];
-    const expectedVarCount = new Set(placeholderMatches).size;
+    // Extract placeholders (supports both positional {{1}} and named {{customer_name}})
+    const placeholderMatches = templateBodyText.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
+    const uniquePlaceholders = Array.from(new Set(placeholderMatches.map(p => p.replace(/[{}]/g, ''))));
 
     const components = [];
-    if (expectedVarCount > 0) {
+    if (uniquePlaceholders.length > 0) {
       const bodyParams = [];
-      for (let v = 1; v <= expectedVarCount; v++) {
-        let val = rawMappings[`var_${v}`];
+      uniquePlaceholders.forEach((ph, idx) => {
+        let val = rawMappings[`var_${idx + 1}`] || rawMappings[ph];
         if (!val || val === 'contact.name') {
           val = rec.contact_name || 'Customer';
         } else if (val === 'contact.phone') {
           val = rec.phone;
         }
-        bodyParams.push({
+
+        const paramObj = {
           type: 'text',
           text: String(val || '')
-        });
-      }
+        };
+        // If template uses NAMED parameter format (like customer_name)
+        if (template?.parameter_format === 'NAMED' || isNaN(Number(ph))) {
+          paramObj.parameter_name = ph;
+        }
+        bodyParams.push(paramObj);
+      });
+
       if (bodyParams.length > 0) {
         components.push({
           type: 'body',

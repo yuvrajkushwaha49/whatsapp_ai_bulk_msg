@@ -28,6 +28,13 @@ export default function Sidebar({ isOpen, onClose }) {
           </NavLink>
         </li>
         <li className="sidebar-item">
+          <NavLink to="/inbox" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+            <i className="bi bi-chat-dots-fill text-success"></i>
+            <span>WhatsApp Inbox</span>
+            <span className="badge bg-success ms-auto" style={{ fontSize: '0.65rem' }}>Live</span>
+          </NavLink>
+        </li>
+        <li className="sidebar-item">
           <NavLink to="/campaigns" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <i className="bi bi-send-fill"></i>
             <span>Campaigns</span>
@@ -70,7 +77,7 @@ export default function Sidebar({ isOpen, onClose }) {
         <li className="sidebar-item">
           <NavLink to="/templates" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <i className="bi bi-card-text"></i>
-            <span>Approved Templates</span>
+            <span>WhatsApp Templates</span>
           </NavLink>
         </li>
 

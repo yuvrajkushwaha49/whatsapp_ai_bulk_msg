@@ -14,6 +14,7 @@ import Contacts from './pages/Contacts';
 import CsvImport from './pages/CsvImport';
 import WhatsAppAccounts from './pages/WhatsAppAccounts';
 import Templates from './pages/Templates';
+import Inbox from './pages/Inbox';
 import CampaignList from './pages/CampaignList';
 import CampaignBuilder from './pages/CampaignBuilder';
 import CampaignReport from './pages/CampaignReport';
@@ -65,6 +66,7 @@ export default function App() {
       >
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/inbox" element={<Inbox />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/imports" element={<CsvImport />} />
         <Route path="/whatsapp" element={<WhatsAppAccounts />} />
