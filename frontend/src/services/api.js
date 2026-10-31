@@ -7,12 +7,21 @@ const api = axios.create({
   }
 });
 
-// Interceptor to inject Bearer token
+// Interceptor to inject Bearer token and tenant context
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('cf_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const userStr = localStorage.getItem('cf_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.business_id) {
+          config.headers['x-tenant-id'] = user.business_id;
+        }
+      } catch (e) {}
     }
     return config;
   },
