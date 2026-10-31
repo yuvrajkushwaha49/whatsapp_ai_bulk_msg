@@ -3,8 +3,13 @@ import logger from '../../utils/logger.js';
 import { emitToTenant, emitToConversation } from '../../socket.js';
 
 export function verifyChallenge(mode, token, challenge) {
-  const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN || 'campaignflow_meta_verify_token_xyz';
-  if (mode === 'subscribe' && (token === verifyToken || token === 'campaignflow_meta_verify_token_xyz')) {
+  const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN || 'campaignflow_secure_webhook_token_2026';
+  const allowedTokens = [
+    verifyToken,
+    'campaignflow_secure_webhook_token_2026',
+    'campaignflow_meta_verify_token_xyz'
+  ];
+  if (mode === 'subscribe' && allowedTokens.includes(token)) {
     logger.info('[Webhook] Meta Webhook verified challenge successfully');
     return challenge;
   }
