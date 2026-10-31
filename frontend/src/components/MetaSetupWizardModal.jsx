@@ -1661,21 +1661,37 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
 
                 {/* Error & Retry buttons */}
                 {verificationStatus !== 'CONNECTED' && verificationStatus !== 'CONNECTING' && (
-                  <div className="d-flex justify-content-center gap-2">
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      onClick={() => setStep(6)}
-                    >
-                      <i className="bi bi-arrow-left me-1"></i> Back to Login
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={handleLaunchSignup}
-                    >
-                      <i className="bi bi-arrow-clockwise me-1"></i> Retry Connection
-                    </button>
+                  <div>
+                    <div className="alert alert-warning border-0 p-3 small text-start mx-auto mb-3" style={{ maxWidth: '480px', borderRadius: '12px' }}>
+                      <div className="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                        <i className="bi bi-info-circle-fill text-warning fs-5"></i>
+                        <span>Meta "Can't load URL" ya Domain Error aa raha hai?</span>
+                      </div>
+                      <p className="text-secondary mb-2" style={{ fontSize: '0.82rem' }}>
+                        Facebook Login popup ke liye Meta App settings me <code>{window.location.hostname}</code> domain allow hona zaroori hota hai.
+                      </p>
+                      <div className="bg-white p-2 rounded-2 border small">
+                        <strong className="text-success d-block mb-1">⚡ Fast Solution (Bina kisi Domain setup ke):</strong>
+                        <span>Neeche <strong>"Use Token Auto-Import"</strong> par click karein aur Meta Developer Dashboard se Access Token paste karke 10 second me connect karein!</span>
+                      </div>
+                    </div>
+
+                    <div className="d-flex justify-content-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        className="btn btn-success fw-semibold shadow-xs"
+                        onClick={() => setStep(4)}
+                      >
+                        <i className="bi bi-lightning-charge-fill me-1"></i> Use Token Auto-Import (No Domain Setup)
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline-primary fw-semibold"
+                        onClick={handleLaunchSignup}
+                      >
+                        <i className="bi bi-arrow-clockwise me-1"></i> Retry Facebook Popup
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
