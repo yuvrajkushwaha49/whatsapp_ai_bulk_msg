@@ -27,7 +27,9 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
   const [error, setError] = useState(null);
   const [connectedAccount, setConnectedAccount] = useState(null);
   const [verificationLogs, setVerificationLogs] = useState([]);
+  const [waitingSeconds, setWaitingSeconds] = useState(0);
   const popupRef = useRef(null);
+  const isConnectingRef = useRef(false);
 
   // Developer Testing Accordion states
   const [showDevTools, setShowDevTools] = useState(false);
@@ -69,11 +71,25 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
+  const handleCancelConnection = () => {
+    isConnectingRef.current = false;
+    if (popupRef.current && !popupRef.current.closed) {
+      try {
+        popupRef.current.close();
+      } catch (e) {}
+    }
+    setScreen('welcome');
+    setWaitingSeconds(0);
+    setError(null);
+  };
+
   /**
    * Launch Official Meta Facebook Login for Business / Embedded Signup
    */
   const handleContinueWithFacebook = async () => {
     setError(null);
+    setWaitingSeconds(0);
+    isConnectingRef.current = true;
     setScreen('verifying');
     setVerificationLogs([
       { id: 1, title: 'Initiating secure Meta Embedded Signup session...', status: 'active' },
@@ -95,9 +111,11 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
       const redirectUri = `${window.location.origin}/whatsapp/callback`;
       const scopes = 'whatsapp_business_management,whatsapp_business_messaging';
 
-      let oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code&state=${encodeURIComponent(state)}`;
+      let oauthUrl = '';
       if (configId && configId !== 'your_embedded_signup_config_id') {
-        oauthUrl += `&config_id=${encodeURIComponent(configId)}`;
+        oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${encodeURIComponent(configId)}&response_type=code&state=${encodeURIComponent(state)}`;
+      } else {
+        oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&response_type=code&state=${encodeURIComponent(state)}`;
       }
 
       setVerificationLogs(prev => prev.map(l => l.id === 1 ? { ...l, status: 'done' } : (l.id === 2 ? { ...l, status: 'active' } : l)));
@@ -115,11 +133,22 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
       );
       popupRef.current = popup;
 
+      // Start elapsed timer for user guidance
+      const timerInterval = setInterval(() => {
+        if (isConnectingRef.current) {
+          setWaitingSeconds(s => s + 1);
+        } else {
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+
       // 3. Listen for postMessage from /whatsapp/callback popup
       const handlePopupMessage = async (event) => {
         if (event.origin !== window.location.origin) return;
 
         if (event.data?.type === 'META_SIGNUP_AUTH_CODE' || event.data?.type === 'FB_OAUTH_CODE') {
+          isConnectingRef.current = false;
+          clearInterval(timerInterval);
           window.removeEventListener('message', handlePopupMessage);
           const { code, state: returnedState, wabaId, phoneNumberId, businessName } = event.data;
 
@@ -156,6 +185,8 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
             setScreen('welcome');
           }
         } else if (event.data?.type === 'META_SIGNUP_AUTH_ERROR' || event.data?.type === 'FB_OAUTH_ERROR') {
+          isConnectingRef.current = false;
+          clearInterval(timerInterval);
           window.removeEventListener('message', handlePopupMessage);
           setError(event.data.error || 'Meta authorization was cancelled or failed.');
           setScreen('welcome');
@@ -164,21 +195,24 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
 
       window.addEventListener('message', handlePopupMessage);
 
-      // 4. Fallback interval check if popup window is closed
+      // 4. Actively monitor if user closed popup
       const checkClosedInterval = setInterval(() => {
-        if (popup && popup.closed) {
-          clearInterval(checkClosedInterval);
-          window.removeEventListener('message', handlePopupMessage);
-          setTimeout(() => {
-            if (screen === 'verifying' && !connectedAccount) {
+        try {
+          if (popup && popup.closed) {
+            clearInterval(checkClosedInterval);
+            clearInterval(timerInterval);
+            window.removeEventListener('message', handlePopupMessage);
+            if (isConnectingRef.current) {
+              isConnectingRef.current = false;
               setScreen('welcome');
-              setError('The Facebook login window was closed before completion. Please click "Continue with Facebook" to try again.');
+              setError('Facebook popup window band ho gaya. Agar wahan "This content isn\'t available" dikh raha tha, to Meta Developer App ko Live karein ya apna Facebook account App Roles me add karein.');
             }
-          }, 1500);
-        }
-      }, 1000);
+          }
+        } catch (_) {}
+      }, 500);
 
     } catch (err) {
+      isConnectingRef.current = false;
       console.error('Launch signup error:', err);
       const msg = err.response?.data?.message || 'Failed to initiate Embedded Signup session.';
       setError(msg);
@@ -454,7 +488,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                 <p className="text-muted small mb-4">Please complete the authorization in the Facebook popup window...</p>
 
                 {/* Progress Checklist */}
-                <div className="card border-0 shadow-xs bg-white text-start p-3 mx-auto" style={{ maxWidth: '500px', borderRadius: '12px' }}>
+                <div className="card border-0 shadow-xs bg-white text-start p-3 mx-auto" style={{ maxWidth: '520px', borderRadius: '12px' }}>
                   {verificationLogs.map((log) => (
                     <div key={log.id} className="d-flex align-items-center gap-3 py-2 border-bottom last:border-0">
                       {log.status === 'done' && (
@@ -473,15 +507,50 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                   ))}
                 </div>
 
-                <div className="mt-4">
+                {/* Live Troubleshooting Banner if Meta shows "This content isn't available" */}
+                {waitingSeconds >= 5 && (
+                  <div className="card border-warning-subtle text-start p-3 mx-auto mt-3 shadow-xs" style={{ maxWidth: '520px', backgroundColor: '#fffbeb', borderRadius: '12px' }}>
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <i className="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                      <strong className="text-dark small">Facebook popup me "This content isn't available at the moment" dikh raha hai?</strong>
+                    </div>
+                    <p className="small text-muted mb-2">
+                      Yeh Meta ka standard error hai. Iska matlab aapka Meta Developer App (<code>{readiness?.appId || '1165054629187576'}</code>) 
+                      abhi <strong>"In development"</strong> mode me hai aur jis Facebook ID se aap login hain wo Meta App me registered nahi hai.
+                    </p>
+                    <div className="small fw-semibold text-dark mb-1">Isko 2 minute me kaise theek karein:</div>
+                    <ul className="small text-muted ps-3 mb-3">
+                      <li className="mb-1">
+                        <strong>Solution 1 (Live Mode - Recommended):</strong> Meta Developer Console me sabse upar App Mode ko <strong>"In development"</strong> se <strong>"Live"</strong> toggle karein. Uske baad koi bhi Facebook user 1-click connect kar sakega!
+                      </li>
+                      <li>
+                        <strong>Solution 2 (Testing Roles):</strong> Meta Console me <strong>App roles → Roles</strong> me jakar apna Facebook profile <strong>Tester / Developer</strong> me Add kar lein.
+                      </li>
+                    </ul>
+                    <div className="d-flex flex-wrap align-items-center gap-2 pt-2 border-top">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-dark"
+                        onClick={handleCancelConnection}
+                      >
+                        <i className="bi bi-x-circle me-1"></i> Close Popup & Reset
+                      </button>
+                      <a
+                        href="https://developers.facebook.com/apps/1165054629187576/roles/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm btn-outline-primary"
+                      >
+                        <i className="bi bi-box-arrow-up-right me-1"></i> Open Meta Roles
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (popupRef.current && !popupRef.current.closed) {
-                        try { popupRef.current.close(); } catch (e) {}
-                      }
-                      setScreen('welcome');
-                    }}
+                    onClick={handleCancelConnection}
                     className="btn btn-link text-muted btn-sm"
                   >
                     Cancel Connection
