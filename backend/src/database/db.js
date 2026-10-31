@@ -162,7 +162,7 @@ async function initFallbackStore() {
       // Always guarantee connected WhatsApp accounts use the latest permanent token & Indian phone number
       const liveToken = process.env.META_ACCESS_TOKEN || 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
       const livePhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
-      const liveWabaId = process.env.META_WABA_ID || '28532933229644434';
+      const liveWabaId = process.env.META_WABA_ID || '1618945099958602';
 
       memoryStore.whatsapp_accounts = [
         {
@@ -224,7 +224,7 @@ async function initFallbackStore() {
     {
       id: 1,
       business_id: 1,
-      waba_id: '28532933229644434',
+      waba_id: '1618945099958602',
       phone_number_id: '1341070215765610',
       phone_number: '+91 86014 67210',
       display_name: 'Yuvraj (Indian Number)',
