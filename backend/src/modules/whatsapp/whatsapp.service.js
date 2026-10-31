@@ -1344,14 +1344,38 @@ export async function deleteTemplate(businessId, templateId) {
  * Detect if valid Meta WhatsApp Cloud API credentials exist in environment or system
  */
 export async function detectMetaAccount(businessId) {
-  const token = process.env.META_ACCESS_TOKEN;
-  const phoneId = process.env.META_PHONE_NUMBER_ID;
-  const wabaId = process.env.META_WABA_ID;
+  const numBusinessId = Number(businessId);
+
+  // Strict Multi-Tenant Security:
+  // process.env credentials belong strictly to Business #1 (Platform/Master Owner).
+  // Other tenants (e.g. Ranjula, businessId !== 1) must NEVER see or inherit Business #1's WhatsApp credentials!
+  let token = null;
+  let phoneId = null;
+  let wabaId = null;
+
+  if (numBusinessId === 1) {
+    token = process.env.META_ACCESS_TOKEN;
+    phoneId = process.env.META_PHONE_NUMBER_ID;
+    wabaId = process.env.META_WABA_ID;
+  } else {
+    // For other businesses, check if they configured their own credentials in tenant_meta_integrations
+    if (!isUsingFallback()) {
+      const integrations = await executeQuery(
+        'SELECT * FROM tenant_meta_integrations WHERE business_id = ? LIMIT 1',
+        [numBusinessId]
+      );
+      if (integrations && integrations.length > 0 && integrations[0].encrypted_meta_app_secret) {
+        token = decryptToken(integrations[0].encrypted_meta_app_secret);
+        phoneId = integrations[0].meta_phone_number_id;
+        wabaId = integrations[0].meta_waba_id;
+      }
+    }
+  }
 
   if (!token || !phoneId || token.startsWith('placeholder') || token.startsWith('mock_')) {
     return {
       detected: false,
-      message: 'No Meta Cloud API credentials configured in environment.'
+      message: 'No configured Meta Cloud API account found for this business workspace.'
     };
   }
 
@@ -1367,19 +1391,19 @@ export async function detectMetaAccount(businessId) {
       }
     }
 
-    // Check if this account is already connected in MySQL or memory store
+    // Check if this account is already connected in MySQL or memory store for THIS specific business
     let alreadyConnected = false;
     let existingAccount = null;
     if (isUsingFallback()) {
       const store = getMemoryStore();
       existingAccount = store.whatsapp_accounts?.find(
-        a => a.business_id === Number(businessId) && a.phone_number_id === phoneId
+        a => a.business_id === numBusinessId && a.phone_number_id === phoneId
       );
       alreadyConnected = Boolean(existingAccount && existingAccount.status === 'connected');
     } else {
       const rows = await executeQuery(
         'SELECT id, status, is_primary FROM whatsapp_accounts WHERE business_id = ? AND phone_number_id = ? LIMIT 1',
-        [businessId, phoneId]
+        [numBusinessId, phoneId]
       );
       if (rows && rows.length > 0) {
         alreadyConnected = rows[0].status === 'connected';
@@ -1422,9 +1446,22 @@ export async function detectMetaAccount(businessId) {
  */
 export async function autoConnectMetaAccount(businessId, payload = {}) {
   const numBusinessId = Number(businessId);
-  const token = payload.accessToken || process.env.META_ACCESS_TOKEN;
-  const targetPhoneId = payload.phoneNumberId || process.env.META_PHONE_NUMBER_ID;
-  const targetWabaId = payload.wabaId || process.env.META_WABA_ID;
+  let token = payload.accessToken;
+  let targetPhoneId = payload.phoneNumberId;
+  let targetWabaId = payload.wabaId;
+
+  // Tenant Security Check: Default .env credentials can ONLY be auto-connected by Business #1
+  if (!token || !targetPhoneId) {
+    if (numBusinessId === 1) {
+      token = process.env.META_ACCESS_TOKEN;
+      targetPhoneId = process.env.META_PHONE_NUMBER_ID;
+      targetWabaId = process.env.META_WABA_ID;
+    } else {
+      const err = new Error('Tenant isolation: Default system WhatsApp credentials belong to Business #1. Please connect your own WhatsApp account using "Continue with Facebook".');
+      err.statusCode = 403;
+      throw err;
+    }
+  }
 
   if (!token || !targetPhoneId) {
     const err = new Error('Meta Access Token and Phone Number ID are required for connection.');
