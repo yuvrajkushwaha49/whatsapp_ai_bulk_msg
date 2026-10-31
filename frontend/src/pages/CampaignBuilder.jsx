@@ -79,7 +79,13 @@ export default function CampaignBuilder() {
       if (tagRes.data?.success) setTags(tagRes.data.data);
       if (tplRes.data?.success && tplRes.data.data.length > 0) {
         setTemplates(tplRes.data.data);
-        setTemplateId(tplRes.data.data[0].id);
+        const welcomeTpl = tplRes.data.data.find(t => t.name === 'welcome_msg');
+        const defaultTpl = welcomeTpl || tplRes.data.data[0];
+        setTemplateId(defaultTpl.id);
+        setVariableMappings({
+          var_1: 'contact.name',
+          customer_name: 'contact.name'
+        });
       }
       if (contactRes.data?.contacts) {
         setAvailableContacts(contactRes.data.contacts);
@@ -1365,7 +1371,27 @@ export default function CampaignBuilder() {
                 <select
                   className="form-select mb-3"
                   value={templateId}
-                  onChange={(e) => setTemplateId(e.target.value)}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setTemplateId(newId);
+                    const chosen = templates.find(t => String(t.id) === String(newId));
+                    const comps = Array.isArray(chosen?.components)
+                      ? chosen.components
+                      : (typeof chosen?.components === 'string' ? JSON.parse(chosen?.components || '[]') : []);
+                    const body = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+                    const phs = Array.from(new Set(body?.text?.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []));
+                    const updated = {};
+                    phs.forEach((ph, idx) => {
+                      const clean = ph.replace(/[{}]/g, '');
+                      updated[clean] = idx === 0 ? 'contact.name' : '';
+                      updated[`var_${idx + 1}`] = idx === 0 ? 'contact.name' : '';
+                    });
+                    if (chosen?.name === 'welcome_msg') {
+                      updated.customer_name = 'contact.name';
+                      updated.var_1 = 'contact.name';
+                    }
+                    setVariableMappings(updated);
+                  }}
                   required
                 >
                   {templates.map(tpl => (

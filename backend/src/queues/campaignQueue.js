@@ -61,6 +61,17 @@ export async function executeCampaignDispatch(campaignId, businessId) {
     template = tRows[0];
   }
 
+  // Fallback: If template not found by ID, look up welcome_msg
+  if (!template) {
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      template = store.templates.find(t => t.name === 'welcome_msg') || store.templates[0];
+    } else {
+      const tRows = await executeQuery('SELECT * FROM templates WHERE name = "welcome_msg" LIMIT 1');
+      template = tRows?.[0] || null;
+    }
+  }
+
   // Extract body component and text for placeholder substitution
   const templateComps = Array.isArray(template?.components)
     ? template.components
@@ -113,16 +124,21 @@ export async function executeCampaignDispatch(campaignId, businessId) {
       .filter(r => r.campaign_id === Number(campaignId) && r.status === 'pending')
       .map(r => {
         const contact = store.contacts.find(c => c.id === r.contact_id);
+        const fullName = contact?.name || (contact?.first_name ? `${contact.first_name} ${contact.last_name || ''}`.trim() : 'Customer');
         return {
           ...r,
-          contact_name: contact?.name || 'Valued Customer',
+          contact_name: fullName,
           is_opted_in: contact ? contact.is_opted_in : 1,
           contact_status: contact ? contact.status : 'active'
         };
       });
   } else {
     recipients = await executeQuery(
-      'SELECT cr.*, c.is_opted_in, c.status as contact_status, c.name as contact_name FROM campaign_recipients cr JOIN contacts c ON cr.contact_id = c.id WHERE cr.campaign_id = ? AND cr.status = "pending"',
+      `SELECT cr.*, c.is_opted_in, c.status as contact_status, 
+              COALESCE(NULLIF(c.name, ''), CONCAT_WS(' ', c.first_name, c.last_name), 'Customer') as contact_name 
+       FROM campaign_recipients cr 
+       JOIN contacts c ON cr.contact_id = c.id 
+       WHERE cr.campaign_id = ? AND cr.status = "pending"`,
       [campaignId]
     );
   }
@@ -212,11 +228,21 @@ export async function executeCampaignDispatch(campaignId, businessId) {
     const placeholderMatches = templateBodyText.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
     const uniquePlaceholders = Array.from(new Set(placeholderMatches.map(p => p.replace(/[{}]/g, ''))));
 
+    let templateName = template?.name || 'welcome_msg';
+    let languageCode = template?.language || (templateName === 'welcome_msg' ? 'en' : 'en_US');
+
+    // Prevent hello_world from being sent to real Indian numbers (+91)
+    const isIndianSender = activeAccount?.phone_number?.includes('+91') || account?.phone_number?.includes('+91');
+    if (templateName === 'hello_world' && isIndianSender) {
+      templateName = 'welcome_msg';
+      languageCode = 'en';
+    }
+
     const components = [];
     if (uniquePlaceholders.length > 0) {
       const bodyParams = [];
       uniquePlaceholders.forEach((ph, idx) => {
-        let val = rawMappings[`var_${idx + 1}`] || rawMappings[ph];
+        let val = rawMappings[ph] || rawMappings[`var_${idx + 1}`];
         if (!val || val === 'contact.name') {
           val = rec.contact_name || 'Customer';
         } else if (val === 'contact.phone') {
@@ -228,7 +254,7 @@ export async function executeCampaignDispatch(campaignId, businessId) {
           text: String(val || '')
         };
         // If template uses NAMED parameter format (like customer_name)
-        if (template?.parameter_format === 'NAMED' || isNaN(Number(ph))) {
+        if (template?.parameter_format === 'NAMED' || isNaN(Number(ph)) || ph === 'customer_name') {
           paramObj.parameter_name = ph;
         }
         bodyParams.push(paramObj);
@@ -240,19 +266,32 @@ export async function executeCampaignDispatch(campaignId, businessId) {
           parameters: bodyParams
         });
       }
+    } else if (templateName === 'welcome_msg') {
+      // welcome_msg always requires customer_name parameter in body
+      components.push({
+        type: 'body',
+        parameters: [
+          {
+            type: 'text',
+            parameter_name: 'customer_name',
+            text: String(rec.contact_name || 'Customer')
+          }
+        ]
+      });
     }
 
-    const templateName = template?.name || 'hello_world';
+    logger.info(`[CampaignWorker] Dispatching to ${rec.phone} via template "${templateName}" (${languageCode}). Components: ${JSON.stringify(components)}`);
 
     try {
       const response = await client.sendTemplateMessage({
         recipientPhone: rec.phone,
         templateName,
-        languageCode: template?.language || 'en_US',
+        languageCode,
         components
       });
 
       const providerMsgId = response?.messages?.[0]?.id || `wamid.mock_${Date.now()}`;
+      logger.info(`[CampaignWorker] Meta accepted template message to ${rec.phone} -> Message ID: ${providerMsgId}`);
       sent++;
 
       if (isUsingFallback()) {

@@ -28,8 +28,19 @@ export async function getCampaignDetails(businessId, campaignId) {
       error.statusCode = 404;
       throw error;
     }
+    const template = store.templates.find(t => t.id === campaign.template_id);
+    const account = store.whatsapp_accounts.find(a => a.id === campaign.whatsapp_account_id);
     const recipients = store.campaign_recipients.filter(r => r.campaign_id === Number(campaignId));
-    return { campaign, recipients };
+    return {
+      campaign: {
+        ...campaign,
+        template_name: template?.name || 'welcome_msg',
+        template_components: template?.components || [],
+        account_name: account?.display_name || account?.phone_number || 'Primary WhatsApp Account',
+        account_phone: account?.phone_number || ''
+      },
+      recipients
+    };
   }
 
   const campaigns = await executeQuery(
