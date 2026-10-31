@@ -32,13 +32,15 @@ export default function WhatsAppOAuthCallback() {
       return;
     }
 
-    // If opened inside a popup window, transmit code to the opener tab and close
+    const state = searchParams.get('state');
+
+    // If opened inside a popup window, transmit code & state to the opener tab and close
     if (window.opener && !window.opener.closed) {
       setStatus('success');
       setMessage('Authenticated! Returning to CampaignFlow...');
       try {
-        window.opener.postMessage({ type: 'FB_OAUTH_CODE', code }, '*');
-        window.opener.postMessage({ type: 'META_SIGNUP_AUTH_CODE', code }, '*');
+        window.opener.postMessage({ type: 'FB_OAUTH_CODE', code, state }, '*');
+        window.opener.postMessage({ type: 'META_SIGNUP_AUTH_CODE', code, state }, '*');
       } catch (e) {
         console.warn('postMessage error:', e);
       }
@@ -51,7 +53,7 @@ export default function WhatsAppOAuthCallback() {
     // If opened directly in a new tab (not popup): Complete onboarding via backend API directly
     async function completeDirectly() {
       try {
-        const res = await api.post('/whatsapp/accounts/connect/complete', { code });
+        const res = await api.post('/whatsapp/accounts/connect/complete', { code, state });
         if (res.data?.success) {
           setStatus('success');
           setMessage('WhatsApp Business Account connected successfully! Redirecting...');

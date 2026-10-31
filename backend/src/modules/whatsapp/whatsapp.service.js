@@ -29,7 +29,7 @@ export async function getConnectConfig(businessId) {
  * 5. Encrypts token at rest and stores account against tenant
  */
 export async function completeEmbeddedSignup(businessId, payload = {}) {
-  const { code, accessToken: providedToken, token, wabaId, phoneNumberId, waba_id, phone_number_id, businessName } = payload;
+  const { code, state, accessToken: providedToken, token, wabaId, phoneNumberId, waba_id, phone_number_id, businessName } = payload;
   const rawToken = providedToken || token;
 
   if (!code && !rawToken) {
@@ -40,6 +40,16 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
 
   const numBusinessId = Number(businessId);
   logger.info(`🚀 [EmbeddedSignup] Completing onboarding for Business #${numBusinessId}...`);
+
+  // Validate OAuth CSRF State session if provided
+  if (state) {
+    try {
+      const { validateOnboardingSession } = await import('./metaSetup.service.js');
+      await validateOnboardingSession(numBusinessId, state);
+    } catch (stateErr) {
+      logger.warn(`[EmbeddedSignup] State validation warning: ${stateErr.message}`);
+    }
+  }
 
   // 1. Resolve Meta Access Token (from OAuth code or direct token)
   let accessToken = rawToken;

@@ -10,6 +10,7 @@ router.use(authenticate, requireTenant);
 
 // Setup Wizard State & Configuration
 router.get('/setup/status', metaSetupController.getStatus);
+router.get('/setup/client-readiness', metaSetupController.checkClientReadiness);
 router.post('/setup/mode', requireRole(['owner', 'admin']), metaSetupController.setMode);
 router.post('/setup/validate', requireRole(['owner', 'admin']), metaSetupController.validateSetup);
 router.post('/setup/advanced-config', requireRole(['owner', 'admin']), metaSetupController.saveAdvancedConfig);

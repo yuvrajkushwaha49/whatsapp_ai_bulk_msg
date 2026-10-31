@@ -172,6 +172,27 @@ async function initFallbackStore() {
         memoryStore.tenant_meta_integrations = [];
       }
 
+      if (!memoryStore.platform_meta_configs) {
+        memoryStore.platform_meta_configs = [{
+          id: 1,
+          meta_app_id: process.env.META_APP_ID || '1165054629187576',
+          encrypted_meta_app_secret: process.env.META_APP_SECRET ? encryptToken(process.env.META_APP_SECRET) : '',
+          embedded_signup_config_id: process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '',
+          graph_api_version: process.env.WHATSAPP_API_VERSION || 'v21.0',
+          webhook_verify_token: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'campaignflow_secure_webhook_token_2026',
+          encrypted_webhook_app_secret: null,
+          is_enabled: 1,
+          readiness_status: 'ready',
+          last_tested_at: new Date(),
+          created_at: new Date(),
+          updated_at: new Date()
+        }];
+      }
+
+      if (!memoryStore.meta_onboarding_sessions) {
+        memoryStore.meta_onboarding_sessions = [];
+      }
+
       // Guarantee recipient +919565763089 is present in contacts
       if (Array.isArray(memoryStore.contacts) && !memoryStore.contacts.some(c => c.phone === '+919565763089')) {
         const nextId = memoryStore.contacts.length > 0 ? Math.max(...memoryStore.contacts.map(c => c.id || 0)) + 1 : 1;

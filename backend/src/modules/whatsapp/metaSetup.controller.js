@@ -10,6 +10,15 @@ export async function getStatus(req, res, next) {
   }
 }
 
+export async function checkClientReadiness(req, res, next) {
+  try {
+    const data = await metaSetupService.checkClientReadiness(req.businessId);
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function setMode(req, res, next) {
   try {
     const { mode, step } = req.body;

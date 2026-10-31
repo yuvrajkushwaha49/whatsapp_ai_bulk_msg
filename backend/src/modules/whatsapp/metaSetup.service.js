@@ -2,8 +2,10 @@ import { executeQuery, isUsingFallback, getMemoryStore, saveMemoryStore } from '
 import { encryptToken, decryptToken } from '../../utils/crypto.js';
 import { MetaCloudApiClient } from './metaClient.js';
 import * as whatsappService from './whatsapp.service.js';
+import * as platformMetaService from '../admin/platformMeta.service.js';
 import logger from '../../utils/logger.js';
 import axios from 'axios';
+import crypto from 'crypto';
 
 const META_API_VERSION = process.env.WHATSAPP_API_VERSION || 'v21.0';
 const META_BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
@@ -312,24 +314,115 @@ export async function validateSetup(businessId) {
 }
 
 /**
+ * Check Platform Readiness for Client Onboarding
+ */
+export async function checkClientReadiness(businessId) {
+  return platformMetaService.checkClientPlatformReadiness();
+}
+
+/**
+ * Record Onboarding Session for CSRF & State Verification
+ */
+export async function recordOnboardingSession(businessId, state, redirectOrigin, expiresAt) {
+  const numBusinessId = Number(businessId);
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    if (!store.meta_onboarding_sessions) store.meta_onboarding_sessions = [];
+    store.meta_onboarding_sessions.push({
+      id: store.meta_onboarding_sessions.length + 1,
+      tenant_id: numBusinessId,
+      state_hash: state,
+      session_status: 'initiated',
+      redirect_origin: redirectOrigin,
+      created_at: new Date(),
+      expires_at: expiresAt
+    });
+    saveMemoryStore();
+  } else {
+    try {
+      await executeQuery(
+        `INSERT INTO meta_onboarding_sessions 
+         (tenant_id, state_hash, session_status, redirect_origin, expires_at, created_at)
+         VALUES (?, ?, 'initiated', ?, ?, NOW())`,
+        [numBusinessId, state, redirectOrigin || null, expiresAt]
+      );
+    } catch (e) {
+      logger.warn('[MetaSetup] Session record notice:', e.message);
+    }
+  }
+}
+
+/**
+ * Validate Onboarding Session CSRF State
+ */
+export async function validateOnboardingSession(businessId, state) {
+  const numBusinessId = Number(businessId);
+  if (!state) return true;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const session = store.meta_onboarding_sessions?.find(
+      s => s.state_hash === state && s.tenant_id === numBusinessId && s.session_status === 'initiated'
+    );
+    if (!session || new Date(session.expires_at) <= new Date()) {
+      const err = new Error('Invalid or expired Meta onboarding session');
+      err.statusCode = 400;
+      throw err;
+    }
+    session.session_status = 'completed';
+    session.completed_at = new Date();
+    saveMemoryStore();
+    return true;
+  } else {
+    const rows = await executeQuery(
+      `SELECT id, expires_at FROM meta_onboarding_sessions 
+       WHERE state_hash = ? AND tenant_id = ? AND session_status = 'initiated' LIMIT 1`,
+      [state, numBusinessId]
+    );
+    if (!rows || rows.length === 0 || new Date(rows[0].expires_at) <= new Date()) {
+      const err = new Error('Invalid or expired Meta onboarding session');
+      err.statusCode = 400;
+      throw err;
+    }
+    await executeQuery(
+      `UPDATE meta_onboarding_sessions 
+       SET session_status = 'completed', completed_at = NOW() 
+       WHERE id = ?`,
+      [rows[0].id]
+    );
+    return true;
+  }
+}
+
+/**
  * Generate official Facebook OAuth URL / initiation parameters
  */
 export async function initiateSignup(businessId, redirectOrigin = '') {
-  const status = await getSetupStatus(businessId);
+  const numBusinessId = Number(businessId);
+  const platformConfig = await platformMetaService.getPlatformMetaConfig();
+  const status = await getSetupStatus(numBusinessId);
   const isClientOwned = status.integrationMode === 'client_owned';
 
   const appId = isClientOwned && status.clientApp?.appId
     ? status.clientApp.appId
-    : (process.env.META_APP_ID || '1165054629187576');
+    : (platformConfig.metaAppId || process.env.META_APP_ID || '1165054629187576');
 
   const configId = isClientOwned && status.clientApp?.configId
     ? status.clientApp.configId
-    : (process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || null);
+    : (platformConfig.embeddedSignupConfigId || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || null);
 
   const redirectUri = `${redirectOrigin || process.env.FRONTEND_URL || 'http://localhost:5173'}/whatsapp/callback`;
-
   const scopes = 'whatsapp_business_management,whatsapp_business_messaging';
-  const oauthUrl = `https://www.facebook.com/${META_API_VERSION}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code`;
+
+  const stateToken = crypto.randomBytes(24).toString('hex');
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+  await recordOnboardingSession(numBusinessId, stateToken, redirectOrigin, expiresAt);
+
+  let oauthUrl = `https://www.facebook.com/${META_API_VERSION}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code&state=${stateToken}`;
+  if (configId && configId !== 'your_embedded_signup_config_id') {
+    oauthUrl += `&config_id=${configId}`;
+  }
 
   return {
     success: true,
@@ -339,6 +432,7 @@ export async function initiateSignup(businessId, redirectOrigin = '') {
     hasConfigId: Boolean(configId && configId !== 'your_embedded_signup_config_id'),
     redirectUri,
     scopes,
+    state: stateToken,
     oauthUrl
   };
 }

@@ -393,8 +393,20 @@ export class MetaCloudApiClient {
       };
     }
 
-    const appId = process.env.META_APP_ID;
-    const appSecret = process.env.META_APP_SECRET;
+    let appId = process.env.META_APP_ID;
+    let appSecret = process.env.META_APP_SECRET;
+
+    // First attempt to load configured credentials from platform_meta_configs
+    try {
+      const { getPlatformMetaConfig, getDecryptedPlatformSecret } = await import('../admin/platformMeta.service.js');
+      const platformConfig = await getPlatformMetaConfig();
+      if (platformConfig?.metaAppId) appId = platformConfig.metaAppId;
+      const dbSecret = await getDecryptedPlatformSecret();
+      if (dbSecret && !dbSecret.includes('yahan_') && dbSecret !== 'your_meta_app_secret') {
+        appSecret = dbSecret;
+      }
+    } catch (_) {}
+
     const isPlaceholderSecret = !appSecret || 
       appSecret === 'your_meta_app_secret' || 
       appSecret.includes('yahan_') || 
