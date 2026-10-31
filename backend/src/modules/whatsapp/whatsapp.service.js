@@ -29,9 +29,11 @@ export async function getConnectConfig(businessId) {
  * 5. Encrypts token at rest and stores account against tenant
  */
 export async function completeEmbeddedSignup(businessId, payload = {}) {
-  const { code, wabaId, phoneNumberId, waba_id, phone_number_id, businessName } = payload;
-  if (!code) {
-    const err = new Error('Authorization code is required from Meta Embedded Signup');
+  const { code, accessToken: providedToken, token, wabaId, phoneNumberId, waba_id, phone_number_id, businessName } = payload;
+  const rawToken = providedToken || token;
+
+  if (!code && !rawToken) {
+    const err = new Error('Authorization code is required or valid Meta Access Token must be provided');
     err.statusCode = 400;
     throw err;
   }
@@ -39,16 +41,19 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
   const numBusinessId = Number(businessId);
   logger.info(`🚀 [EmbeddedSignup] Completing onboarding for Business #${numBusinessId}...`);
 
-  // 1. Exchange OAuth code for Meta Access Token
-  const tokenData = await MetaCloudApiClient.exchangeCodeForToken(code);
-  const accessToken = tokenData.access_token;
+  // 1. Resolve Meta Access Token (from OAuth code or direct token)
+  let accessToken = rawToken;
+  if (!accessToken) {
+    const tokenData = await MetaCloudApiClient.exchangeCodeForToken(code);
+    accessToken = tokenData.access_token;
+  }
   const encryptedToken = encryptToken(accessToken);
 
   // 2. Resolve WABA ID and Phone Number ID (from frontend session listener, Meta Graph API, or payload)
   let targetWabaId = wabaId || waba_id;
   let targetPhoneId = phoneNumberId || phone_number_id;
 
-  // If WABA ID not supplied by frontend listener, discover via Meta debug_token
+  // If WABA ID not supplied, discover via Meta debug_token or Graph API
   if (!targetWabaId) {
     const grantedWabas = await MetaCloudApiClient.getGranularTargetIds(accessToken);
     if (grantedWabas.length > 0) {
@@ -57,8 +62,37 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
     }
   }
 
+  // If still no WABA ID, check Meta client WABAs or phone number
   if (!targetWabaId) {
-    const err = new Error('WhatsApp Business Account (WABA) ID is required.');
+    try {
+      const clientRes = await fetch('https://graph.facebook.com/v21.0/me/client_whatsapp_business_accounts', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const clientData = await clientRes.json();
+      if (clientData?.data?.length > 0) {
+        targetWabaId = clientData.data[0].id;
+        logger.info(`[EmbeddedSignup] Discovered WABA ID ${targetWabaId} from Meta client accounts`);
+      }
+    } catch (e) {
+      logger.warn('[EmbeddedSignup] Client WABA auto-discovery notice:', e.message);
+    }
+  }
+
+  // If targetPhoneId is given but no WABA ID, query phone details to get WABA ID
+  if (!targetWabaId && targetPhoneId) {
+    try {
+      const phoneRes = await fetch(`https://graph.facebook.com/v21.0/${targetPhoneId}?fields=id,waba_id`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const phoneData = await phoneRes.json();
+      if (phoneData?.waba_id) {
+        targetWabaId = phoneData.waba_id;
+      }
+    } catch (e) {}
+  }
+
+  if (!targetWabaId) {
+    const err = new Error('WhatsApp Business Account (WABA) ID is required. Please provide your WABA ID or reconnect.');
     err.statusCode = 400;
     throw err;
   }

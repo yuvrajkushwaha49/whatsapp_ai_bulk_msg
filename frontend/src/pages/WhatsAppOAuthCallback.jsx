@@ -36,10 +36,15 @@ export default function WhatsAppOAuthCallback() {
     if (window.opener && !window.opener.closed) {
       setStatus('success');
       setMessage('Authenticated! Returning to CampaignFlow...');
-      window.opener.postMessage({ type: 'FB_OAUTH_CODE', code }, window.location.origin);
+      try {
+        window.opener.postMessage({ type: 'FB_OAUTH_CODE', code }, '*');
+        window.opener.postMessage({ type: 'META_SIGNUP_AUTH_CODE', code }, '*');
+      } catch (e) {
+        console.warn('postMessage error:', e);
+      }
       setTimeout(() => {
         window.close();
-      }, 1000);
+      }, 800);
       return;
     }
 

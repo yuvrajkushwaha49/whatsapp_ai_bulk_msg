@@ -250,7 +250,7 @@ export async function validateSetup(businessId) {
 
   if (!isClientOwned) {
     // Validate platform managed app
-    const platformAppId = process.env.META_APP_ID;
+    const platformAppId = process.env.META_APP_ID || '1165054629187576';
     return {
       success: true,
       mode: 'platform_managed',

@@ -44,6 +44,14 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
   const [fbLoginOpened, setFbLoginOpened] = useState(false);
   const fbPopupRef = useRef(null);
 
+  // Direct Token Import States (Fast Import from Meta Developer Portal)
+  const [directToken, setDirectToken] = useState('');
+  const [importingToken, setImportingToken] = useState(false);
+  const [directTokenError, setDirectTokenError] = useState(null);
+  const [manualPhoneId, setManualPhoneId] = useState('');
+  const [manualWabaId, setManualWabaId] = useState('');
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
+
   // Auto-Detected Meta Account States
   const [detectedMeta, setDetectedMeta] = useState(null);
   const [autoConnecting, setAutoConnecting] = useState(false);
@@ -80,6 +88,51 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
       setError(err.response?.data?.message || 'Failed to auto-connect Meta WhatsApp account');
     } finally {
       setAutoConnecting(false);
+    }
+  };
+
+  const handleDirectTokenImport = async () => {
+    if (!directToken.trim()) {
+      setDirectTokenError('Please enter your Meta Access Token.');
+      return;
+    }
+    setImportingToken(true);
+    setDirectTokenError(null);
+    setError(null);
+    setStep(7);
+    setVerificationStatus('CONNECTING');
+    setVerificationLogs([
+      { title: 'Connecting to Meta Graph API with provided Access Token...', status: 'active' },
+      { title: 'Auto-discovering WABA ID and Phone Numbers from Meta...', status: 'pending' },
+      { title: 'Subscribing webhooks & verifying account status...', status: 'pending' }
+    ]);
+
+    try {
+      const res = await api.post('/meta/embedded-signup/callback', {
+        accessToken: directToken.trim(),
+        phoneNumberId: manualPhoneId.trim() || undefined,
+        wabaId: manualWabaId.trim() || undefined
+      });
+
+      if (res.data?.success) {
+        const account = res.data.data;
+        setConnectedAccount(account);
+        setVerificationStatus('CONNECTED');
+        setVerificationLogs(prev => prev.map(l => ({ ...l, status: 'done' })));
+        if (onSuccess) onSuccess(account);
+        setTimeout(() => {
+          setStep(8);
+        }, 1000);
+      }
+    } catch (err) {
+      console.error('Direct token import error:', err);
+      setVerificationStatus('CONNECTION_FAILED');
+      const msg = err.response?.data?.message || err.response?.data?.error?.message || 'Failed to auto-fetch credentials from Meta API.';
+      setDirectTokenError(msg);
+      setError(msg);
+      setStep(4);
+    } finally {
+      setImportingToken(false);
     }
   };
 
@@ -396,7 +449,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
       const handlePopupMessage = async (event) => {
         if (event.origin !== window.location.origin) return;
 
-        if (event.data?.type === 'META_SIGNUP_AUTH_CODE') {
+        if (event.data?.type === 'META_SIGNUP_AUTH_CODE' || event.data?.type === 'FB_OAUTH_CODE') {
           window.removeEventListener('message', handlePopupMessage);
           const { code, wabaId, phoneNumberId, businessName } = event.data;
 
@@ -412,9 +465,9 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
             // Process callback on backend
             const callbackRes = await api.post('/meta/embedded-signup/callback', {
               code,
-              wabaId: wabaId || `waba_${Date.now()}`,
-              phoneNumberId: phoneNumberId || `phone_${Date.now()}`,
-              businessName: businessName || 'My WhatsApp Business'
+              wabaId: wabaId && /^\d+$/.test(String(wabaId)) ? wabaId : undefined,
+              phoneNumberId: phoneNumberId && /^\d+$/.test(String(phoneNumberId)) ? phoneNumberId : undefined,
+              businessName: businessName || undefined
             });
 
             if (callbackRes.data?.success) {
@@ -422,6 +475,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
               setConnectedAccount(account);
               setVerificationStatus('CONNECTED');
               setVerificationLogs(prev => prev.map(l => ({ ...l, status: 'done' })));
+              if (onSuccess) onSuccess(account);
               // Transition to Step 8
               setTimeout(() => {
                 setStep(8);
@@ -432,7 +486,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
             setVerificationStatus('CONNECTION_FAILED');
             setError(callbackErr.response?.data?.message || 'Failed to exchange authorization code with Meta.');
           }
-        } else if (event.data?.type === 'META_SIGNUP_AUTH_ERROR') {
+        } else if (event.data?.type === 'META_SIGNUP_AUTH_ERROR' || event.data?.type === 'FB_OAUTH_ERROR') {
           window.removeEventListener('message', handlePopupMessage);
           setVerificationStatus('CONNECTION_FAILED');
           setError(event.data.error || 'Meta authorization was cancelled or failed.');
@@ -928,11 +982,20 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                           type="button"
                           className="btn btn-primary btn-lg px-4 py-3 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2"
                           style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', minWidth: '320px', borderRadius: '10px' }}
-                          onClick={() => setStep(4)}
+                          onClick={handleLaunchSignup}
                         >
                           <i className="bi bi-facebook fs-4"></i>
-                          <span>Continue with Facebook</span>
+                          <span>⚡ Continue with Facebook (Auto-Connect)</span>
                           <i className="bi bi-arrow-right ms-1"></i>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm text-secondary text-decoration-none mt-1"
+                          style={{ fontSize: '0.82rem' }}
+                          onClick={() => setStep(4)}
+                        >
+                          Meta Developer Dashboard ya Token use karna hai? Setup here →
                         </button>
 
                         <button
@@ -1121,55 +1184,157 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                   </div>
                 )}
 
-                <div className="card border-0 shadow-xs p-4 mb-4" style={{ borderRadius: '12px', backgroundColor: '#ffffff' }}>
-                  <div className="d-flex align-items-center gap-3 mb-3">
-                    <div className="p-3 rounded-circle bg-info-subtle text-info">
-                      <i className="bi bi-app-indicator fs-3"></i>
-                    </div>
-                    <div>
-                      <h6 className="fw-bold mb-1">Create App in Meta Dashboard</h6>
-                      <p className="text-muted small mb-0">
-                        Create an app configured for WhatsApp Cloud API integration.
-                      </p>
-                    </div>
+                {/* OPTION 1: 1-CLICK AUTOMATED META CONNECTION (NO MANUAL COPY-PASTE) */}
+                <div className="card border-2 border-primary shadow-xs p-4 mb-4" style={{ borderRadius: '14px', background: 'linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%)' }}>
+                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <span className="badge bg-primary text-white fw-bold px-3 py-1">
+                      RECOMMENDED • 100% AUTOMATED
+                    </span>
+                    <span className="small text-muted fw-semibold">
+                      Official Meta Cloud API
+                    </span>
                   </div>
-
-                  <div className="timeline small text-secondary ps-2 mb-4">
-                    <div className="mb-2">
-                      <strong className="text-dark">1. Open Meta App Dashboard:</strong> Navigate to your apps overview.
-                    </div>
-                    <div className="mb-2">
-                      <strong className="text-dark">2. Click "Create App":</strong> Choose <strong>"Other"</strong> or <strong>"Business"</strong> as your app type.
-                    </div>
-                    <div className="mb-2">
-                      <strong className="text-dark">3. Select Use Case:</strong> Choose <strong>WhatsApp</strong> integration.
-                    </div>
-                    <div className="mb-2">
-                      <strong className="text-dark">4. Add WhatsApp Product:</strong> Click Set Up under the WhatsApp product card.
-                    </div>
-                    <div className="mb-2">
-                      <strong className="text-dark">5. Retrieve App Credentials:</strong> Navigate to <strong>App Settings &gt; Basic</strong> to copy your <strong>App ID</strong> and <strong>App Secret</strong>.
-                    </div>
+                  <h5 className="fw-bold text-dark mb-1">
+                    ⚡ 1-Click Connect &amp; Auto-Fetch Credentials from Meta
+                  </h5>
+                  <p className="text-secondary small mb-3">
+                    Aapko Meta Developer portal se kuch bhi copy-paste karne ki zaroorat nahi hai. Neeche diye gaye button par click karein – Meta ka official authorization dialog open hoga aur permissions dete hi aapke <strong>WABA ID</strong>, <strong>Phone Number ID</strong>, aur <strong>Access Token</strong> automatic hamare software me aa kar save ho jayenge!
+                  </p>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={handleLaunchSignup}
+                      className="btn btn-primary btn-lg px-4 py-3 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                      style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', borderRadius: '10px' }}
+                    >
+                      <i className="bi bi-lightning-charge-fill fs-4 text-warning"></i>
+                      <span>⚡ 1-Click Connect with Meta (Auto-Fetch)</span>
+                      <i className="bi bi-arrow-right ms-1"></i>
+                    </button>
                   </div>
+                </div>
 
-                  <div className="alert alert-info border-0 p-3 small mb-3">
-                    <i className="bi bi-info-circle-fill me-2 text-info"></i>
-                    <strong>Production Note:</strong> In Development mode, you can test with test numbers. For sending to real customers, complete Meta Business Verification and switch App Mode to Live.
-                  </div>
-
-                  <div className="mb-3">
+                {/* OPTION 2: META DEVELOPER DASHBOARD & TOKEN AUTO-IMPORT */}
+                <div className="card border-0 shadow-xs p-4 mb-4" style={{ borderRadius: '14px', backgroundColor: '#ffffff' }}>
+                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="p-2 rounded-circle bg-success-subtle text-success">
+                        <i className="bi bi-cloud-arrow-down-fill fs-5"></i>
+                      </div>
+                      <div>
+                        <h6 className="fw-bold mb-0">Meta Developer Dashboard &amp; Token Auto-Import</h6>
+                        <span className="text-muted small">Meta Developer console se credentials automatic fetch karein</span>
+                      </div>
+                    </div>
                     <a
                       href="https://developers.facebook.com/apps/"
                       target="_blank"
                       rel="noreferrer"
-                      className="btn btn-primary w-100 py-3 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-xs"
-                      style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', borderRadius: '10px' }}
+                      className="btn btn-outline-primary d-inline-flex align-items-center gap-2 px-3 py-2 fw-semibold"
+                      style={{ borderRadius: '8px' }}
                     >
-                      <i className="bi bi-box-arrow-up-right fs-5"></i>
+                      <i className="bi bi-box-arrow-up-right"></i>
                       <span>Open Meta Developer Apps Dashboard</span>
                     </a>
-                    <div className="text-center text-muted small mt-2" style={{ fontSize: '0.8rem' }}>
-                      (New developer? Agar pehli baar open kar rahe hain to portal par <strong>"Get Started"</strong> par click karke free registration confirm karein)
+                  </div>
+
+                  <div className="alert alert-info border-0 p-3 small mb-3" style={{ borderRadius: '10px' }}>
+                    <i className="bi bi-info-circle-fill me-2 text-primary"></i>
+                    <strong>Developer Portal se Credential Kaise Milega?</strong><br />
+                    Jab aap Meta Developer Dashboard kholte hain, to left menu me <strong>WhatsApp &gt; API Setup</strong> par jayein. Wahan se sirf apna <strong>Temporary/Permanent Access Token</strong> copy karke neeche paste karein. Hamara software Meta API se WABA ID, Phone Number aur Name <strong>automatically fetch</strong> kar lega!
+                  </div>
+
+                  {/* Token Quick Import Box */}
+                  <div className="p-3 bg-light rounded-3 border mb-3">
+                    <label className="form-label small fw-bold text-dark mb-1">
+                      Meta Access Token (from WhatsApp &gt; API Setup): <span className="text-danger">*</span>
+                    </label>
+                    <div className="input-group mb-2">
+                      <input
+                        type="text"
+                        className="form-control font-monospace"
+                        placeholder="EAAG... (Paste Meta Access Token here)"
+                        value={directToken}
+                        onChange={(e) => {
+                          setDirectToken(e.target.value);
+                          setDirectTokenError(null);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={importingToken || !directToken.trim()}
+                        onClick={handleDirectTokenImport}
+                        className="btn btn-success fw-bold px-4 d-flex align-items-center gap-2"
+                      >
+                        {importingToken ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Fetching from Meta...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-lightning-charge-fill"></i>
+                            <span>⚡ Fetch &amp; Connect</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Optional ID Override Fields */}
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm p-0 text-decoration-none text-muted"
+                        style={{ fontSize: '0.8rem' }}
+                        onClick={() => setShowOptionalFields(!showOptionalFields)}
+                      >
+                        {showOptionalFields ? '▲ Hide manual WABA/Phone inputs' : '▼ Phone Number ID ya WABA ID manually enter karna chahte hain? (Optional)'}
+                      </button>
+
+                      {showOptionalFields && (
+                        <div className="row g-2 mt-1">
+                          <div className="col-12 col-md-6">
+                            <label className="form-label small text-muted mb-0" style={{ fontSize: '0.78rem' }}>Phone Number ID (Optional):</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm font-monospace"
+                              placeholder="e.g. 523948194821..."
+                              value={manualPhoneId}
+                              onChange={(e) => setManualPhoneId(e.target.value)}
+                            />
+                            <div className="form-text" style={{ fontSize: '0.72rem' }}>Leave blank to auto-detect from token</div>
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <label className="form-label small text-muted mb-0" style={{ fontSize: '0.78rem' }}>WABA ID (Optional):</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm font-monospace"
+                              placeholder="e.g. 1092837465..."
+                              value={manualWabaId}
+                              onChange={(e) => setManualWabaId(e.target.value)}
+                            />
+                            <div className="form-text" style={{ fontSize: '0.72rem' }}>Leave blank to auto-detect from token</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {directTokenError && (
+                      <div className="alert alert-danger py-2 px-3 small mt-3 mb-0">
+                        <i className="bi bi-exclamation-triangle-fill me-1"></i> {directTokenError}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="timeline small text-secondary ps-2">
+                    <div className="mb-2">
+                      <strong className="text-dark">1. Open Meta Dashboard:</strong> Upar diye gaye link se Meta Developer Dashboard open karein.
+                    </div>
+                    <div className="mb-2">
+                      <strong className="text-dark">2. WhatsApp Product:</strong> Left sidebar me <strong>WhatsApp &gt; API Setup</strong> select karein.
+                    </div>
+                    <div>
+                      <strong className="text-dark">3. Copy Access Token:</strong> Step 1 me dikhne wala token copy karein aur upar paste karke <strong>"Fetch &amp; Connect"</strong> dabayein.
                     </div>
                   </div>
                 </div>
