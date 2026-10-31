@@ -12,11 +12,11 @@ const __dirname = path.dirname(__filename);
 async function runMigrations() {
   console.log('🚀 [Migration] Connecting to MySQL server...');
   
-  const host = process.env.DATABASE_HOST || 'localhost';
-  const port = parseInt(process.env.DATABASE_PORT || '3306', 10);
-  const user = process.env.DATABASE_USER || 'cf_user';
-  const password = process.env.DATABASE_PASSWORD || 'cf_password';
-  const database = process.env.DATABASE_NAME || 'campaignflow';
+  const host = process.env.DATABASE_HOST || process.env.DB_HOST || 'localhost';
+  const port = parseInt(process.env.DATABASE_PORT || process.env.DB_PORT || '3306', 10);
+  const user = process.env.DATABASE_USER || process.env.DB_USER || 'cf_user';
+  const password = process.env.DATABASE_PASSWORD || process.env.DB_PASSWORD || 'cf_password';
+  const database = process.env.DATABASE_NAME || process.env.DB_NAME || 'campaignflow';
 
   let connection;
   try {

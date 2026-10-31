@@ -3,11 +3,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const poolConfig = {
-  host: process.env.DATABASE_HOST || 'localhost',
-  port: parseInt(process.env.DATABASE_PORT || '3306', 10),
-  user: process.env.DATABASE_USER || 'cf_user',
-  password: process.env.DATABASE_PASSWORD || 'cf_password',
-  database: process.env.DATABASE_NAME || 'campaignflow',
+  host: process.env.DATABASE_HOST || process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DATABASE_PORT || process.env.DB_PORT || '3306', 10),
+  user: process.env.DATABASE_USER || process.env.DB_USER || 'cf_user',
+  password: process.env.DATABASE_PASSWORD || process.env.DB_PASSWORD || 'cf_password',
+  database: process.env.DATABASE_NAME || process.env.DB_NAME || 'campaignflow',
   waitForConnections: true,
   connectionLimit: parseInt(process.env.DATABASE_CONNECTION_LIMIT || '10', 10),
   queueLimit: 0,

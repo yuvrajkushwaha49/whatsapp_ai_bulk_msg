@@ -690,27 +690,36 @@ export function getMemoryStore() {
 }
 
 export async function checkConnection() {
+  const host = process.env.DATABASE_HOST || process.env.DB_HOST || 'localhost';
+  const port = parseInt(process.env.DATABASE_PORT || process.env.DB_PORT || '3306', 10);
   try {
     const p = getPool();
     const [rows] = await p.execute('SELECT 1 as connected');
     useFallback = false;
+    console.log(`✅ [Database] Successfully connected to MySQL at ${host}:${port}`);
     return true;
   } catch (err) {
     useFallback = true;
     await initFallbackStore();
-    console.warn(`⚠️ [Database] MySQL not reachable at ${process.env.DATABASE_HOST || 'localhost'}:${process.env.DATABASE_PORT || 3306}. Running in resilient Development/Mock DB Adapter mode.`);
+    console.warn(`⚠️ [Database] MySQL not reachable at ${host}:${port} (${err.code || err.message}). Running in resilient Development/Mock DB Adapter mode.`);
     return false;
   }
 }
 
 export function getPool() {
   if (!pool) {
+    const host = process.env.DATABASE_HOST || process.env.DB_HOST || 'localhost';
+    const port = parseInt(process.env.DATABASE_PORT || process.env.DB_PORT || '3306', 10);
+    const user = process.env.DATABASE_USER || process.env.DB_USER || 'cf_user';
+    const password = process.env.DATABASE_PASSWORD || process.env.DB_PASSWORD || 'cf_password';
+    const database = process.env.DATABASE_NAME || process.env.DB_NAME || 'campaignflow';
+
     pool = mysql.createPool({
-      host: process.env.DATABASE_HOST || 'localhost',
-      port: parseInt(process.env.DATABASE_PORT || '3306', 10),
-      user: process.env.DATABASE_USER || 'cf_user',
-      password: process.env.DATABASE_PASSWORD || 'cf_password',
-      database: process.env.DATABASE_NAME || 'campaignflow',
+      host,
+      port,
+      user,
+      password,
+      database,
       waitForConnections: true,
       connectionLimit: parseInt(process.env.DATABASE_CONNECTION_LIMIT || '10', 10),
       queueLimit: 0,
