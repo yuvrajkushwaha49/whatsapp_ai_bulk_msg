@@ -27,9 +27,9 @@ export default function WhatsAppAccounts() {
   const [testModal, setTestModal] = useState({
     isOpen: false,
     accountId: '',
-    recipientPhone: '918601467210',
+    recipientPhone: '919565763089',
     messageType: 'template',
-    templateName: 'hello_world',
+    templateName: 'welcome_msg',
     textBody: 'Hello from CampaignFlow WhatsApp Cloud API!',
     sending: false,
     result: null,
@@ -899,14 +899,32 @@ export default function WhatsAppAccounts() {
                           onChange={() => setTestModal({ ...testModal, messageType: 'template' })}
                         />
                         <label className="form-check-label small" htmlFor="typeTemplate">
-                          <strong>Official <code>hello_world</code> Template</strong>
+                          <strong>Approved WhatsApp Template (Recommended)</strong>
                           <div className="text-muted" style={{ fontSize: '0.74rem' }}>
-                            Recommended by Meta: Kisi bhi naye ya uncontacted number par deliver hota hai.
+                            Kisi bhi number par deliver hota hai (Real Indian numbers ke liye <code>welcome_msg</code> use karein).
                           </div>
                         </label>
                       </div>
 
-                      <div className="form-check">
+                      {testModal.messageType === 'template' && (
+                        <div className="ms-4 mt-2">
+                          <label className="form-label small fw-bold mb-1">Choose Approved Template</label>
+                          <select
+                            className="form-select form-select-sm"
+                            value={testModal.templateName}
+                            onChange={(e) => setTestModal({ ...testModal, templateName: e.target.value })}
+                          >
+                            <option value="welcome_msg">welcome_msg (Language: en, Approved for +91 numbers)</option>
+                            <option value="hello">hello (Language: en, Approved)</option>
+                            <option value="test">test (Language: en, Approved)</option>
+                            <option value="autumn_flash_sale_v1">autumn_flash_sale_v1 (Language: en_US, Approved)</option>
+                            <option value="account_update_v1">account_update_v1 (Language: en_US, Approved)</option>
+                            <option value="hello_world">hello_world (Language: en_US, Meta Sandbox Test numbers only)</option>
+                          </select>
+                        </div>
+                      )}
+
+                      <div className="form-check mt-2">
                         <input
                           className="form-check-input"
                           type="radio"

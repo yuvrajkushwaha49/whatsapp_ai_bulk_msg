@@ -137,7 +137,7 @@ const realApprovedMetaTemplates = [
     language: 'en',
     category: 'MARKETING',
     parameter_format: 'NAMED',
-    status: 'PENDING',
+    status: 'APPROVED',
     components: [
       { type: 'HEADER', format: 'TEXT', text: 'Hello' },
       { type: 'BODY', text: 'Hello! {{customer_name}} Welcome to our official WhatsApp channel. Thank you for connecting with us.' }
@@ -372,7 +372,7 @@ async function initFallbackStore() {
       language: 'en',
       category: 'MARKETING',
       parameter_format: 'NAMED',
-      status: 'PENDING',
+      status: 'APPROVED',
       components: [
         { type: 'HEADER', format: 'TEXT', text: 'Hello' },
         { type: 'BODY', text: 'Hello! {{customer_name}} Welcome to our official WhatsApp channel. Thank you for connecting with us.' }

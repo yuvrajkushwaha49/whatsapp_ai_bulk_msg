@@ -308,11 +308,61 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
       textBody: textBody || 'Hello! This is a test message from CampaignFlow WhatsApp Cloud API.'
     });
   } else {
-    // Official WhatsApp Cloud API hello_world template test
+    const targetName = templateName || 'welcome_msg';
+    let targetLang = payload.languageCode || 'en';
+    let targetComponents = Array.isArray(payload.components) ? payload.components : [];
+
+    // Find template if available in local store or db to get exact language and parameters
+    let matchedTemplate = null;
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      matchedTemplate = store.templates?.find(t => t.name === targetName);
+    } else {
+      const rows = await executeQuery('SELECT * FROM templates WHERE name = ? LIMIT 1', [targetName]);
+      matchedTemplate = rows?.[0] || null;
+    }
+
+    if (matchedTemplate) {
+      targetLang = matchedTemplate.language || targetLang;
+      if (targetComponents.length === 0) {
+        const comps = Array.isArray(matchedTemplate.components)
+          ? matchedTemplate.components
+          : (typeof matchedTemplate.components === 'string' ? JSON.parse(matchedTemplate.components || '[]') : []);
+        const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+        if (bodyComp?.text) {
+          const placeholders = Array.from(new Set(bodyComp.text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []));
+          if (placeholders.length > 0) {
+            const bodyParams = placeholders.map(ph => {
+              const clean = ph.replace(/[{}]/g, '');
+              const param = { type: 'text', text: 'Yuvraj' };
+              if (matchedTemplate.parameter_format === 'NAMED' || isNaN(Number(clean))) {
+                param.parameter_name = clean;
+              }
+              return param;
+            });
+            targetComponents = [{ type: 'body', parameters: bodyParams }];
+          }
+        }
+      }
+    } else if (targetName === 'welcome_msg') {
+      targetLang = 'en';
+      if (targetComponents.length === 0) {
+        targetComponents = [
+          {
+            type: 'body',
+            parameters: [{ type: 'text', parameter_name: 'customer_name', text: 'Yuvraj' }]
+          }
+        ];
+      }
+    } else if (targetName === 'hello_world') {
+      targetLang = 'en_US';
+    }
+
     response = await client.sendTemplateMessage({
       recipientPhone: cleanRecipient,
-      templateName: templateName || 'hello_world',
-      languageCode: 'en_US'
+      templateName: targetName,
+      languageCode: targetLang,
+      components: targetComponents
     });
   }
 

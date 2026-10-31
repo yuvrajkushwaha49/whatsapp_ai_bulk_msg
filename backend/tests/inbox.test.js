@@ -101,6 +101,13 @@ describe('WhatsApp Inbox & Two-Way Live Chat Test Suite', () => {
 
   test('3. 24-Hour Messaging Window: Free-form reply allowed when window is active', async () => {
     // Conversation 1 is seeded with active 24h window
+    const store = getMemoryStore();
+    const c1 = store.whatsapp_conversations?.find(c => c.id === 1);
+    if (c1) {
+      c1.service_window_expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      c1.last_inbound_message_at = new Date();
+    }
+
     const reply = await inboxService.sendTextMessage(1, testUser, 1, 'Thanks for contacting us! How can we assist you?');
     assert.ok(reply.id);
     assert.strictEqual(reply.direction, 'OUTBOUND');
