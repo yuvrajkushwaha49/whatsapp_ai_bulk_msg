@@ -1,7 +1,7 @@
 process.env.NODE_ENV = 'test';
 import { test, describe, before } from 'node:test';
 import assert from 'node:assert';
-import { checkConnection, getMemoryStore } from '../src/database/db.js';
+import { checkConnection, getMemoryStore, executeQuery } from '../src/database/db.js';
 import * as metaSetupService from '../src/modules/whatsapp/metaSetup.service.js';
 import * as whatsappService from '../src/modules/whatsapp/whatsapp.service.js';
 import { decryptToken } from '../src/utils/crypto.js';
@@ -11,6 +11,7 @@ describe('Meta Developer Setup Wizard & Multi-Mode Integration Suite', () => {
 
   before(async () => {
     await checkConnection();
+    await executeQuery('INSERT INTO businesses (id, name, slug) VALUES (?, "Test Biz", ?) ON DUPLICATE KEY UPDATE name="Test Biz"', [TEST_TENANT, 'test-slug-' + TEST_TENANT]);
   });
 
   test('1. Wizard Status: Returns default Mode A (platform_managed) and prerequisites checklist', async () => {
@@ -84,9 +85,12 @@ describe('Meta Developer Setup Wizard & Multi-Mode Integration Suite', () => {
     // CRITICAL: Stored secret must not be exposed in status payload
     assert.strictEqual(status.clientApp.appSecret, undefined);
 
-    // Verify encryption at rest in store
-    const store = getMemoryStore();
-    const record = store.tenant_meta_integrations.find(i => i.business_id === TEST_TENANT);
+    // Verify encryption at rest in DB or store
+    let record = getMemoryStore()?.tenant_meta_integrations?.find(i => i.business_id === TEST_TENANT);
+    if (!record) {
+      const dbRows = await executeQuery('SELECT * FROM tenant_meta_integrations WHERE business_id = ?', [TEST_TENANT]);
+      record = dbRows[0];
+    }
     assert.ok(record.encrypted_meta_app_secret);
     assert.notStrictEqual(record.encrypted_meta_app_secret, 'meta_secret_abcdef1234567890');
     assert.strictEqual(decryptToken(record.encrypted_meta_app_secret), 'meta_secret_abcdef1234567890');

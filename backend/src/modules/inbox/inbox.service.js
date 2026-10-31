@@ -548,7 +548,7 @@ export async function sendTemplateMessage(businessId, user, conversationId, temp
     targetLanguage = tpl.language || 'en';
   } else {
     const tpls = await executeQuery(
-      'SELECT id, name, language, status, components_json FROM templates WHERE (id = ? OR name = ?) AND business_id = ? LIMIT 1',
+      'SELECT id, name, language, status, components FROM templates WHERE (id = ? OR name = ?) AND business_id = ? LIMIT 1',
       [templateId || 0, templateName || '', numBusinessId]
     );
     if (!tpls || tpls.length === 0) {

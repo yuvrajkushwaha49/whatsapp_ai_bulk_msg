@@ -1,7 +1,7 @@
 process.env.NODE_ENV = 'test';
 import { test, describe, before } from 'node:test';
 import assert from 'node:assert';
-import { checkConnection, getMemoryStore } from '../src/database/db.js';
+import { checkConnection, getMemoryStore, executeQuery } from '../src/database/db.js';
 import * as webhooksService from '../src/modules/webhooks/webhooks.service.js';
 import * as inboxService from '../src/modules/inbox/inbox.service.js';
 
@@ -95,9 +95,8 @@ describe('WhatsApp Inbox & Two-Way Live Chat Test Suite', () => {
     // Duplicate delivery
     await webhooksService.processWebhookPayload(payload);
 
-    const store = getMemoryStore();
-    const matches = store.whatsapp_messages?.filter(m => m.meta_message_id === duplicateMetaId) || [];
-    assert.strictEqual(matches.length, 1, 'Duplicate webhook message should not be inserted twice');
+    const dbRows = await executeQuery('SELECT id FROM whatsapp_messages WHERE meta_message_id = ?', [duplicateMetaId]);
+    assert.strictEqual(dbRows.length, 1, 'Duplicate webhook message should not be inserted twice');
   });
 
   test('3. 24-Hour Messaging Window: Free-form reply allowed when window is active', async () => {
@@ -132,26 +131,10 @@ describe('WhatsApp Inbox & Two-Way Live Chat Test Suite', () => {
   });
 
   test('5. Template Messages: Allowed even when 24-hour window has expired', async () => {
-    // Ensure an approved template exists
-    const store = getMemoryStore();
-    if (!store.templates.some(t => t.status === 'APPROVED')) {
-      store.templates.push({
-        id: 999,
-        business_id: 1,
-        name: 'customer_reengagement',
-        language: 'en',
-        status: 'APPROVED',
-        category: 'MARKETING'
-      });
-    }
-
-    const approvedTpl = store.templates.find(t => t.status === 'APPROVED');
-
-    // Send to Conversation 2 (expired window)
+    // Send approved template to Conversation 2 (expired window)
     const tplMsg = await inboxService.sendTemplateMessage(1, testUser, 2, {
-      templateId: approvedTpl.id,
-      templateName: approvedTpl.name,
-      variableMappings: { '1': 'Vikram' }
+      templateName: 'welcome_msg',
+      variableMappings: { customer_name: 'Vikram' }
     });
 
     assert.ok(tplMsg.id);

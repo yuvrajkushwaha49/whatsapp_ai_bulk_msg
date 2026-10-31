@@ -149,7 +149,8 @@ async function runSeed() {
       VALUES 
       (1, 1, 1, 'meta_tpl_festive_promo_v1', 'festive_discount_sale_v1', 'en_US', 'MARKETING', 'APPROVED', 'POSITIONAL', ?),
       (2, 1, 1, 'meta_tpl_cart_recovery_v1', 'cart_abandonment_recovery_v1', 'en_US', 'MARKETING', 'APPROVED', 'POSITIONAL', ?),
-      (3, 1, 1, '1447518427357464', 'welcome_msg', 'en', 'MARKETING', 'APPROVED', 'NAMED', ?)
+      (3, 1, 1, '1447518427357464', 'welcome_msg', 'en', 'MARKETING', 'APPROVED', 'NAMED', ?),
+      (4, 1, 1, 'meta_tpl_hello_world', 'hello_world', 'en_US', 'UTILITY', 'APPROVED', 'POSITIONAL', '[]')
       ON DUPLICATE KEY UPDATE status='APPROVED', components=VALUES(components);
     `, [festivePromoComponents, cartRecoveryComponents, welcomeMsgComponents]);
 
@@ -222,7 +223,18 @@ async function runSeed() {
       `, [contactId, providerMsgId, phone, isRead ? 'read' : 'delivered']);
     }
 
-    // 12. Seed Inbound Unsubscribe Simulation
+    // 12. Seed WhatsApp Conversations for Inbox
+    console.log('🌱 Seeding WhatsApp Conversations...');
+    await connection.query(`
+      INSERT INTO whatsapp_conversations 
+      (id, business_id, whatsapp_account_id, contact_id, customer_phone, assigned_user_id, status, unread_count, last_message_text, last_message_at, last_incoming_message_at, service_window_expires_at)
+      VALUES 
+      (1, 1, 1, 1, '+919811122233', 4, 'open', 1, 'Great! Can you share the festive catalogue link?', NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 23 HOUR)),
+      (2, 1, 1, 2, '+919822233344', NULL, 'open', 0, 'Thank you for connecting with us.', DATE_SUB(NOW(), INTERVAL 26 HOUR), DATE_SUB(NOW(), INTERVAL 28 HOUR), DATE_SUB(NOW(), INTERVAL 4 HOUR))
+      ON DUPLICATE KEY UPDATE status=VALUES(status), service_window_expires_at=VALUES(service_window_expires_at);
+    `);
+
+    // 13. Seed Inbound Unsubscribe Simulation
     console.log('🌱 Seeding Inbound Conversation...');
     await connection.query(`
       INSERT INTO inbound_conversations (id, business_id, contact_id, whatsapp_account_id, last_message_text, last_message_at, is_resolved)
