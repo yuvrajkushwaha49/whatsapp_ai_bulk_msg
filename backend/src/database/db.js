@@ -152,7 +152,8 @@ async function initFallbackStore() {
   // Restore existing user database state if previously saved
   if (fs.existsSync(DEV_STORE_PATH)) {
     try {
-      const saved = JSON.parse(fs.readFileSync(DEV_STORE_PATH, 'utf8'));
+      const rawData = fs.readFileSync(DEV_STORE_PATH, 'utf8');
+      const saved = JSON.parse(rawData);
       Object.keys(saved).forEach((k) => {
         memoryStore[k] = saved[k];
       });
@@ -163,26 +164,56 @@ async function initFallbackStore() {
       const liveToken = process.env.META_ACCESS_TOKEN || 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
       const rawEnvWaba = process.env.META_WABA_ID;
       const liveWabaId = (!rawEnvWaba || rawEnvWaba === '28532933229644434') ? '1618945099958602' : rawEnvWaba;
+      const livePhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
 
-      memoryStore.whatsapp_accounts = [
-        {
-          id: 1,
-          business_id: 1,
-          waba_id: liveWabaId,
-          phone_number_id: livePhoneId,
-          phone_number: '+91 86014 67210',
-          display_name: 'Yuvraj (Indian Number)',
-          quality_rating: 'GREEN',
-          messaging_limit_tier: 'STANDARD',
-          status: 'connected',
-          is_primary: 1,
-          access_token_encrypted: liveToken,
-          created_at: new Date()
+      if (!Array.isArray(memoryStore.whatsapp_accounts) || memoryStore.whatsapp_accounts.length === 0) {
+        memoryStore.whatsapp_accounts = [
+          {
+            id: 1,
+            business_id: 1,
+            waba_id: liveWabaId,
+            phone_number_id: livePhoneId,
+            phone_number: '+91 86014 67210',
+            display_name: 'Yuvraj (Indian Number)',
+            quality_rating: 'GREEN',
+            messaging_limit_tier: 'STANDARD',
+            status: 'connected',
+            is_primary: 1,
+            access_token_encrypted: liveToken,
+            created_at: new Date()
+          }
+        ];
+      } else {
+        const primaryAcc = memoryStore.whatsapp_accounts.find(a => a.id === 1) || memoryStore.whatsapp_accounts[0];
+        if (primaryAcc) {
+          primaryAcc.waba_id = liveWabaId;
+          primaryAcc.phone_number_id = livePhoneId;
+          primaryAcc.access_token_encrypted = liveToken;
+          primaryAcc.status = 'connected';
         }
-      ];
+      }
 
       if (!memoryStore.tenant_meta_integrations) {
         memoryStore.tenant_meta_integrations = [];
+      }
+
+      // Guarantee recipient +919565763089 is present in contacts
+      if (Array.isArray(memoryStore.contacts) && !memoryStore.contacts.some(c => c.phone === '+919565763089')) {
+        const nextId = memoryStore.contacts.length > 0 ? Math.max(...memoryStore.contacts.map(c => c.id || 0)) + 1 : 1;
+        memoryStore.contacts.push({
+          id: nextId,
+          business_id: 1,
+          phone: '+919565763089',
+          country_code: '91',
+          name: 'Yuvraj Kushwaha',
+          first_name: 'Yuvraj',
+          last_name: 'Kushwaha',
+          email: 'yuvraj@example.com',
+          is_opted_in: 1,
+          status: 'active',
+          tags: ['inbox', 'whatsapp'],
+          created_at: new Date()
+        });
       }
 
       seedInboxData(memoryStore);
@@ -192,7 +223,10 @@ async function initFallbackStore() {
       startAutoPersistence();
       return;
     } catch (e) {
-      // Continue to seed if file is corrupted
+      console.error('⚠️ [Database] Failed to parse existing dev_store.json:', e.message);
+      try {
+        fs.copyFileSync(DEV_STORE_PATH, `${DEV_STORE_PATH}.corrupted_${Date.now()}`);
+      } catch (_) {}
     }
   }
 
