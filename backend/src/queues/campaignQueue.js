@@ -191,8 +191,8 @@ export async function executeCampaignDispatch(campaignId, businessId) {
       ? decryptToken(activeAccount.access_token_encrypted) 
       : null;
     const tokenToUse = decryptedAccountToken || process.env.META_ACCESS_TOKEN;
-    const phoneIdToUse = activeAccount?.phone_number_id || process.env.META_PHONE_NUMBER_ID;
-    const wabaIdToUse = activeAccount?.waba_id || process.env.META_WABA_ID;
+    const rawWaba = activeAccount?.waba_id || process.env.META_WABA_ID;
+    const wabaIdToUse = (!rawWaba || rawWaba === '28532933229644434') ? '1618945099958602' : rawWaba;
 
     const client = new MetaCloudApiClient(tokenToUse, phoneIdToUse, wabaIdToUse);
 

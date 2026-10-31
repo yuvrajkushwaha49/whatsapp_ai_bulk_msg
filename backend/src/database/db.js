@@ -161,8 +161,8 @@ async function initFallbackStore() {
 
       // Always guarantee connected WhatsApp accounts use the latest permanent token & Indian phone number
       const liveToken = process.env.META_ACCESS_TOKEN || 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
-      const livePhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
-      const liveWabaId = process.env.META_WABA_ID || '1618945099958602';
+      const rawEnvWaba = process.env.META_WABA_ID;
+      const liveWabaId = (!rawEnvWaba || rawEnvWaba === '28532933229644434') ? '1618945099958602' : rawEnvWaba;
 
       memoryStore.whatsapp_accounts = [
         {
@@ -248,7 +248,8 @@ async function initFallbackStore() {
     { id: 2, business_id: 1, phone: '+919822233344', country_code: '91', name: 'Vikram Malhotra', email: 'vikram@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'silver' }, created_at: new Date() },
     { id: 3, business_id: 1, phone: '+919833344455', country_code: '91', name: 'Sunita Rao', email: 'sunita@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'platinum' }, created_at: new Date() },
     { id: 4, business_id: 1, phone: '+919844455566', country_code: '91', name: 'Rohan Mehra', email: 'rohan@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'silver' }, created_at: new Date() },
-    { id: 5, business_id: 1, phone: '+919855566677', country_code: '91', name: 'Deepa Nair', email: 'deepa@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'gold' }, created_at: new Date() }
+    { id: 5, business_id: 1, phone: '+919855566677', country_code: '91', name: 'Deepa Nair', email: 'deepa@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'gold' }, created_at: new Date() },
+    { id: 6, business_id: 1, phone: '+919565763089', country_code: '91', name: 'Yuvraj Kushwaha', first_name: 'Yuvraj', last_name: 'Kushwaha', email: 'yuvraj@example.com', is_opted_in: 1, status: 'active', tags: ['inbox', 'whatsapp'], created_at: new Date() }
   ];
 
   memoryStore.contact_consents = memoryStore.contacts.map((c, i) => ({

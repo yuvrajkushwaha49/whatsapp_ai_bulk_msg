@@ -57,7 +57,8 @@ describe('WhatsApp Inbox & Two-Way Live Chat Test Suite', () => {
     // Verify conversation was created
     const conversations = await inboxService.listConversations(1, testUser, { search: 'Priya' });
     assert.ok(conversations.items.length > 0, 'Conversation for Priya should exist');
-    const conv = conversations.items[0];
+    const conv = conversations.items.find(c => c.customer_phone === '+919876500112');
+    assert.ok(conv, 'Conversation for Priya should exist with phone +919876500112');
     assert.strictEqual(conv.customer_phone, '+919876500112');
     assert.strictEqual(conv.status, 'open');
     assert.strictEqual(conv.is_window_open, true, '24h window must be open for new inbound message');

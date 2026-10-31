@@ -59,9 +59,15 @@ export async function processWebhookPayload(payload) {
         }
       }
 
-      // If no account matches and not in unit testing, safely drop event to prevent tenant cross-talk
+      // If no account matches, check known live WABA / Phone IDs before dropping
       if (!matchedBusinessId) {
-        if (process.env.NODE_ENV === 'test' && !metaPhoneId) {
+        if (
+          (entryWabaId && (String(entryWabaId) === '1618945099958602' || String(entryWabaId) === '28532933229644434' || entryWabaId === process.env.META_WABA_ID)) ||
+          (metaPhoneId && (String(metaPhoneId) === '1341070215765610' || metaPhoneId === process.env.META_PHONE_NUMBER_ID))
+        ) {
+          matchedBusinessId = 1;
+          matchedAccountId = 1;
+        } else if (process.env.NODE_ENV === 'test' && !metaPhoneId) {
           matchedBusinessId = 1;
           matchedAccountId = 1;
         } else {
@@ -271,8 +277,9 @@ export async function processWebhookPayload(payload) {
             let contact = store.contacts.find(c => c.phone === from && c.business_id === matchedBusinessId);
             if (!contact) {
               const nameParts = (profileName || 'WhatsApp Customer').split(' ');
+              const maxContactId = Math.max(0, ...store.contacts.map(c => c.id || 0));
               contact = {
-                id: store.contacts.length + 1,
+                id: maxContactId + 1,
                 business_id: matchedBusinessId,
                 first_name: nameParts[0] || 'Customer',
                 last_name: nameParts.slice(1).join(' ') || '',
@@ -291,7 +298,7 @@ export async function processWebhookPayload(payload) {
               contact.is_opted_in = 0;
               contact.status = 'unsubscribed';
               store.contact_consents.push({
-                id: store.contact_consents.length + 1,
+                id: Math.max(0, ...store.contact_consents.map(cc => cc.id || 0)) + 1,
                 business_id: contact.business_id,
                 contact_id: contact.id,
                 consent_status: 'opted_out',
@@ -302,16 +309,17 @@ export async function processWebhookPayload(payload) {
               });
             }
 
-            // Match or create conversation in whatsapp_conversations
+            // Match or create conversation in whatsapp_conversations by phone
             if (!store.whatsapp_conversations) store.whatsapp_conversations = [];
             let conversation = store.whatsapp_conversations.find(
-              c => c.business_id === matchedBusinessId && (c.customer_phone === from || c.contact_id === contact.id)
+              c => c.business_id === matchedBusinessId && c.customer_phone === from
             );
 
             const isNewConversation = !conversation;
             if (!conversation) {
+              const maxConvId = Math.max(0, ...store.whatsapp_conversations.map(c => c.id || 0));
               conversation = {
-                id: store.whatsapp_conversations.length + 1,
+                id: maxConvId + 1,
                 business_id: matchedBusinessId,
                 whatsapp_account_id: matchedAccountId,
                 contact_id: contact.id,
