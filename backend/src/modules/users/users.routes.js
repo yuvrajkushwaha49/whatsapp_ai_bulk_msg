@@ -7,7 +7,14 @@ const router = Router();
 
 router.use(authenticate, requireTenant);
 
-router.get('/', usersService.listTeamMembers);
+router.get('/', async (req, res, next) => {
+  try {
+    const result = await usersService.listTeamMembers(req.businessId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
 router.post('/invite', requireRole(['owner', 'admin']), async (req, res, next) => {
   try {
     const result = await usersService.inviteMember(req.businessId, req.body);
