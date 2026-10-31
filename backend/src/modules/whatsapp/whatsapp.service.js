@@ -1340,6 +1340,251 @@ export async function deleteTemplate(businessId, templateId) {
   return { success: true, message: `Template "${tpl.name}" deleted successfully` };
 }
 
+/**
+ * Detect if valid Meta WhatsApp Cloud API credentials exist in environment or system
+ */
+export async function detectMetaAccount(businessId) {
+  const token = process.env.META_ACCESS_TOKEN;
+  const phoneId = process.env.META_PHONE_NUMBER_ID;
+  const wabaId = process.env.META_WABA_ID;
+
+  if (!token || !phoneId || token.startsWith('placeholder') || token.startsWith('mock_')) {
+    return {
+      detected: false,
+      message: 'No Meta Cloud API credentials configured in environment.'
+    };
+  }
+
+  try {
+    const client = new MetaCloudApiClient(token, phoneId, wabaId);
+    const phoneDetails = await client.getPhoneNumberDetails(phoneId);
+    let wabaDetails = null;
+    if (wabaId) {
+      try {
+        wabaDetails = await client.getWabaDetails(wabaId);
+      } catch (e) {
+        logger.warn('[detectMetaAccount] WABA details fetch warning:', e.message);
+      }
+    }
+
+    // Check if this account is already connected in MySQL or memory store
+    let alreadyConnected = false;
+    let existingAccount = null;
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      existingAccount = store.whatsapp_accounts?.find(
+        a => a.business_id === Number(businessId) && a.phone_number_id === phoneId
+      );
+      alreadyConnected = Boolean(existingAccount && existingAccount.status === 'connected');
+    } else {
+      const rows = await executeQuery(
+        'SELECT id, status, is_primary FROM whatsapp_accounts WHERE business_id = ? AND phone_number_id = ? LIMIT 1',
+        [businessId, phoneId]
+      );
+      if (rows && rows.length > 0) {
+        alreadyConnected = rows[0].status === 'connected';
+        existingAccount = rows[0];
+      }
+    }
+
+    const displayName = phoneDetails.verified_name || phoneDetails.display_phone_number || wabaDetails?.name || 'Official WhatsApp Account';
+    const phoneNumber = phoneDetails.display_phone_number || (phoneId ? `+${phoneId}` : 'Verified Account');
+
+    return {
+      detected: true,
+      alreadyConnected,
+      account: {
+        id: existingAccount?.id || null,
+        displayName,
+        verifiedName: phoneDetails.verified_name || displayName,
+        phoneNumber,
+        phoneNumberId: phoneId,
+        wabaId: wabaId || phoneDetails.waba_id || null,
+        wabaName: wabaDetails?.name || displayName,
+        qualityRating: phoneDetails.quality_rating || 'GREEN',
+        codeVerificationStatus: phoneDetails.code_verification_status || 'VERIFIED',
+        messagingTier: phoneDetails.messaging_limit_tier || 'TIER_10K',
+        status: alreadyConnected ? 'connected' : 'ready_to_connect'
+      }
+    };
+  } catch (error) {
+    logger.warn('[detectMetaAccount] Failed to query Meta Cloud API:', error.message);
+    return {
+      detected: false,
+      error: error.message,
+      message: 'Meta credentials detected but could not verify with Meta Graph API.'
+    };
+  }
+}
+
+/**
+ * Auto-connect configured or detected Meta WhatsApp account into database
+ */
+export async function autoConnectMetaAccount(businessId, payload = {}) {
+  const numBusinessId = Number(businessId);
+  const token = payload.accessToken || process.env.META_ACCESS_TOKEN;
+  const targetPhoneId = payload.phoneNumberId || process.env.META_PHONE_NUMBER_ID;
+  const targetWabaId = payload.wabaId || process.env.META_WABA_ID;
+
+  if (!token || !targetPhoneId) {
+    const err = new Error('Meta Access Token and Phone Number ID are required for connection.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  logger.info(`⚡ [AutoConnectMeta] Connecting Meta WhatsApp account for Business #${numBusinessId}...`);
+  const client = new MetaCloudApiClient(token, targetPhoneId, targetWabaId);
+
+  // Fetch verified phone details and WABA details from Meta
+  let phoneDetails = null;
+  try {
+    phoneDetails = await client.getPhoneNumberDetails(targetPhoneId);
+  } catch (err) {
+    logger.warn(`[AutoConnectMeta] getPhoneNumberDetails failed: ${err.message}`);
+  }
+
+  let wabaDetails = null;
+  if (targetWabaId) {
+    try {
+      wabaDetails = await client.getWabaDetails(targetWabaId);
+    } catch (err) {
+      logger.warn(`[AutoConnectMeta] getWabaDetails failed: ${err.message}`);
+    }
+  }
+
+  // Attempt webhook subscription and registration (best-effort)
+  if (targetWabaId) {
+    try {
+      await client.subscribeWabaWebhook(targetWabaId);
+    } catch (e) {
+      logger.warn(`[AutoConnectMeta] Webhook subscription warning: ${e.message}`);
+    }
+  }
+
+  try {
+    await client.registerPhoneNumber(targetPhoneId);
+  } catch (e) {
+    logger.warn(`[AutoConnectMeta] Register phone warning: ${e.message}`);
+  }
+
+  const displayName = payload.displayName || phoneDetails?.verified_name || phoneDetails?.display_phone_number || wabaDetails?.name || 'Official WhatsApp Account';
+  const phoneNumber = payload.phoneNumber || phoneDetails?.display_phone_number || `+${targetPhoneId}`;
+  const qualityRating = phoneDetails?.quality_rating || 'GREEN';
+  const messagingTier = phoneDetails?.messaging_limit_tier || 'TIER_10K';
+  const verifiedName = phoneDetails?.verified_name || displayName;
+  const encryptedToken = encryptToken(token);
+  const now = new Date();
+
+  let savedAccount = null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    if (!store.whatsapp_accounts) store.whatsapp_accounts = [];
+
+    let account = store.whatsapp_accounts.find(
+      a => a.business_id === numBusinessId && a.phone_number_id === targetPhoneId
+    );
+
+    const existingAccounts = store.whatsapp_accounts.filter(a => a.business_id === numBusinessId);
+    const isFirstAccount = existingAccounts.length === 0;
+
+    if (!account) {
+      account = {
+        id: store.whatsapp_accounts.length + 1,
+        business_id: numBusinessId,
+        meta_business_id: wabaDetails?.id || null,
+        waba_id: targetWabaId,
+        phone_number_id: targetPhoneId,
+        phone_number: phoneNumber,
+        display_name: displayName,
+        verified_name: verifiedName,
+        quality_rating: qualityRating,
+        messaging_limit_tier: messagingTier,
+        status: 'connected',
+        connection_status: 'CONNECTED',
+        is_primary: isFirstAccount ? 1 : 0,
+        access_token_encrypted: encryptedToken,
+        last_verified_at: now,
+        webhook_subscribed_at: now,
+        created_at: now,
+        updated_at: now
+      };
+      store.whatsapp_accounts.push(account);
+    } else {
+      account.waba_id = targetWabaId;
+      account.phone_number = phoneNumber;
+      account.display_name = displayName;
+      account.verified_name = verifiedName;
+      account.quality_rating = qualityRating;
+      account.messaging_limit_tier = messagingTier;
+      account.status = 'connected';
+      account.connection_status = 'CONNECTED';
+      account.access_token_encrypted = encryptedToken;
+      account.last_verified_at = now;
+      account.updated_at = now;
+    }
+    saveMemoryStore();
+    savedAccount = { ...account };
+  } else {
+    const existing = await executeQuery(
+      'SELECT id, is_primary FROM whatsapp_accounts WHERE business_id = ? AND phone_number_id = ? LIMIT 1',
+      [numBusinessId, targetPhoneId]
+    );
+
+    if (existing.length > 0) {
+      await executeQuery(
+        `UPDATE whatsapp_accounts 
+         SET waba_id = ?, phone_number = ?, display_name = ?, verified_name = ?, quality_rating = ?, messaging_limit_tier = ?, status = 'connected', connection_status = 'CONNECTED', access_token_encrypted = ?, last_verified_at = NOW(), updated_at = NOW() 
+         WHERE id = ?`,
+        [targetWabaId, phoneNumber, displayName, verifiedName, qualityRating, messagingTier, encryptedToken, existing[0].id]
+      );
+      const rows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ? LIMIT 1', [existing[0].id]);
+      savedAccount = rows[0];
+    } else {
+      const countRows = await executeQuery(
+        'SELECT COUNT(*) as total FROM whatsapp_accounts WHERE business_id = ?',
+        [numBusinessId]
+      );
+      const isFirst = (countRows?.[0]?.total || 0) === 0;
+
+      const result = await executeQuery(
+        `INSERT INTO whatsapp_accounts 
+         (business_id, meta_business_id, waba_id, phone_number_id, phone_number, display_name, verified_name, quality_rating, messaging_limit_tier, status, connection_status, is_primary, access_token_encrypted, last_verified_at, webhook_subscribed_at, created_at, updated_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'connected', 'CONNECTED', ?, ?, NOW(), NOW(), NOW(), NOW())`,
+        [numBusinessId, wabaDetails?.id || null, targetWabaId, targetPhoneId, phoneNumber, displayName, verifiedName, qualityRating, messagingTier, isFirst ? 1 : 0, encryptedToken]
+      );
+      const rows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ? LIMIT 1', [result.insertId]);
+      savedAccount = rows[0];
+    }
+  }
+
+  // Update tenant integration state
+  try {
+    if (!isUsingFallback()) {
+      await executeQuery(
+        `INSERT INTO tenant_meta_integrations (business_id, integration_mode, meta_app_id, configuration_status, last_validation_at, updated_at)
+         VALUES (?, 'client_owned', ?, 'configured', NOW(), NOW())
+         ON DUPLICATE KEY UPDATE configuration_status = 'configured', last_validation_at = NOW(), updated_at = NOW()`,
+        [numBusinessId, process.env.META_APP_ID || null]
+      );
+    }
+  } catch (err) {
+    logger.warn(`[AutoConnectMeta] tenant_meta_integrations update warning: ${err.message}`);
+  }
+
+  // Auto-sync templates in background
+  syncTemplates(numBusinessId, savedAccount.id).catch(err => {
+    logger.warn(`[AutoConnectMeta] Background template sync notice: ${err.message}`);
+  });
+
+  // Sync to local backup in background
+  import('../../database/syncBackup.js').then(({ syncDatabaseToLocalBackup }) => {
+    syncDatabaseToLocalBackup().catch(e => logger.warn('[AutoConnectMeta] syncDatabaseToLocalBackup notice:', e.message));
+  }).catch(() => {});
+
+  return sanitizeAccount(savedAccount);
+}
+
 export default {
   connectAccount,
   listAccounts,
@@ -1350,5 +1595,7 @@ export default {
   checkTemplateStatus,
   deleteTemplate,
   sendTestMessage,
-  testWebhookPing
+  testWebhookPing,
+  detectMetaAccount,
+  autoConnectMetaAccount
 };

@@ -182,6 +182,28 @@ export async function testWebhookPing(req, res, next) {
   }
 }
 
+export async function detectMetaAccount(req, res, next) {
+  try {
+    const result = await whatsappService.detectMetaAccount(req.businessId);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function autoConnectMetaAccount(req, res, next) {
+  try {
+    const result = await whatsappService.autoConnectMetaAccount(req.businessId, req.body);
+    res.status(201).json({
+      success: true,
+      message: 'Meta WhatsApp Business Account connected and verified successfully!',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   connect,
   listAccounts,
@@ -192,5 +214,7 @@ export default {
   checkTemplateStatus,
   deleteTemplate,
   sendTestMessage,
-  testWebhookPing
+  testWebhookPing,
+  detectMetaAccount,
+  autoConnectMetaAccount
 };

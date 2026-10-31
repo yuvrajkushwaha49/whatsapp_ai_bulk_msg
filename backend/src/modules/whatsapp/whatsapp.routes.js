@@ -10,6 +10,10 @@ router.use(authenticate, requireTenant);
 
 // WhatsApp Accounts & Embedded Signup
 router.get('/accounts/connect/start', whatsappController.getConnectConfig);
+router.get('/detect-meta', whatsappController.detectMetaAccount);
+router.get('/accounts/detect-meta', whatsappController.detectMetaAccount);
+router.post('/auto-connect', requireRole(['owner', 'admin']), whatsappController.autoConnectMetaAccount);
+router.post('/accounts/auto-connect', requireRole(['owner', 'admin']), whatsappController.autoConnectMetaAccount);
 router.post('/accounts/connect/complete', requireRole(['owner', 'admin']), whatsappController.completeEmbeddedSignup);
 router.post('/connect', requireRole(['owner', 'admin']), whatsappController.connect);
 router.get('/accounts', whatsappController.listAccounts);

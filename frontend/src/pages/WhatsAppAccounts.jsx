@@ -37,6 +37,8 @@ export default function WhatsAppAccounts() {
   });
   const [webhookStatus, setWebhookStatus] = useState(null);
   const [pingingWebhook, setPingingWebhook] = useState(false);
+  const [detectedMeta, setDetectedMeta] = useState(null);
+  const [autoConnecting, setAutoConnecting] = useState(false);
 
   const openTestModal = (accId) => {
     const chosenAcc = accounts.find(a => String(a.id) === String(accId)) || accounts[0];
@@ -117,10 +119,44 @@ export default function WhatsAppAccounts() {
       if (res.data?.success) {
         setAccounts(res.data.data || []);
       }
+      checkDetectedMeta();
     } catch (err) {
       console.error('Failed to load WhatsApp accounts', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkDetectedMeta = async () => {
+    try {
+      const res = await api.get('/whatsapp/detect-meta');
+      if (res.data?.success && res.data?.detected && !res.data?.alreadyConnected) {
+        setDetectedMeta(res.data.account);
+      } else {
+        setDetectedMeta(null);
+      }
+    } catch (e) {
+      setDetectedMeta(null);
+    }
+  };
+
+  const handleAutoConnect = async () => {
+    setAutoConnecting(true);
+    setFeedback({ type: '', text: '' });
+    try {
+      const res = await api.post('/whatsapp/auto-connect');
+      setFeedback({
+        type: 'success',
+        text: `WhatsApp Account "${res.data?.data?.display_name || ''}" (${res.data?.data?.phone_number || ''}) connected successfully! Meta templates synced.`
+      });
+      fetchAccounts();
+    } catch (err) {
+      setFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || 'Failed to auto-connect Meta WhatsApp account'
+      });
+    } finally {
+      setAutoConnecting(false);
     }
   };
 
@@ -239,6 +275,22 @@ export default function WhatsAppAccounts() {
           <p className="text-muted mb-0">Meta WhatsApp Cloud API v21.0 WABA & Phone Number Management</p>
         </div>
         <div className="d-flex align-items-center gap-2">
+          {detectedMeta && (
+            <button
+              type="button"
+              disabled={autoConnecting}
+              onClick={handleAutoConnect}
+              className="btn btn-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
+              title="1-Click Connect Configured Meta WhatsApp Account"
+            >
+              {autoConnecting ? (
+                <span className="spinner-border spinner-border-sm" role="status"></span>
+              ) : (
+                <i className="bi bi-lightning-charge-fill"></i>
+              )}
+              <span>⚡ Auto-Connect {detectedMeta.displayName}</span>
+            </button>
+          )}
           {/* Guided Meta Setup Wizard CTA */}
           <button
             type="button"
@@ -445,65 +497,130 @@ export default function WhatsAppAccounts() {
 
       {/* Embedded Signup Onboarding Banner (If no account connected) */}
       {accounts.length === 0 && !loading && (
-        <div className="card border-0 shadow-sm mb-4" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)', borderRadius: '14px' }}>
-          <div className="card-body p-4 p-md-5">
-            <div className="row align-items-center">
-              <div className="col-lg-8 mb-4 mb-lg-0">
-                <span className="badge bg-success-subtle text-success border border-success-subtle mb-2 px-3 py-1 fw-bold">
-                  OFFICIAL META EMBEDDED SIGNUP
-                </span>
-                <h3 className="fw-bold text-dark mb-2">Connect Your WhatsApp Business Account in 2 Minutes</h3>
-                <p className="text-secondary mb-4" style={{ maxWidth: '640px' }}>
-                  No complex Facebook developer setup required. Click <strong>"Continue with Facebook"</strong> to log in, select or create your Meta Business Portfolio, register your official phone number, and start receiving customer messages and sending broadcasts instantly!
-                </p>
-
-                {/* 4-Step Visual Onboarding Tracker */}
-                <div className="row g-2 mb-4">
-                  <div className="col-6 col-md-3">
-                    <div className="p-2 bg-white rounded shadow-xs text-center border">
-                      <div className="fw-bold text-primary small">1. Facebook Login</div>
-                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Authenticate with Meta</div>
+        <>
+          {detectedMeta && (
+            <div className="card border-0 shadow-sm mb-4" style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '14px', borderLeft: '6px solid #10b981' }}>
+              <div className="card-body p-4 p-md-5">
+                <div className="row align-items-center">
+                  <div className="col-lg-8">
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <span className="badge bg-success text-white px-3 py-1 fw-bold">
+                        ⚡ LIVE META ACCOUNT DETECTED
+                      </span>
+                      <span className="badge bg-white text-success border border-success fw-semibold">
+                        Quality: {detectedMeta.qualityRating || 'GREEN'} • {detectedMeta.codeVerificationStatus || 'VERIFIED'}
+                      </span>
+                    </div>
+                    <h3 className="fw-bold text-dark mb-2">
+                      Connect {detectedMeta.displayName} ({detectedMeta.phoneNumber})
+                    </h3>
+                    <p className="text-secondary mb-4" style={{ maxWidth: '640px' }}>
+                      Aapka Meta WhatsApp Business account aur Cloud API credentials already active hain (WABA ID: <code>{detectedMeta.wabaId}</code>). Developers Facebook par jakar manual setup karne ki zaroorat nahi hai. Seedhe 1-click me connect karein!
+                    </p>
+                    <div className="d-flex flex-wrap align-items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={autoConnecting}
+                        onClick={handleAutoConnect}
+                        className="btn btn-success btn-lg d-inline-flex align-items-center gap-2 px-4 py-3 fw-bold shadow"
+                        style={{ borderRadius: '10px' }}
+                      >
+                        {autoConnecting ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Connecting & Syncing Meta Account...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-lightning-charge-fill fs-5"></i>
+                            <span>⚡ 1-Click Connect & Activate ({detectedMeta.phoneNumber})</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleContinueWithFacebook}
+                        className="btn btn-outline-primary py-3 px-3 fw-semibold"
+                        style={{ borderRadius: '10px' }}
+                      >
+                        <i className="bi bi-facebook me-1"></i> Connect Another Number
+                      </button>
                     </div>
                   </div>
-                  <div className="col-6 col-md-3">
-                    <div className="p-2 bg-white rounded shadow-xs text-center border">
-                      <div className="fw-bold text-primary small">2. Select WABA</div>
-                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Choose or create account</div>
+                  <div className="col-lg-4 text-center mt-4 mt-lg-0">
+                    <div className="p-4 bg-white rounded-circle shadow-sm d-inline-block border border-success-subtle">
+                      <i className="bi bi-whatsapp text-success" style={{ fontSize: '4.5rem' }}></i>
                     </div>
+                    <div className="mt-2 fw-bold text-success fs-5">{detectedMeta.phoneNumber}</div>
+                    <div className="text-muted small">{detectedMeta.displayName} • Cloud API v21.0</div>
                   </div>
-                  <div className="col-6 col-md-3">
-                    <div className="p-2 bg-white rounded shadow-xs text-center border">
-                      <div className="fw-bold text-primary small">3. Verify Phone</div>
-                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>OTP verification</div>
-                    </div>
-                  </div>
-                  <div className="col-6 col-md-3">
-                    <div className="p-2 bg-white rounded shadow-xs text-center border">
-                      <div className="fw-bold text-success small">4. Live Inbox Ready</div>
-                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Instant chat & campaigns</div>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleContinueWithFacebook}
-                  className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2 px-4 py-2 fw-bold shadow-sm"
-                  style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', borderRadius: '10px' }}
-                >
-                  <i className="bi bi-facebook fs-5"></i>
-                  <span>Continue with Facebook</span>
-                </button>
-              </div>
-
-              <div className="col-lg-4 text-center">
-                <div className="p-4 bg-white rounded-circle shadow-sm d-inline-block">
-                  <i className="bi bi-whatsapp text-success" style={{ fontSize: '4.5rem' }}></i>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
+
+          {!detectedMeta && (
+            <div className="card border-0 shadow-sm mb-4" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)', borderRadius: '14px' }}>
+              <div className="card-body p-4 p-md-5">
+                <div className="row align-items-center">
+                  <div className="col-lg-8 mb-4 mb-lg-0">
+                    <span className="badge bg-success-subtle text-success border border-success-subtle mb-2 px-3 py-1 fw-bold">
+                      OFFICIAL META EMBEDDED SIGNUP
+                    </span>
+                    <h3 className="fw-bold text-dark mb-2">Connect Your WhatsApp Business Account in 2 Minutes</h3>
+                    <p className="text-secondary mb-4" style={{ maxWidth: '640px' }}>
+                      No complex Facebook developer setup required. Click <strong>"Continue with Facebook"</strong> to log in, select or create your Meta Business Portfolio, register your official phone number, and start receiving customer messages and sending broadcasts instantly!
+                    </p>
+
+                    {/* 4-Step Visual Onboarding Tracker */}
+                    <div className="row g-2 mb-4">
+                      <div className="col-6 col-md-3">
+                        <div className="p-2 bg-white rounded shadow-xs text-center border">
+                          <div className="fw-bold text-primary small">1. Facebook Login</div>
+                          <div className="text-muted" style={{ fontSize: '0.72rem' }}>Authenticate with Meta</div>
+                        </div>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <div className="p-2 bg-white rounded shadow-xs text-center border">
+                          <div className="fw-bold text-primary small">2. Select WABA</div>
+                          <div className="text-muted" style={{ fontSize: '0.72rem' }}>Choose or create account</div>
+                        </div>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <div className="p-2 bg-white rounded shadow-xs text-center border">
+                          <div className="fw-bold text-primary small">3. Verify Phone</div>
+                          <div className="text-muted" style={{ fontSize: '0.72rem' }}>OTP verification</div>
+                        </div>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <div className="p-2 bg-white rounded shadow-xs text-center border">
+                          <div className="fw-bold text-success small">4. Live Inbox Ready</div>
+                          <div className="text-muted" style={{ fontSize: '0.72rem' }}>Instant chat & campaigns</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleContinueWithFacebook}
+                      className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2 px-4 py-2 fw-bold shadow-sm"
+                      style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', borderRadius: '10px' }}
+                    >
+                      <i className="bi bi-facebook fs-5"></i>
+                      <span>Continue with Facebook</span>
+                    </button>
+                  </div>
+
+                  <div className="col-lg-4 text-center">
+                    <div className="p-4 bg-white rounded-circle shadow-sm d-inline-block">
+                      <i className="bi bi-whatsapp text-success" style={{ fontSize: '4.5rem' }}></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Connected Accounts Grid */}

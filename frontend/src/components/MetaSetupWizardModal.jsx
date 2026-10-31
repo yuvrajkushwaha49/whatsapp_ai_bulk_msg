@@ -44,6 +44,45 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
   const [fbLoginOpened, setFbLoginOpened] = useState(false);
   const fbPopupRef = useRef(null);
 
+  // Auto-Detected Meta Account States
+  const [detectedMeta, setDetectedMeta] = useState(null);
+  const [autoConnecting, setAutoConnecting] = useState(false);
+  const [fetchingDetected, setFetchingDetected] = useState(false);
+
+  const fetchDetectedMeta = async () => {
+    try {
+      setFetchingDetected(true);
+      const res = await api.get('/whatsapp/detect-meta');
+      if (res.data?.success && res.data?.detected) {
+        setDetectedMeta(res.data.account);
+      } else {
+        setDetectedMeta(null);
+      }
+    } catch (err) {
+      setDetectedMeta(null);
+    } finally {
+      setFetchingDetected(false);
+    }
+  };
+
+  const handleAutoConnect = async () => {
+    setAutoConnecting(true);
+    setError(null);
+    try {
+      const res = await api.post('/whatsapp/auto-connect');
+      if (res.data?.success) {
+        setConnectedAccount(res.data.data);
+        setVerificationStatus('CONNECTED');
+        setStep(8);
+        if (onSuccess) onSuccess(res.data.data);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to auto-connect Meta WhatsApp account');
+    } finally {
+      setAutoConnecting(false);
+    }
+  };
+
   // Dynamically ensure Facebook JS SDK is loaded for active login polling
   const ensureFacebookSdkLoaded = (appId = '1165054629187576') => {
     if (window.FB) {
@@ -217,6 +256,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
   useEffect(() => {
     if (isOpen) {
       fetchSetupStatus();
+      fetchDetectedMeta();
       setStep(3); // Start directly at Step 3: Facebook Browser Login Check
     } else {
       // Reset state on close
@@ -826,6 +866,47 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                   </span>
                 </div>
 
+                {/* 1-Click Auto Connect Meta Detected Account Banner */}
+                {detectedMeta && (
+                  <div className="card border-2 border-success shadow-sm mb-4" style={{ borderRadius: '14px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' }}>
+                    <div className="card-body p-4">
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <span className="badge bg-success text-white px-3 py-1 fw-bold">
+                          ⚡ LIVE META WHATSAPP ACCOUNT DETECTED
+                        </span>
+                        <span className="badge bg-white text-success border border-success fw-semibold">
+                          Quality: {detectedMeta.qualityRating || 'GREEN'} • {detectedMeta.codeVerificationStatus || 'VERIFIED'}
+                        </span>
+                      </div>
+                      <h4 className="fw-bold text-dark mb-1">
+                        {detectedMeta.displayName} ({detectedMeta.phoneNumber})
+                      </h4>
+                      <p className="text-secondary small mb-3">
+                        Aapka Meta WhatsApp Business account aur Cloud API credentials already configured hain (WABA ID: <code>{detectedMeta.wabaId}</code>). Developers Facebook par jakar manually app create karne ki zaroorat nahi hai. Seedhe 1-click me connect karein!
+                      </p>
+                      <button
+                        type="button"
+                        disabled={autoConnecting}
+                        onClick={handleAutoConnect}
+                        className="btn btn-success btn-lg px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                        style={{ borderRadius: '10px' }}
+                      >
+                        {autoConnecting ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Connecting & Syncing Meta Account...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-lightning-charge-fill fs-5"></i>
+                            <span>⚡ 1-Click Connect & Activate This WhatsApp Account</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="card border-0 shadow-xs p-4 mb-4" style={{ borderRadius: '12px', backgroundColor: '#ffffff' }}>
                   {checkingFb ? (
                     <div className="p-4 bg-light rounded-3 text-center text-muted">
@@ -998,6 +1079,47 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                     Mode: Client-Owned App
                   </span>
                 </div>
+
+                {/* 1-Click Auto Connect If Meta Credentials Already Configured */}
+                {detectedMeta && (
+                  <div className="card border-2 border-success shadow-sm mb-4" style={{ borderRadius: '14px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' }}>
+                    <div className="card-body p-4">
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <span className="badge bg-success text-white px-3 py-1 fw-bold">
+                          ⚡ META CREDENTIALS ALREADY CONFIGURED
+                        </span>
+                        <span className="badge bg-white text-success border border-success fw-semibold">
+                          Quality: {detectedMeta.qualityRating || 'GREEN'}
+                        </span>
+                      </div>
+                      <h5 className="fw-bold text-dark mb-1">
+                        Connect {detectedMeta.displayName} ({detectedMeta.phoneNumber})
+                      </h5>
+                      <p className="text-secondary small mb-3">
+                        Aapke Meta Cloud API credentials pehle se available hain (WABA ID: <code>{detectedMeta.wabaId}</code>). Aapko developers.facebook.com par jakar naya app banane ki koi zaroorat nahi hai. Seedhe neeche click karein!
+                      </p>
+                      <button
+                        type="button"
+                        disabled={autoConnecting}
+                        onClick={handleAutoConnect}
+                        className="btn btn-success px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                        style={{ borderRadius: '10px' }}
+                      >
+                        {autoConnecting ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Connecting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-lightning-charge-fill"></i>
+                            <span>⚡ 1-Click Auto Connect Existing Account</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="card border-0 shadow-xs p-4 mb-4" style={{ borderRadius: '12px', backgroundColor: '#ffffff' }}>
                   <div className="d-flex align-items-center gap-3 mb-3">
