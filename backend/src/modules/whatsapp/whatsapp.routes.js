@@ -22,7 +22,13 @@ router.post('/accounts/:id/verify', requireRole(['owner', 'admin', 'marketer']),
 router.post('/accounts/:id/reconnect', requireRole(['owner', 'admin', 'marketer']), whatsappController.verifyAccount);
 router.post('/accounts/:id/primary', requireRole(['owner', 'admin', 'marketer']), whatsappController.setPrimaryAccount);
 router.post('/accounts/:id/test-message', requireRole(['owner', 'admin', 'marketer']), whatsappController.sendTestMessage);
-router.delete('/accounts/:id', requireRole(['owner', 'admin', 'marketer']), whatsappController.disconnectAccount);
+router.delete('/accounts/:id/permanent', requireRole(['owner', 'admin']), whatsappController.deleteAccount);
+router.delete('/accounts/:id', requireRole(['owner', 'admin', 'marketer']), (req, res, next) => {
+  if (req.query.permanent === 'true') {
+    return whatsappController.deleteAccount(req, res, next);
+  }
+  return whatsappController.disconnectAccount(req, res, next);
+});
 router.post('/accounts/:accountId/sync-templates', requireRole(['owner', 'admin', 'marketer']), whatsappController.syncTemplates);
 router.get('/webhook/ping', whatsappController.testWebhookPing);
 router.post('/webhook/ping', whatsappController.testWebhookPing);

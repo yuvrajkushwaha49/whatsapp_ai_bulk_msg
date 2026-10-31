@@ -70,6 +70,15 @@ export async function disconnectAccount(req, res, next) {
   }
 }
 
+export async function deleteAccount(req, res, next) {
+  try {
+    const result = await whatsappService.deleteAccount(req.businessId, req.params.id);
+    res.json({ success: true, message: result.message });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function setPrimaryAccount(req, res, next) {
   try {
     const result = await whatsappService.setPrimaryAccount(req.businessId, req.params.id);

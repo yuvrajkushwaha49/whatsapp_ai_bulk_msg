@@ -14,6 +14,8 @@ export default function WhatsAppAccounts() {
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', text: '' });
   const [disconnectModal, setDisconnectModal] = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const [manualForm, setManualForm] = useState({
     displayName: '',
@@ -246,6 +248,27 @@ export default function WhatsAppAccounts() {
       fetchAccounts();
     } catch (err) {
       setFeedback({ type: 'danger', text: err.response?.data?.message || 'Failed to disconnect account' });
+    }
+  };
+
+  const handleDelete = async (accountId) => {
+    setDeletingId(accountId);
+    try {
+      const res = await api.delete(`/whatsapp/accounts/${accountId}/permanent`);
+      setDeleteModal(null);
+      setFeedback({
+        type: 'success',
+        text: res.data?.message || 'WhatsApp account deleted from database successfully.'
+      });
+      fetchAccounts();
+      checkDetectedMeta();
+    } catch (err) {
+      setFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || 'Failed to delete account from database'
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -783,14 +806,24 @@ export default function WhatsAppAccounts() {
                       </button>
                     </div>
 
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => setDisconnectModal(acc)}
-                      title="Disconnect WhatsApp Account"
-                    >
-                      <i className="bi bi-power me-1"></i>
-                      Disconnect
-                    </button>
+                    <div className="d-flex align-items-center gap-1">
+                      <button
+                        className="btn btn-sm btn-outline-warning text-dark"
+                        onClick={() => setDisconnectModal(acc)}
+                        title="Disconnect WhatsApp Account (can reconnect anytime)"
+                      >
+                        <i className="bi bi-power me-1"></i>
+                        Disconnect
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => setDeleteModal(acc)}
+                        title="Permanently Delete account from database"
+                      >
+                        <i className="bi bi-trash3-fill me-1"></i>
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -829,6 +862,67 @@ export default function WhatsAppAccounts() {
                   onClick={() => handleDisconnect(disconnectModal.id)}
                 >
                   Yes, Disconnect Account
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account From Database Modal */}
+      {deleteModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.55)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '14px', overflow: 'hidden' }}>
+              <div className="modal-header bg-danger text-white py-3">
+                <h5 className="modal-title fw-bold d-flex align-items-center gap-2 mb-0">
+                  <i className="bi bi-trash3-fill"></i>
+                  Delete Account from Database
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setDeleteModal(null)}></button>
+              </div>
+              <div className="modal-body p-4">
+                <p className="mb-3">
+                  Are you sure you want to permanently delete <strong>{deleteModal.display_name || deleteModal.phone_number}</strong> ({deleteModal.phone_number}) from the database?
+                </p>
+                <div className="p-3 rounded-3 mb-0" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+                  <div className="d-flex gap-2">
+                    <i className="bi bi-shield-exclamation text-danger fs-5 flex-shrink-0"></i>
+                    <div className="small text-danger-emphasis">
+                      <strong>Database Only Deletion:</strong> This action will permanently remove this account's records from our local MySQL database.
+                      <div className="mt-1 text-muted" style={{ fontSize: '0.78rem' }}>
+                        ✓ Your WhatsApp Business Account on Meta/Facebook will <u>not</u> be deleted and remains completely safe.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer bg-light py-2">
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-outline-secondary px-3" 
+                  onClick={() => setDeleteModal(null)}
+                  disabled={deletingId === deleteModal.id}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-danger px-3 fw-semibold shadow-xs"
+                  disabled={deletingId === deleteModal.id}
+                  onClick={() => handleDelete(deleteModal.id)}
+                >
+                  {deletingId === deleteModal.id ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-trash3-fill me-1"></i>
+                      Yes, Delete from Database
+                    </>
+                  )}
                 </button>
               </div>
             </div>

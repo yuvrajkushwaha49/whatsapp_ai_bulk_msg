@@ -498,6 +498,75 @@ export async function disconnectAccount(businessId, accountId) {
 }
 
 /**
+ * Permanently Delete Account from local database ONLY (Meta Cloud API remains untouched)
+ */
+export async function deleteAccount(businessId, accountId) {
+  const numBusinessId = Number(businessId);
+  const numAccountId = Number(accountId);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const accountIndex = (store.whatsapp_accounts || []).findIndex(
+      a => a.id === numAccountId && a.business_id === numBusinessId
+    );
+    if (accountIndex === -1) {
+      const err = new Error('WhatsApp Account not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    const wasPrimary = Boolean(store.whatsapp_accounts[accountIndex]?.is_primary);
+    store.whatsapp_accounts.splice(accountIndex, 1);
+
+    // If deleted account was primary, promote another connected account
+    if (wasPrimary) {
+      const next = store.whatsapp_accounts.find(a => a.business_id === numBusinessId && a.status === 'connected');
+      if (next) next.is_primary = 1;
+    }
+    saveMemoryStore();
+    return { success: true, message: 'WhatsApp account deleted from database successfully' };
+  }
+
+  // 1. Verify account exists for this business
+  const targetRows = await executeQuery(
+    'SELECT id, is_primary, display_name, phone_number FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
+    [numAccountId, numBusinessId]
+  );
+
+  if (!targetRows || targetRows.length === 0) {
+    const err = new Error('WhatsApp Account not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const wasPrimary = Boolean(targetRows[0].is_primary);
+
+  // 2. Delete row from database ONLY (MySQL foreign keys CASCADE automatically)
+  await executeQuery(
+    'DELETE FROM whatsapp_accounts WHERE id = ? AND business_id = ?',
+    [numAccountId, numBusinessId]
+  );
+
+  // 3. If deleted account was primary, promote another connected account
+  if (wasPrimary) {
+    await executeQuery(
+      `UPDATE whatsapp_accounts 
+       SET is_primary = TRUE 
+       WHERE business_id = ? AND status = 'connected'
+       ORDER BY created_at ASC LIMIT 1`,
+      [numBusinessId]
+    );
+  }
+
+  // 4. Background sync to local backup
+  import('../../database/syncBackup.js').then(({ syncDatabaseToLocalBackup }) => {
+    syncDatabaseToLocalBackup().catch(e => logger.warn('[deleteAccount] syncDatabaseToLocalBackup notice:', e.message));
+  }).catch(() => {});
+
+  logger.info(`🗑️ [WhatsApp] Account #${numAccountId} (${targetRows[0].display_name}) deleted from database only for Business #${numBusinessId}`);
+  return { success: true, message: 'WhatsApp account deleted from database successfully' };
+}
+
+/**
  * Designate an account as the Primary / Default sender for this tenant
  */
 export async function setPrimaryAccount(businessId, accountId) {
@@ -1668,5 +1737,7 @@ export default {
   sendTestMessage,
   testWebhookPing,
   detectMetaAccount,
-  autoConnectMetaAccount
+  autoConnectMetaAccount,
+  disconnectAccount,
+  deleteAccount
 };
