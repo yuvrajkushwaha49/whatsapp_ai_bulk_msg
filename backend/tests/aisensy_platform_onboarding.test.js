@@ -1,5 +1,5 @@
 process.env.NODE_ENV = 'test';
-import { test, describe, before } from 'node:test';
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert';
 import { checkConnection, getMemoryStore, executeQuery, isUsingFallback } from '../src/database/db.js';
 import * as platformMetaService from '../src/modules/admin/platformMeta.service.js';
@@ -139,5 +139,13 @@ describe('AiSensy-Style WhatsApp SaaS Onboarding & Platform Architecture Suite',
     assert.strictEqual(monitoring.readinessStatus, 'ready');
     assert.ok(monitoring.totalConnectedPhoneNumbers >= 2, 'Should reflect connected phone numbers');
     assert.ok(monitoring.totalConnectedWABAs >= 2, 'Should reflect unique client WABAs');
+  });
+
+  after(async () => {
+    try {
+      if (!isUsingFallback()) {
+        await executeQuery('UPDATE platform_meta_configs SET embedded_signup_config_id = NULL WHERE id = 1');
+      }
+    } catch (_) {}
   });
 });
