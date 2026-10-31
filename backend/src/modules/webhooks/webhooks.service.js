@@ -83,7 +83,9 @@ export async function processWebhookPayload(payload) {
           const status = statusObj.status; // 'sent', 'delivered', 'read', 'failed'
           const timestamp = statusObj.timestamp ? new Date(Number(statusObj.timestamp) * 1000) : new Date();
 
-          logger.info(`[Webhook] Status update: ${providerMsgId} -> ${status}`);
+          const errDetail = statusObj.errors?.[0];
+          const errDetailStr = errDetail ? ` | Error: [Code ${errDetail.code}] ${errDetail.message || errDetail.title || ''} (${errDetail.error_data?.details || ''})` : '';
+          logger.info(`[Webhook] Status update: ${providerMsgId} -> ${status}${errDetailStr}`);
 
           if (isUsingFallback()) {
             const store = getMemoryStore();
@@ -94,6 +96,11 @@ export async function processWebhookPayload(payload) {
               recipient.status = status;
               if (status === 'delivered') recipient.delivered_at = timestamp;
               if (status === 'read') recipient.read_at = timestamp;
+              if (status === 'failed') {
+                const msg = errDetail?.error_data?.details || errDetail?.message || errDetail?.title || 'Meta delivery error';
+                recipient.error_message = msg;
+                recipient.skip_reason = msg;
+              }
 
               const campaign = store.campaigns.find(c => c.id === recipient.campaign_id);
               if (campaign) {
@@ -111,7 +118,7 @@ export async function processWebhookPayload(payload) {
                 if (status === 'read') inboxMsg.read_at = timestamp;
                 if (status === 'failed') {
                   inboxMsg.failed_at = timestamp;
-                  inboxMsg.failure_reason = statusObj.errors?.[0]?.message || 'Delivery error';
+                  inboxMsg.failure_reason = errDetail?.error_data?.details || errDetail?.message || errDetail?.title || 'Delivery error';
                 }
                 inboxMsg.updated_at = new Date();
 
@@ -141,7 +148,7 @@ export async function processWebhookPayload(payload) {
             } else if (status === 'read') {
               updateSql += ', read_at = NOW()';
             } else if (status === 'failed') {
-              const errMsg = statusObj.errors?.[0]?.message || 'Meta delivery error';
+              const errMsg = errDetail?.error_data?.details || errDetail?.message || errDetail?.title || 'Meta delivery error';
               updateSql += ', error_message = ?';
               params.push(errMsg);
             }
