@@ -166,31 +166,8 @@ async function initFallbackStore() {
       const liveWabaId = (!rawEnvWaba || rawEnvWaba === '28532933229644434') ? '1618945099958602' : rawEnvWaba;
       const livePhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
 
-      if (!Array.isArray(memoryStore.whatsapp_accounts) || memoryStore.whatsapp_accounts.length === 0) {
-        memoryStore.whatsapp_accounts = [
-          {
-            id: 1,
-            business_id: 1,
-            waba_id: liveWabaId,
-            phone_number_id: livePhoneId,
-            phone_number: '+91 86014 67210',
-            display_name: 'Yuvraj (Indian Number)',
-            quality_rating: 'GREEN',
-            messaging_limit_tier: 'STANDARD',
-            status: 'connected',
-            is_primary: 1,
-            access_token_encrypted: liveToken,
-            created_at: new Date()
-          }
-        ];
-      } else {
-        const primaryAcc = memoryStore.whatsapp_accounts.find(a => a.id === 1) || memoryStore.whatsapp_accounts[0];
-        if (primaryAcc) {
-          primaryAcc.waba_id = liveWabaId;
-          primaryAcc.phone_number_id = livePhoneId;
-          primaryAcc.access_token_encrypted = liveToken;
-          primaryAcc.status = 'connected';
-        }
+      if (!Array.isArray(memoryStore.whatsapp_accounts)) {
+        memoryStore.whatsapp_accounts = [];
       }
 
       if (!memoryStore.tenant_meta_integrations) {
@@ -254,22 +231,7 @@ async function initFallbackStore() {
     { id: 1, business_id: 1, plan_id: 3, status: 'active', current_period_start: new Date(), current_period_end: new Date(Date.now() + 30 * 86400000) }
   ];
 
-  memoryStore.whatsapp_accounts = [
-    {
-      id: 1,
-      business_id: 1,
-      waba_id: '1618945099958602',
-      phone_number_id: '1341070215765610',
-      phone_number: '+91 86014 67210',
-      display_name: 'Yuvraj (Indian Number)',
-      quality_rating: 'GREEN',
-      messaging_limit_tier: 'STANDARD',
-      status: 'connected',
-      is_primary: 1,
-      access_token_encrypted: 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD',
-      created_at: new Date()
-    }
-  ];
+  memoryStore.whatsapp_accounts = [];
 
   memoryStore.tags = [
     { id: 1, business_id: 1, name: 'VIP Customer', color: '#7952b3', created_at: new Date() },
