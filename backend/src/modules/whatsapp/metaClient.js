@@ -386,14 +386,6 @@ export class MetaCloudApiClient {
     const isMock = !code || code.startsWith('mock_') || code.startsWith('test_') || process.env.NODE_ENV === 'test';
     if (isMock) {
       logger.info('[MetaClient:Mock] Exchanged OAuth code for access token');
-      const liveToken = process.env.META_ACCESS_TOKEN;
-      if (process.env.NODE_ENV !== 'test' && liveToken && !liveToken.startsWith('placeholder') && !liveToken.startsWith('mock_')) {
-        return {
-          access_token: liveToken,
-          token_type: 'bearer',
-          expires_in: 5184000 // 60 days
-        };
-      }
       return {
         access_token: `mock_token_${Date.now()}_EmbeddedSignupSecure`,
         token_type: 'bearer',
@@ -410,18 +402,9 @@ export class MetaCloudApiClient {
       appSecret.length < 16;
 
     if (!appId || isPlaceholderSecret) {
-      logger.warn('[MetaClient] App Secret not configured, falling back to access token from environment');
-      const liveToken = process.env.META_ACCESS_TOKEN;
-      if (liveToken && !liveToken.startsWith('placeholder') && !liveToken.startsWith('mock_')) {
-        return {
-          access_token: liveToken,
-          token_type: 'bearer'
-        };
-      }
-      return {
-        access_token: `mock_token_${Date.now()}_EmbeddedSignupFallback`,
-        token_type: 'bearer'
-      };
+      const err = new Error('META_APP_ID and META_APP_SECRET must be configured to exchange Meta OAuth code.');
+      err.statusCode = 400;
+      throw err;
     }
 
     try {

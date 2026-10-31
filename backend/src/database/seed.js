@@ -68,9 +68,9 @@ async function runSeed() {
 
     // 6. Seed Connected WhatsApp Account
     console.log('🌱 Seeding WhatsApp Account...');
-    const liveToken = process.env.META_ACCESS_TOKEN || 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
-    const livePhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
-    const liveWabaId = process.env.META_WABA_ID || '1618945099958602';
+    const liveToken = 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
+    const livePhoneId = '1341070215765610';
+    const liveWabaId = '1618945099958602';
 
     await connection.query(`
       INSERT INTO whatsapp_accounts (id, business_id, waba_id, phone_number_id, phone_number, display_name, quality_rating, messaging_limit_tier, status, is_primary, access_token_encrypted)

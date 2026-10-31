@@ -160,11 +160,9 @@ async function initFallbackStore() {
       // Always guarantee real Meta templates are present
       memoryStore.templates = realApprovedMetaTemplates;
 
-      // Always guarantee connected WhatsApp accounts use the latest permanent token & Indian phone number
-      const liveToken = process.env.META_ACCESS_TOKEN || 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
-      const rawEnvWaba = process.env.META_WABA_ID;
-      const liveWabaId = (!rawEnvWaba || rawEnvWaba === '28532933229644434') ? '1618945099958602' : rawEnvWaba;
-      const livePhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
+      const liveToken = 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
+      const liveWabaId = '1618945099958602';
+      const livePhoneId = '1341070215765610';
 
       if (!Array.isArray(memoryStore.whatsapp_accounts)) {
         memoryStore.whatsapp_accounts = [];

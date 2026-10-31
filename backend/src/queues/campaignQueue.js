@@ -190,10 +190,15 @@ export async function executeCampaignDispatch(campaignId, businessId) {
     const decryptedAccountToken = activeAccount?.access_token_encrypted 
       ? decryptToken(activeAccount.access_token_encrypted) 
       : null;
-    const tokenToUse = decryptedAccountToken || process.env.META_ACCESS_TOKEN;
-    const phoneIdToUse = activeAccount?.phone_number_id || process.env.META_PHONE_NUMBER_ID || '1341070215765610';
-    const rawWaba = activeAccount?.waba_id || process.env.META_WABA_ID;
-    const wabaIdToUse = (!rawWaba || rawWaba === '28532933229644434') ? '1618945099958602' : rawWaba;
+    const tokenToUse = decryptedAccountToken;
+    const phoneIdToUse = activeAccount?.phone_number_id;
+    const wabaIdToUse = activeAccount?.waba_id;
+
+    if (!tokenToUse || !phoneIdToUse) {
+      logger.warn(`[CampaignWorker] Skipping recipient ${rec.phone}: Missing WhatsApp access token or phone ID in database.`);
+      failed++;
+      continue;
+    }
 
     const client = new MetaCloudApiClient(tokenToUse, phoneIdToUse, wabaIdToUse);
 

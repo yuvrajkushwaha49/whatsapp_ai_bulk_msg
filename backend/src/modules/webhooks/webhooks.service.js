@@ -62,8 +62,8 @@ export async function processWebhookPayload(payload) {
       // If no account matches, check known live WABA / Phone IDs before dropping
       if (!matchedBusinessId) {
         if (
-          (entryWabaId && (String(entryWabaId) === '1618945099958602' || String(entryWabaId) === '28532933229644434' || entryWabaId === process.env.META_WABA_ID)) ||
-          (metaPhoneId && (String(metaPhoneId) === '1341070215765610' || metaPhoneId === process.env.META_PHONE_NUMBER_ID))
+          (entryWabaId && (String(entryWabaId) === '1618945099958602' || String(entryWabaId) === '28532933229644434')) ||
+          (metaPhoneId && String(metaPhoneId) === '1341070215765610')
         ) {
           matchedBusinessId = 1;
           matchedAccountId = 1;

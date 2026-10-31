@@ -58,7 +58,9 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
   }
 
   if (!targetWabaId) {
-    targetWabaId = process.env.META_WABA_ID || '28532933229644434';
+    const err = new Error('WhatsApp Business Account (WABA) ID is required.');
+    err.statusCode = 400;
+    throw err;
   }
 
   // 3. Initialize client to query Meta API & complete asset access
@@ -76,7 +78,9 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
   }
 
   if (!targetPhoneId) {
-    targetPhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
+    const err = new Error('WhatsApp Phone Number ID is required.');
+    err.statusCode = 400;
+    throw err;
   }
 
   client = new MetaCloudApiClient(accessToken, targetPhoneId, targetWabaId);
@@ -223,8 +227,13 @@ export async function verifyAccount(businessId, accountId) {
     throw err;
   }
 
-  // Decrypt token
-  const token = decryptToken(account.access_token_encrypted) || process.env.META_ACCESS_TOKEN;
+  // Decrypt token from database
+  const token = decryptToken(account.access_token_encrypted) || account.access_token_encrypted;
+  if (!token) {
+    const err = new Error('WhatsApp access token missing in database for this account. Please reconnect.');
+    err.statusCode = 400;
+    throw err;
+  }
   const client = new MetaCloudApiClient(token, account.phone_number_id, account.waba_id);
 
   const verification = await client.verifyAccountConnection(account.waba_id, account.phone_number_id);
@@ -296,7 +305,12 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
     throw err;
   }
 
-  const token = decryptToken(account.access_token_encrypted) || process.env.META_ACCESS_TOKEN;
+  const token = decryptToken(account.access_token_encrypted) || account.access_token_encrypted;
+  if (!token) {
+    const err = new Error('WhatsApp access token missing in database for this account. Please reconnect.');
+    err.statusCode = 400;
+    throw err;
+  }
   const client = new MetaCloudApiClient(token, account.phone_number_id, account.waba_id);
 
   logger.info(`[TestMessenger] Dispatching test ${messageType} from ${account.phone_number} to ${cleanRecipient}...`);
@@ -611,14 +625,13 @@ export async function getAccountWithCredentials(businessId, accountId = null) {
   }
 
   const decryptedToken = decryptToken(account.access_token_encrypted) || 
-                         account.access_token_encrypted || 
-                         process.env.META_ACCESS_TOKEN;
+                         account.access_token_encrypted;
 
   return {
     ...account,
     decryptedToken,
-    phone_number_id: account.phone_number_id || process.env.META_PHONE_NUMBER_ID,
-    waba_id: account.waba_id || process.env.META_WABA_ID
+    phone_number_id: account.phone_number_id,
+    waba_id: account.waba_id
   };
 }
 
@@ -1182,7 +1195,8 @@ export async function syncTemplates(businessId, accountId = null) {
   let totalSynced = 0;
 
   for (const account of targetAccounts) {
-    const token = decryptToken(account.access_token_encrypted) || account.access_token_encrypted || process.env.META_ACCESS_TOKEN;
+    const token = decryptToken(account.access_token_encrypted) || account.access_token_encrypted;
+    if (!token) continue;
     const client = new MetaCloudApiClient(token, account.phone_number_id, account.waba_id);
 
     try {
@@ -1273,7 +1287,12 @@ export async function syncTemplates(businessId, accountId = null) {
 export async function checkTemplateStatus(businessId, templateId) {
   const tpl = await getTemplate(businessId, templateId);
   const authAccount = await getAccountWithCredentials(businessId, tpl.whatsapp_account_id);
-  const token = authAccount?.decryptedToken || process.env.META_ACCESS_TOKEN;
+  const token = authAccount?.decryptedToken;
+  if (!token) {
+    const err = new Error('WhatsApp Access Token not found in database for this account.');
+    err.statusCode = 400;
+    throw err;
+  }
   const client = new MetaCloudApiClient(token, authAccount?.phone_number_id, authAccount?.waba_id);
 
   try {
@@ -1319,7 +1338,12 @@ export async function checkTemplateStatus(businessId, templateId) {
 export async function deleteTemplate(businessId, templateId) {
   const tpl = await getTemplate(businessId, templateId);
   const authAccount = await getAccountWithCredentials(businessId, tpl.whatsapp_account_id);
-  const token = authAccount?.decryptedToken || process.env.META_ACCESS_TOKEN;
+  const token = authAccount?.decryptedToken;
+  if (!token) {
+    const err = new Error('WhatsApp Access Token not found in database for this account.');
+    err.statusCode = 400;
+    throw err;
+  }
   const client = new MetaCloudApiClient(token, authAccount?.phone_number_id, authAccount?.waba_id);
 
   try {
@@ -1341,41 +1365,69 @@ export async function deleteTemplate(businessId, templateId) {
 }
 
 /**
- * Detect if valid Meta WhatsApp Cloud API credentials exist in environment or system
+ * Detect if valid Meta WhatsApp Cloud API credentials exist in database for this business workspace
  */
 export async function detectMetaAccount(businessId) {
   const numBusinessId = Number(businessId);
 
-  // Strict Multi-Tenant Security:
-  // process.env credentials belong strictly to Business #1 (Platform/Master Owner).
-  // Other tenants (e.g. Ranjula, businessId !== 1) must NEVER see or inherit Business #1's WhatsApp credentials!
+  // 1. First check if this business already has an active account in whatsapp_accounts
+  let existingAccount = null;
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    existingAccount = store.whatsapp_accounts?.find(
+      a => a.business_id === numBusinessId && a.status === 'connected'
+    );
+  } else {
+    const rows = await executeQuery(
+      'SELECT id, business_id, display_name, phone_number, phone_number_id, waba_id, quality_rating, messaging_limit_tier, status, is_primary, access_token_encrypted FROM whatsapp_accounts WHERE business_id = ? AND status = "connected" ORDER BY is_primary DESC, id DESC LIMIT 1',
+      [numBusinessId]
+    );
+    if (rows && rows.length > 0) {
+      existingAccount = rows[0];
+    }
+  }
+
+  if (existingAccount) {
+    return {
+      detected: true,
+      alreadyConnected: true,
+      account: {
+        id: existingAccount.id,
+        displayName: existingAccount.display_name,
+        verifiedName: existingAccount.verified_name || existingAccount.display_name,
+        phoneNumber: existingAccount.phone_number,
+        phoneNumberId: existingAccount.phone_number_id,
+        wabaId: existingAccount.waba_id,
+        wabaName: existingAccount.display_name,
+        qualityRating: existingAccount.quality_rating || 'GREEN',
+        codeVerificationStatus: 'VERIFIED',
+        messagingTier: existingAccount.messaging_limit_tier || 'TIER_10K',
+        status: 'connected'
+      }
+    };
+  }
+
+  // 2. If not connected, check if configured in tenant_meta_integrations table for this business
   let token = null;
   let phoneId = null;
   let wabaId = null;
 
-  if (numBusinessId === 1) {
-    token = process.env.META_ACCESS_TOKEN;
-    phoneId = process.env.META_PHONE_NUMBER_ID;
-    wabaId = process.env.META_WABA_ID;
-  } else {
-    // For other businesses, check if they configured their own credentials in tenant_meta_integrations
-    if (!isUsingFallback()) {
-      const integrations = await executeQuery(
-        'SELECT * FROM tenant_meta_integrations WHERE business_id = ? LIMIT 1',
-        [numBusinessId]
-      );
-      if (integrations && integrations.length > 0 && integrations[0].encrypted_meta_app_secret) {
-        token = decryptToken(integrations[0].encrypted_meta_app_secret);
-        phoneId = integrations[0].meta_phone_number_id;
-        wabaId = integrations[0].meta_waba_id;
-      }
+  if (!isUsingFallback()) {
+    const integrations = await executeQuery(
+      'SELECT * FROM tenant_meta_integrations WHERE business_id = ? LIMIT 1',
+      [numBusinessId]
+    );
+    if (integrations && integrations.length > 0 && integrations[0].encrypted_meta_app_secret) {
+      token = decryptToken(integrations[0].encrypted_meta_app_secret);
+      phoneId = integrations[0].meta_phone_number_id;
+      wabaId = integrations[0].meta_waba_id;
     }
   }
 
-  if (!token || !phoneId || token.startsWith('placeholder') || token.startsWith('mock_')) {
+  if (!token || !phoneId) {
     return {
       detected: false,
-      message: 'No configured Meta Cloud API account found for this business workspace.'
+      message: 'No configured Meta WhatsApp account found for this business workspace. Please click "Continue with Facebook" to connect your account.'
     };
   }
 
@@ -1391,34 +1443,14 @@ export async function detectMetaAccount(businessId) {
       }
     }
 
-    // Check if this account is already connected in MySQL or memory store for THIS specific business
-    let alreadyConnected = false;
-    let existingAccount = null;
-    if (isUsingFallback()) {
-      const store = getMemoryStore();
-      existingAccount = store.whatsapp_accounts?.find(
-        a => a.business_id === numBusinessId && a.phone_number_id === phoneId
-      );
-      alreadyConnected = Boolean(existingAccount && existingAccount.status === 'connected');
-    } else {
-      const rows = await executeQuery(
-        'SELECT id, status, is_primary FROM whatsapp_accounts WHERE business_id = ? AND phone_number_id = ? LIMIT 1',
-        [numBusinessId, phoneId]
-      );
-      if (rows && rows.length > 0) {
-        alreadyConnected = rows[0].status === 'connected';
-        existingAccount = rows[0];
-      }
-    }
-
     const displayName = phoneDetails.verified_name || phoneDetails.display_phone_number || wabaDetails?.name || 'Official WhatsApp Account';
     const phoneNumber = phoneDetails.display_phone_number || (phoneId ? `+${phoneId}` : 'Verified Account');
 
     return {
       detected: true,
-      alreadyConnected,
+      alreadyConnected: false,
       account: {
-        id: existingAccount?.id || null,
+        id: null,
         displayName,
         verifiedName: phoneDetails.verified_name || displayName,
         phoneNumber,
@@ -1428,7 +1460,7 @@ export async function detectMetaAccount(businessId) {
         qualityRating: phoneDetails.quality_rating || 'GREEN',
         codeVerificationStatus: phoneDetails.code_verification_status || 'VERIFIED',
         messagingTier: phoneDetails.messaging_limit_tier || 'TIER_10K',
-        status: alreadyConnected ? 'connected' : 'ready_to_connect'
+        status: 'ready_to_connect'
       }
     };
   } catch (error) {
@@ -1436,7 +1468,7 @@ export async function detectMetaAccount(businessId) {
     return {
       detected: false,
       error: error.message,
-      message: 'Meta credentials detected but could not verify with Meta Graph API.'
+      message: 'Configured credentials could not be verified with Meta Graph API.'
     };
   }
 }
@@ -1450,21 +1482,23 @@ export async function autoConnectMetaAccount(businessId, payload = {}) {
   let targetPhoneId = payload.phoneNumberId;
   let targetWabaId = payload.wabaId;
 
-  // Tenant Security Check: Default .env credentials can ONLY be auto-connected by Business #1
+  // If not provided in payload, check if stored in tenant_meta_integrations for this business
   if (!token || !targetPhoneId) {
-    if (numBusinessId === 1) {
-      token = process.env.META_ACCESS_TOKEN;
-      targetPhoneId = process.env.META_PHONE_NUMBER_ID;
-      targetWabaId = process.env.META_WABA_ID;
-    } else {
-      const err = new Error('Tenant isolation: Default system WhatsApp credentials belong to Business #1. Please connect your own WhatsApp account using "Continue with Facebook".');
-      err.statusCode = 403;
-      throw err;
+    if (!isUsingFallback()) {
+      const integrations = await executeQuery(
+        'SELECT * FROM tenant_meta_integrations WHERE business_id = ? LIMIT 1',
+        [numBusinessId]
+      );
+      if (integrations && integrations.length > 0 && integrations[0].encrypted_meta_app_secret) {
+        token = decryptToken(integrations[0].encrypted_meta_app_secret);
+        targetPhoneId = integrations[0].meta_phone_number_id;
+        targetWabaId = integrations[0].meta_waba_id;
+      }
     }
   }
 
   if (!token || !targetPhoneId) {
-    const err = new Error('Meta Access Token and Phone Number ID are required for connection.');
+    const err = new Error('Meta Access Token and Phone Number ID are required. Please connect your account using "Continue with Facebook".');
     err.statusCode = 400;
     throw err;
   }

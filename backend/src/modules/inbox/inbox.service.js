@@ -9,13 +9,13 @@ import { emitToTenant, emitToConversation } from '../../socket.js';
  */
 async function getClientForBusiness(businessId, accountId = null) {
   const authAccount = await getAccountWithCredentials(businessId, accountId);
-  if (authAccount) {
+  if (authAccount && authAccount.decryptedToken) {
     return new MetaCloudApiClient(authAccount.decryptedToken, authAccount.phone_number_id, authAccount.waba_id);
   }
   return new MetaCloudApiClient(
-    process.env.META_ACCESS_TOKEN || '',
-    process.env.META_PHONE_NUMBER_ID || '',
-    process.env.META_WABA_ID || ''
+    '',
+    authAccount?.phone_number_id || '',
+    authAccount?.waba_id || ''
   );
 }
 

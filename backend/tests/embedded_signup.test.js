@@ -1,7 +1,7 @@
 process.env.NODE_ENV = 'test';
 import { test, describe, before } from 'node:test';
 import assert from 'node:assert';
-import { checkConnection, getMemoryStore } from '../src/database/db.js';
+import { checkConnection, getMemoryStore, executeQuery, isUsingFallback } from '../src/database/db.js';
 import * as whatsappService from '../src/modules/whatsapp/whatsapp.service.js';
 import { encryptToken, decryptToken } from '../src/utils/crypto.js';
 
@@ -57,15 +57,27 @@ describe('Meta WhatsApp Embedded Signup Test Suite', () => {
     assert.strictEqual(account.access_token_encrypted, undefined, 'Access token must not be leaked to output');
 
     // Verify token was stored encrypted in memory store / database
-    const store = getMemoryStore();
-    const storedRecord = store.whatsapp_accounts.find(a => a.id === account.id);
+    let storedRecord;
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      storedRecord = store.whatsapp_accounts.find(a => a.id === account.id);
+    } else {
+      const rows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ?', [account.id]);
+      storedRecord = rows[0];
+    }
     assert.ok(storedRecord.access_token_encrypted, 'Token must be saved in database');
     assert.match(storedRecord.access_token_encrypted, /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/i, 'Token in DB must be AES-256-GCM encrypted');
   });
 
   test('5. Account Live Verification: Checks connection status and updates last_verified_at', async () => {
-    const store = getMemoryStore();
-    const targetAccount = store.whatsapp_accounts.find(a => a.business_id === 1);
+    let targetAccount;
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      targetAccount = store.whatsapp_accounts.find(a => a.business_id === 1);
+    } else {
+      const rows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE business_id = 1 LIMIT 1');
+      targetAccount = rows[0];
+    }
     assert.ok(targetAccount, 'Account for business 1 must exist');
 
     const result = await whatsappService.verifyAccount(1, targetAccount.id);
@@ -76,8 +88,14 @@ describe('Meta WhatsApp Embedded Signup Test Suite', () => {
   });
 
   test('6. Tenant Isolation: Business 2 cannot view or verify Business 1 WhatsApp account', async () => {
-    const store = getMemoryStore();
-    const b1Account = store.whatsapp_accounts.find(a => a.business_id === 1);
+    let b1Account;
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      b1Account = store.whatsapp_accounts.find(a => a.business_id === 1);
+    } else {
+      const rows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE business_id = 1 LIMIT 1');
+      b1Account = rows[0];
+    }
 
     // Business 2 tries to get Business 1's account
     const b2View = await whatsappService.getAccount(2, b1Account.id);
@@ -93,8 +111,14 @@ describe('Meta WhatsApp Embedded Signup Test Suite', () => {
   });
 
   test('7. Disconnect Account: Marks connection_status as DISCONNECTED', async () => {
-    const store = getMemoryStore();
-    const account = store.whatsapp_accounts.find(a => a.business_id === 1);
+    let account;
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      account = store.whatsapp_accounts.find(a => a.business_id === 1);
+    } else {
+      const rows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE business_id = 1 LIMIT 1');
+      account = rows[0];
+    }
 
     const disconnectRes = await whatsappService.disconnectAccount(1, account.id);
     assert.strictEqual(disconnectRes.success, true);
