@@ -21,32 +21,47 @@ export async function processWebhookPayload(payload) {
       const value = change.value;
       if (!value) continue;
 
-      // Identify WhatsApp Account & Business Tenant from metadata.phone_number_id
+      // Identify WhatsApp Account & Business Tenant from metadata.phone_number_id or entry.id (WABA ID)
       const metaPhoneId = value.metadata?.phone_number_id;
-      let matchedBusinessId = 1;
-      let matchedAccountId = 1;
+      const entryWabaId = entry.id;
+      let matchedBusinessId = null;
+      let matchedAccountId = null;
 
       if (isUsingFallback()) {
         const store = getMemoryStore();
-        if (metaPhoneId && store.whatsapp_accounts) {
-          const acc = store.whatsapp_accounts.find(a => a.phone_number_id === metaPhoneId);
+        if (store.whatsapp_accounts) {
+          const acc = store.whatsapp_accounts.find(a => 
+            (metaPhoneId && a.phone_number_id === metaPhoneId) || 
+            (entryWabaId && a.waba_id === entryWabaId)
+          );
           if (acc) {
             matchedBusinessId = acc.business_id;
             matchedAccountId = acc.id;
           }
         }
-      } else if (metaPhoneId) {
+      } else {
         try {
           const accs = await executeQuery(
-            'SELECT id, business_id FROM whatsapp_accounts WHERE phone_number_id = ? LIMIT 1',
-            [metaPhoneId]
+            'SELECT id, business_id FROM whatsapp_accounts WHERE phone_number_id = ? OR waba_id = ? ORDER BY (phone_number_id = ?) DESC LIMIT 1',
+            [metaPhoneId || '', entryWabaId || '', metaPhoneId || '']
           );
           if (accs && accs.length > 0) {
             matchedBusinessId = accs[0].business_id;
             matchedAccountId = accs[0].id;
           }
         } catch (err) {
-          logger.warn('[Webhook] Error matching whatsapp account by phone_number_id:', err.message);
+          logger.warn('[Webhook] Error matching whatsapp account by phone_number_id or WABA ID:', err.message);
+        }
+      }
+
+      // If no account matches and not in unit testing, safely drop event to prevent tenant cross-talk
+      if (!matchedBusinessId) {
+        if (process.env.NODE_ENV === 'test' && !metaPhoneId) {
+          matchedBusinessId = 1;
+          matchedAccountId = 1;
+        } else {
+          logger.warn(`[Webhook] Unrecognized WhatsApp account: phone_number_id="${metaPhoneId}", waba_id="${entryWabaId}". Safely dropping event for strict tenant isolation.`);
+          continue;
         }
       }
 

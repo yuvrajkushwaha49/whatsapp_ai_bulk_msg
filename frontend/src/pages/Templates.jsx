@@ -36,6 +36,11 @@ export default function Templates() {
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [languageFilter, setLanguageFilter] = useState('ALL');
 
+  // Multi-Tenant Account State
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('ALL');
+  const [formAccountId, setFormAccountId] = useState('');
+
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [detailTemplate, setDetailTemplate] = useState(null);
@@ -57,8 +62,27 @@ export default function Templates() {
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  useEffect(() => {
     fetchTemplates();
-  }, [activeFilter, categoryFilter, languageFilter]);
+  }, [activeFilter, categoryFilter, languageFilter, selectedAccountId]);
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await api.get('/whatsapp/accounts');
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setAccounts(res.data.data);
+        if (res.data.data.length > 0) {
+          const defaultAcc = res.data.data.find(a => a.is_default) || res.data.data[0];
+          setFormAccountId(defaultAcc.id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load accounts for templates', err);
+    }
+  };
 
   const fetchTemplates = async () => {
     try {
@@ -67,6 +91,7 @@ export default function Templates() {
       if (activeFilter !== 'ALL') params.status = activeFilter;
       if (categoryFilter !== 'ALL') params.category = categoryFilter;
       if (languageFilter !== 'ALL') params.language = languageFilter;
+      if (selectedAccountId !== 'ALL') params.accountId = selectedAccountId;
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
       const res = await api.get('/whatsapp/templates', { params });
@@ -88,7 +113,9 @@ export default function Templates() {
     try {
       setSyncing(true);
       setFeedbackMsg(null);
-      const res = await api.post('/whatsapp/templates/sync');
+      const res = await api.post('/whatsapp/templates/sync', {
+        accountId: selectedAccountId !== 'ALL' ? selectedAccountId : undefined
+      });
       if (res.data?.success) {
         setFeedbackMsg({
           type: 'success',
@@ -207,6 +234,7 @@ export default function Templates() {
         name: cleanName,
         category: formCategory,
         language: formLanguage,
+        accountId: formAccountId || undefined,
         header: headerType !== 'NONE' ? {
           type: headerType,
           text: headerText,
@@ -465,7 +493,7 @@ export default function Templates() {
         <div className="card-body p-3">
           <div className="row g-2 align-items-center">
             {/* Search Input */}
-            <div className="col-12 col-md-4">
+            <div className="col-12 col-md-3">
               <div className="input-group">
                 <span className="input-group-text bg-white border-end-0 text-muted">
                   <i className="bi bi-search"></i>
@@ -473,7 +501,7 @@ export default function Templates() {
                 <input
                   type="text"
                   className="form-control border-start-0"
-                  placeholder="Search template name or text..."
+                  placeholder="Search template..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchTemplates()}
@@ -481,8 +509,24 @@ export default function Templates() {
               </div>
             </div>
 
+            {/* Account / WABA Selector */}
+            <div className="col-12 col-md-3">
+              <select
+                className="form-select border-success-subtle"
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+              >
+                <option value="ALL">All Accounts & WABAs</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.account_name} ({acc.display_phone_number || `WABA: ${acc.waba_id.slice(-6)}`})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Status Filter */}
-            <div className="col-6 col-md-3">
+            <div className="col-6 col-md-2">
               <select
                 className="form-select"
                 value={activeFilter}
@@ -497,7 +541,7 @@ export default function Templates() {
             </div>
 
             {/* Category Filter */}
-            <div className="col-6 col-md-3">
+            <div className="col-6 col-md-2">
               <select
                 className="form-select"
                 value={categoryFilter}
@@ -585,9 +629,15 @@ export default function Templates() {
                     </div>
 
                     {/* Metadata Badges */}
-                    <div className="d-flex align-items-center gap-2 mb-3">
+                    <div className="d-flex align-items-center flex-wrap gap-2 mb-3">
                       <span className="badge-category">{tpl.category || 'MARKETING'}</span>
                       <span className="badge-category"><i className="bi bi-translate me-1"></i>{tpl.language}</span>
+                      {tpl.whatsapp_account_id && (
+                        <span className="badge bg-light text-secondary border small d-inline-flex align-items-center gap-1">
+                          <i className="bi bi-whatsapp text-success"></i>
+                          {accounts.find(a => a.id === tpl.whatsapp_account_id)?.account_name || `Acc #${tpl.whatsapp_account_id}`}
+                        </span>
+                      )}
                       {tpl.meta_template_id && (
                         <span className="text-muted small" title="Meta Template ID">
                           ID: {tpl.meta_template_id.substring(0, 10)}...
@@ -670,6 +720,32 @@ export default function Templates() {
                   {/* Left Column: Form Controls */}
                   <div className="col-12 col-lg-7">
                     <form onSubmit={handleCreateSubmit}>
+                      {/* Target WhatsApp Account / WABA */}
+                      <div className="mb-3">
+                        <label className="form-label small fw-bold">
+                          Target WhatsApp Business Account / WABA <span className="text-danger">*</span>
+                        </label>
+                        <select
+                          className="form-select"
+                          value={formAccountId}
+                          onChange={(e) => setFormAccountId(e.target.value)}
+                          required
+                        >
+                          {accounts.length === 0 ? (
+                            <option value="">No WhatsApp accounts connected</option>
+                          ) : (
+                            accounts.map(acc => (
+                              <option key={acc.id} value={acc.id}>
+                                {acc.account_name} — {acc.display_phone_number || 'No phone'} (WABA: {acc.waba_id})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                        <div className="form-text small">
+                          This template will be registered under this client's official Meta Business Portfolio.
+                        </div>
+                      </div>
+
                       {/* Name & Language */}
                       <div className="row g-3 mb-3">
                         <div className="col-md-7">

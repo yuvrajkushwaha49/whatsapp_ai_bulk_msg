@@ -25,6 +25,15 @@ router.get('/businesses', async (req, res, next) => {
   }
 });
 
+router.get('/whatsapp-accounts', async (req, res, next) => {
+  try {
+    const accounts = await adminService.listAllWhatsAppAccounts();
+    res.json({ success: true, data: accounts });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch('/businesses/:id/status', async (req, res, next) => {
   try {
     const result = await adminService.updateBusinessStatus(req.params.id, req.body.status);

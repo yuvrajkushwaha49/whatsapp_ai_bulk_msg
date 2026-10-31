@@ -15,6 +15,7 @@ import analyticsRouter from './modules/analytics/analytics.routes.js';
 import usersRouter from './modules/users/users.routes.js';
 import adminRouter from './modules/admin/admin.routes.js';
 import aiRouter from './modules/ai/ai.routes.js';
+import metaRouter from './modules/whatsapp/metaSetup.routes.js';
 
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { isUsingFallback } from './database/db.js';
@@ -61,6 +62,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/contacts', contactsRouter);
 app.use('/api/imports', importsRouter);
 app.use('/api/whatsapp', whatsappRouter);
+app.use('/api/meta', metaRouter);
 app.use('/api/webhooks', webhooksRouter);
 app.use('/api/campaigns', campaignsRouter);
 app.use('/api/billing', billingRouter);

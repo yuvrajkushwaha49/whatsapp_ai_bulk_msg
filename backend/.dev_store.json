@@ -7,6 +7,30 @@
       "timezone": "Asia/Kolkata",
       "status": "active",
       "created_at": "2026-10-30T07:17:38.730Z"
+    },
+    {
+      "id": 2,
+      "name": "Yuvi Test 1",
+      "slug": "yuvi-test-1-mvuxrw01",
+      "timezone": "Asia/Kolkata",
+      "status": "active",
+      "created_at": "2026-10-30T12:16:16.448Z"
+    },
+    {
+      "id": 3,
+      "name": "Vidvandya IT Solutions",
+      "slug": "vidvandya-it-solutions-mvuz75c2",
+      "timezone": "Asia/Kolkata",
+      "status": "active",
+      "created_at": "2026-10-30T12:56:07.977Z"
+    },
+    {
+      "id": 4,
+      "name": "Ranjula",
+      "slug": "ranjula-mvv2ypex",
+      "timezone": "Asia/Kolkata",
+      "status": "active",
+      "created_at": "2026-10-30T14:41:32.691Z"
     }
   ],
   "users": [
@@ -53,6 +77,39 @@
       "is_email_verified": 1,
       "status": "active",
       "created_at": "2026-10-30T07:17:38.730Z"
+    },
+    {
+      "id": 5,
+      "business_id": 2,
+      "name": "Name Test 1",
+      "email": "yuvitest1@gmail.com",
+      "password_hash": "$2a$10$YNea5kywd43El8vVFv0wJelTti/e2iLJYE8sy490Wl7QaQjASc9Ri",
+      "role": "owner",
+      "is_email_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-30T12:16:16.448Z"
+    },
+    {
+      "id": 6,
+      "business_id": 3,
+      "name": "Piyush Maurya",
+      "email": "vidvandya@gmail.com",
+      "password_hash": "$2a$10$TixseS8zKkyOT7QJHDzQ.emykPi7iYcRkK5fBnMzPXwCZdySA1qYK",
+      "role": "owner",
+      "is_email_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-30T12:56:07.977Z"
+    },
+    {
+      "id": 7,
+      "business_id": 4,
+      "name": "Ranjula",
+      "email": "ranjula@gmail.com",
+      "password_hash": "$2a$10$xwWhl.CG8r/q7v8NfJD5XuAFIY8Y33hwvCY2Jo3ALiY7iftYWSSFC",
+      "role": "owner",
+      "is_email_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-30T14:41:32.691Z"
     }
   ],
   "user_sessions": [],
@@ -68,7 +125,7 @@
       "messaging_limit_tier": "STANDARD",
       "status": "connected",
       "access_token_encrypted": "EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD",
-      "created_at": "2026-10-30T08:30:47.746Z"
+      "created_at": "2026-10-31T05:46:09.589Z"
     },
     {
       "id": 2,
@@ -81,7 +138,7 @@
       "messaging_limit_tier": "STANDARD",
       "status": "connected",
       "access_token_encrypted": "EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD",
-      "created_at": "2026-10-30T08:30:47.746Z"
+      "created_at": "2026-10-31T05:46:09.589Z"
     }
   ],
   "contacts": [
@@ -97,7 +154,12 @@
       "custom_fields": {
         "tier": "gold"
       },
-      "created_at": "2026-10-30T07:17:38.730Z"
+      "created_at": "2026-10-30T07:17:38.730Z",
+      "tags": [
+        "vip",
+        "festive-buyer"
+      ],
+      "updated_at": "2026-10-30T12:41:49.334Z"
     },
     {
       "id": 2,
@@ -169,6 +231,36 @@
       ],
       "created_at": "2026-10-30T07:35:24.714Z",
       "updated_at": "2026-10-30T07:35:24.714Z"
+    },
+    {
+      "id": 7,
+      "business_id": 1,
+      "first_name": "Priya",
+      "last_name": "Sharma",
+      "phone": "+919876500112",
+      "status": "active",
+      "is_opted_in": 1,
+      "tags": [
+        "inbox",
+        "whatsapp"
+      ],
+      "created_at": "2026-10-30T12:41:49.321Z",
+      "updated_at": "2026-10-30T12:41:49.321Z"
+    },
+    {
+      "id": 8,
+      "business_id": 1,
+      "first_name": "Idempotency",
+      "last_name": "Test",
+      "phone": "+919876500999",
+      "status": "active",
+      "is_opted_in": 1,
+      "tags": [
+        "inbox",
+        "whatsapp"
+      ],
+      "created_at": "2026-10-30T12:41:49.324Z",
+      "updated_at": "2026-10-30T12:41:49.324Z"
     }
   ],
   "contact_consents": [
@@ -290,7 +382,7 @@
       "id": 1,
       "business_id": 1,
       "whatsapp_account_id": 1,
-      "meta_template_id": "1833767617989932",
+      "meta_template_id": "meta_tpl_hello_world",
       "name": "hello_world",
       "language": "en_US",
       "category": "UTILITY",
@@ -310,15 +402,13 @@
           "text": "WhatsApp Business Platform sample message"
         }
       ],
-      "created_at": "2026-10-30T08:30:47.478Z",
-      "rejection_reason": null,
-      "last_synced_at": "2026-10-30T08:33:49.839Z"
+      "created_at": "2026-10-31T05:46:09.226Z"
     },
     {
       "id": 2,
       "business_id": 1,
       "whatsapp_account_id": 1,
-      "meta_template_id": "2250861148789663",
+      "meta_template_id": "meta_tpl_hello",
       "name": "hello",
       "language": "en",
       "category": "MARKETING",
@@ -326,12 +416,7 @@
       "components": [
         {
           "type": "HEADER",
-          "format": "IMAGE",
-          "example": {
-            "header_handle": [
-              "https://scontent.whatsapp.net/v/t61.29466-34/802455193_2250861158789662_2578237137488915005_n.png?ccb=1-7&_nc_sid=8b1bef&_nc_ohc=GggprYi0kQ8Q7kNvwE3hJ1Z&_nc_oc=AdoRW_oRuFq2bx4y-ZhUwS7CKoVYOk5Q7YYloDM_jLBOSbxGXs6kLPQHnXrlUDXHF8c&_nc_zt=3&_nc_ht=scontent.whatsapp.net&edm=AH51TzQEAAAA&_nc_gid=wSSiRHNQvrOY7zJa9p7XjA&_nc_tpa=Q5bMBQJfNgzbEQkifL_B4pvYRflSVtgJFN8rH3v3yTa_QqIM_HZCxUbzgOnNXAbn-Icx9seHVKktLY9qmw&oh=01_Q5Aa5wGL8ngWWWZl6TzOPRaZzElxJSPk1LRGpj99LLEtON5Q2A&oe=6B0BD1E5"
-            ]
-          }
+          "format": "IMAGE"
         },
         {
           "type": "BODY",
@@ -348,15 +433,13 @@
           ]
         }
       ],
-      "created_at": "2026-10-30T08:30:47.478Z",
-      "rejection_reason": null,
-      "last_synced_at": "2026-10-30T08:33:49.839Z"
+      "created_at": "2026-10-31T05:46:09.226Z"
     },
     {
       "id": 3,
       "business_id": 1,
       "whatsapp_account_id": 1,
-      "meta_template_id": "955607277569942",
+      "meta_template_id": "meta_tpl_jaspers_plain_text",
       "name": "jaspers_market_plain_text_v1",
       "language": "en_US",
       "category": "MARKETING",
@@ -367,15 +450,13 @@
           "text": "Welcome to Jasper’s Market, your local grocery store providing farm-fresh produce and high-quality goods!"
         }
       ],
-      "created_at": "2026-10-30T08:30:47.478Z",
-      "rejection_reason": null,
-      "last_synced_at": "2026-10-30T08:33:49.839Z"
+      "created_at": "2026-10-31T05:46:09.226Z"
     },
     {
       "id": 4,
       "business_id": 1,
       "whatsapp_account_id": 1,
-      "meta_template_id": "1464243372113342",
+      "meta_template_id": "meta_tpl_jaspers_order_conf",
       "name": "jaspers_market_order_confirmation_v1",
       "language": "en_US",
       "category": "UTILITY",
@@ -405,15 +486,13 @@
           ]
         }
       ],
-      "created_at": "2026-10-30T08:30:47.478Z",
-      "rejection_reason": null,
-      "last_synced_at": "2026-10-30T08:33:49.839Z"
+      "created_at": "2026-10-31T05:46:09.226Z"
     },
     {
       "id": 5,
       "business_id": 1,
       "whatsapp_account_id": 1,
-      "meta_template_id": "1087940270428159",
+      "meta_template_id": "meta_tpl_jaspers_img_cta",
       "name": "jaspers_market_image_cta_v1",
       "language": "en_US",
       "category": "MARKETING",
@@ -442,9 +521,7 @@
           ]
         }
       ],
-      "created_at": "2026-10-30T08:30:47.478Z",
-      "rejection_reason": null,
-      "last_synced_at": "2026-10-30T08:33:49.839Z"
+      "created_at": "2026-10-31T05:46:09.226Z"
     },
     {
       "id": 6,
@@ -467,572 +544,7 @@
           "text": "Hello! {{customer_name}} Welcome to our official WhatsApp channel. Thank you for connecting with us."
         }
       ],
-      "created_at": "2026-10-30T08:30:47.478Z"
-    },
-    {
-      "id": 7,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1098770769705214",
-      "name": "unapproved_1793345381748",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Pending marketing broadcast notice."
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 8,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1869069454105820",
-      "name": "webhook_rej_1793345376706",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Get rich quick today with special offers!"
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 9,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "2252918358601294",
-      "name": "webhook_test_1793345372751",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Your special offer is ready for today."
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 10,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1832181377906311",
-      "name": "sale_1793345367482",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "HEADER",
-          "format": "TEXT",
-          "text": "Flash Sale Today"
-        },
-        {
-          "type": "BODY",
-          "text": "Hi {{1}}, get {{2}}% off on all items! Use code {{3}} at checkout.",
-          "example": {
-            "body_text": [
-              [
-                "Rahul",
-                "40",
-                "FLASH40"
-              ]
-            ]
-          }
-        },
-        {
-          "type": "FOOTER",
-          "text": "Reply STOP to opt out"
-        },
-        {
-          "type": "BUTTONS",
-          "buttons": [
-            {
-              "type": "URL",
-              "text": "Shop Now",
-              "url": "https://example.com/shop"
-            }
-          ]
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 11,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "29593717816899240",
-      "name": "account_update_v1",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Dear customer, your account verification is in progress. Thank you for choosing us."
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 12,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1431194038531053",
-      "name": "test",
-      "language": "en",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Hello {{1}}, welcome to our official WhatsApp channel!",
-          "example": {
-            "body_text": [
-              [
-                "Customer"
-              ]
-            ]
-          }
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 13,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1017220098052019",
-      "name": "unapproved_1793337417008",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Pending marketing broadcast notice."
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 14,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1476216891064675",
-      "name": "webhook_rej_1793337412119",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Get rich quick today with special offers!"
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 15,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1106342085497327",
-      "name": "webhook_test_1793337406699",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Your special offer is ready for today."
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 16,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1826182528704016",
-      "name": "sale_1793337400350",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "HEADER",
-          "format": "TEXT",
-          "text": "Flash Sale Today"
-        },
-        {
-          "type": "BODY",
-          "text": "Hi {{1}}, get {{2}}% off on all items! Use code {{3}} at checkout.",
-          "example": {
-            "body_text": [
-              [
-                "Rahul",
-                "40",
-                "FLASH40"
-              ]
-            ]
-          }
-        },
-        {
-          "type": "FOOTER",
-          "text": "Reply STOP to opt out"
-        },
-        {
-          "type": "BUTTONS",
-          "buttons": [
-            {
-              "type": "URL",
-              "text": "Shop Now",
-              "url": "https://example.com/shop"
-            }
-          ]
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 17,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "2141366173433119",
-      "name": "unapproved_1793335662370",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Pending marketing broadcast notice."
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 18,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "2437562703737645",
-      "name": "webhook_rej_1793335657159",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Get rich quick today with special offers!"
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 19,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1771216393945689",
-      "name": "webhook_test_1793335652188",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Your special offer is ready for today."
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 20,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1478761490377735",
-      "name": "sale_1793335646164",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "HEADER",
-          "format": "TEXT",
-          "text": "Flash Sale Today"
-        },
-        {
-          "type": "BODY",
-          "text": "Hi {{1}}, get {{2}}% off on all items! Use code {{3}} at checkout.",
-          "example": {
-            "body_text": [
-              [
-                "Rahul",
-                "40",
-                "FLASH40"
-              ]
-            ]
-          }
-        },
-        {
-          "type": "FOOTER",
-          "text": "Reply STOP to opt out"
-        },
-        {
-          "type": "BUTTONS",
-          "buttons": [
-            {
-              "type": "URL",
-              "text": "Shop Now",
-              "url": "https://example.com/shop"
-            }
-          ]
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 21,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "2459367491499779",
-      "name": "webhook_test_template_v1",
-      "language": "en_US",
-      "category": "UTILITY",
-      "status": "REJECTED",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Your verification code is {{1}} to complete login.",
-          "example": {
-            "body_text": [
-              [
-                "Sample_1"
-              ]
-            ]
-          }
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 22,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1693389599166948",
-      "name": "autumn_flash_sale_v1",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "HEADER",
-          "format": "TEXT",
-          "text": "Flash Sale Today"
-        },
-        {
-          "type": "BODY",
-          "text": "Hi {{1}}, get {{2}}% off on all items! Use code {{3}} at checkout.",
-          "example": {
-            "body_text": [
-              [
-                "Rahul",
-                "40",
-                "FLASH40"
-              ]
-            ]
-          }
-        },
-        {
-          "type": "FOOTER",
-          "text": "Reply STOP to opt out"
-        },
-        {
-          "type": "BUTTONS",
-          "buttons": [
-            {
-              "type": "URL",
-              "text": "Shop Now",
-              "url": "https://example.com/shop"
-            }
-          ]
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 23,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1788901772400029",
-      "name": "unapproved_sample_v1",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Pending message"
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 24,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1318555620332335",
-      "name": "webhook_reject_template_v1",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "PENDING",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Get rich quick today!"
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
-    },
-    {
-      "id": 25,
-      "business_id": 1,
-      "whatsapp_account_id": 1,
-      "meta_template_id": "1670053811158966",
-      "name": "jaspers_market_media_carousel_v1",
-      "language": "en_US",
-      "category": "MARKETING",
-      "status": "APPROVED",
-      "rejection_reason": null,
-      "quality_rating": "UNKNOWN",
-      "components": [
-        {
-          "type": "BODY",
-          "text": "Our in-house chefs have prepared some delicious and fresh summer recipes."
-        },
-        {
-          "type": "BUTTONS",
-          "buttons": [
-            {
-              "type": "URL",
-              "text": "Get free delivery",
-              "url": "https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/utility-templates"
-            }
-          ]
-        },
-        {
-          "type": "CAROUSEL",
-          "cards": [
-            {
-              "components": [
-                {
-                  "type": "HEADER",
-                  "format": "IMAGE"
-                },
-                {
-                  "type": "BODY",
-                  "text": "Simple and Healthy Sheet Pan Dinner to Feed the Whole Family"
-                },
-                {
-                  "type": "BUTTONS",
-                  "buttons": [
-                    {
-                      "type": "URL",
-                      "text": "Get this recipe",
-                      "url": "https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/media-card-carousel-templates"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "components": [
-                {
-                  "type": "HEADER",
-                  "format": "IMAGE"
-                },
-                {
-                  "type": "BODY",
-                  "text": "3 Plant-Powered Salad Bowls to Fuel Your Week"
-                },
-                {
-                  "type": "BUTTONS",
-                  "buttons": [
-                    {
-                      "type": "URL",
-                      "text": "Get this recipe",
-                      "url": "https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/media-card-carousel-templates"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "last_synced_at": "2026-10-30T08:33:49.839Z",
-      "created_at": "2026-10-30T08:31:06.531Z"
+      "created_at": "2026-10-31T05:46:09.226Z"
     }
   ],
   "campaigns": [
@@ -1081,6 +593,31 @@
       "started_at": "2026-10-30T07:17:38.730Z",
       "completed_at": "2026-10-30T07:17:38.730Z",
       "created_at": "2026-10-30T07:17:38.730Z"
+    },
+    {
+      "id": 3,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "template_id": 6,
+      "name": "Test",
+      "purpose": "Festive & Promotional Broadcast",
+      "status": "completed",
+      "total_recipients": 1,
+      "sent_count": 1,
+      "delivered_count": 0,
+      "read_count": 0,
+      "failed_count": 0,
+      "variable_mappings": {
+        "var_1": "contact.name",
+        "var_2": "30",
+        "var_3": "FESTIVE30",
+        "sender_account_ids": [
+          1
+        ]
+      },
+      "created_at": "2026-10-31T05:43:24.151Z",
+      "started_at": "2026-10-31T05:43:24.161Z",
+      "completed_at": "2026-10-31T05:43:26.046Z"
     }
   ],
   "campaign_recipients": [
@@ -1161,6 +698,17 @@
       "delivered_at": "2026-10-30T07:17:38.730Z",
       "read_at": "2026-10-30T07:17:38.730Z",
       "created_at": "2026-10-30T07:17:38.730Z"
+    },
+    {
+      "id": 7,
+      "business_id": 1,
+      "campaign_id": 3,
+      "contact_id": 6,
+      "phone": "+919565763089",
+      "status": "sent",
+      "created_at": "2026-10-31T05:43:24.151Z",
+      "sent_at": "2026-10-31T05:43:26.046Z",
+      "provider_message_id": "wamid.HBgMOTE5NTY1NzYzMDg5FQIAERgSMjcyMUY0OTFDQzk3RkI4NjhFAA=="
     }
   ],
   "messages": [
@@ -1235,6 +783,18 @@
       "phone": "+919565763089",
       "status": "sent",
       "created_at": "2026-10-30T04:25:48.150Z"
+    },
+    {
+      "id": 7,
+      "business_id": 1,
+      "campaign_id": 3,
+      "contact_id": 6,
+      "whatsapp_account_id": 1,
+      "direction": "outbound",
+      "provider_message_id": "wamid.HBgMOTE5NTY1NzYzMDg5FQIAERgSMjcyMUY0OTFDQzk3RkI4NjhFAA==",
+      "phone": "+919565763089",
+      "status": "sent",
+      "created_at": "2026-10-31T05:43:26.046Z"
     }
   ],
   "webhook_events": [],
@@ -1318,6 +878,27 @@
       "status": "active",
       "current_period_start": "2026-10-30T07:17:38.730Z",
       "current_period_end": "2026-11-29T07:17:38.730Z"
+    },
+    {
+      "id": 2,
+      "business_id": 2,
+      "plan_id": 1,
+      "status": "active",
+      "current_period_start": "2026-10-30T12:16:16.448Z"
+    },
+    {
+      "id": 3,
+      "business_id": 3,
+      "plan_id": 1,
+      "status": "active",
+      "current_period_start": "2026-10-30T12:56:07.977Z"
+    },
+    {
+      "id": 4,
+      "business_id": 4,
+      "plan_id": 1,
+      "status": "active",
+      "current_period_start": "2026-10-30T14:41:32.691Z"
     }
   ],
   "usage_ledger": [
@@ -1342,13 +923,13 @@
       "assigned_user_id": 4,
       "status": "open",
       "unread_count": 0,
-      "last_message_id": 6,
-      "last_message_text": "Here is the festive catalogue link: https://acmeretail.com/catalog",
-      "last_message_at": "2026-10-30T07:33:24.804Z",
+      "last_message_id": 11,
+      "last_message_text": "Thanks for contacting us! How can we assist you?",
+      "last_message_at": "2026-10-30T12:41:49.327Z",
       "last_incoming_message_at": "2026-10-30T07:06:15.932Z",
       "service_window_expires_at": "2026-10-31T06:18:15.932Z",
       "created_at": "2026-10-30T05:18:15.932Z",
-      "updated_at": "2026-10-30T07:33:24.804Z"
+      "updated_at": "2026-10-30T12:41:49.333Z"
     },
     {
       "id": 2,
@@ -1359,13 +940,13 @@
       "assigned_user_id": null,
       "status": "open",
       "unread_count": 0,
-      "last_message_id": 4,
-      "last_message_text": "Thank you for connecting with us.",
-      "last_message_at": "2026-10-29T05:18:15.932Z",
+      "last_message_id": 12,
+      "last_message_text": "[Template: hello_world]",
+      "last_message_at": "2026-10-30T12:41:49.329Z",
       "last_incoming_message_at": "2026-10-29T03:18:15.932Z",
       "service_window_expires_at": "2026-10-30T03:18:15.932Z",
       "created_at": "2026-10-29T03:18:15.932Z",
-      "updated_at": "2026-10-29T05:18:15.932Z"
+      "updated_at": "2026-10-30T12:41:49.329Z"
     },
     {
       "id": 3,
@@ -1400,6 +981,40 @@
       "service_window_expires_at": "2026-10-31T07:35:24.714Z",
       "created_at": "2026-10-30T13:05:25.000Z",
       "updated_at": "2026-10-30T07:36:53.840Z"
+    },
+    {
+      "id": 5,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "contact_id": 7,
+      "customer_phone": "+919876500112",
+      "assigned_user_id": null,
+      "status": "open",
+      "unread_count": 1,
+      "last_message_id": 9,
+      "last_message_text": "Hello! I need assistance with my order.",
+      "last_message_at": "2026-10-30T12:41:49.000Z",
+      "last_incoming_message_at": "2026-10-30T12:41:49.000Z",
+      "service_window_expires_at": "2026-10-31T12:41:49.321Z",
+      "created_at": "2026-10-30T12:41:49.000Z",
+      "updated_at": "2026-10-30T12:41:49.321Z"
+    },
+    {
+      "id": 6,
+      "business_id": 1,
+      "whatsapp_account_id": 1,
+      "contact_id": 8,
+      "customer_phone": "+919876500999",
+      "assigned_user_id": null,
+      "status": "open",
+      "unread_count": 2,
+      "last_message_id": 10,
+      "last_message_text": "Unique message payload",
+      "last_message_at": "2026-10-30T12:41:49.000Z",
+      "last_incoming_message_at": "2026-10-30T12:41:49.000Z",
+      "service_window_expires_at": "2026-10-31T12:41:49.325Z",
+      "created_at": "2026-10-30T12:41:49.000Z",
+      "updated_at": "2026-10-30T12:41:49.325Z"
     }
   ],
   "whatsapp_messages": [
@@ -1527,10 +1142,88 @@
       "sent_at": "2026-10-30T07:36:53.840Z",
       "created_at": "2026-10-30T07:36:53.840Z",
       "updated_at": "2026-10-30T07:36:53.840Z"
+    },
+    {
+      "id": 9,
+      "business_id": 1,
+      "conversation_id": 5,
+      "contact_id": 7,
+      "whatsapp_account_id": 1,
+      "meta_message_id": "wamid.test_in_1793364109320",
+      "direction": "INBOUND",
+      "message_type": "text",
+      "message_body": "Hello! I need assistance with my order.",
+      "media_id": null,
+      "media_url": null,
+      "message_status": "delivered",
+      "delivered_at": "2026-10-30T12:41:49.000Z",
+      "created_at": "2026-10-30T12:41:49.000Z",
+      "updated_at": "2026-10-30T12:41:49.000Z"
+    },
+    {
+      "id": 10,
+      "business_id": 1,
+      "conversation_id": 6,
+      "contact_id": 8,
+      "whatsapp_account_id": 1,
+      "meta_message_id": "wamid.test_idempotent_1793364109324",
+      "direction": "INBOUND",
+      "message_type": "text",
+      "message_body": "Unique message payload",
+      "media_id": null,
+      "media_url": null,
+      "message_status": "delivered",
+      "delivered_at": "2026-10-30T12:41:49.000Z",
+      "created_at": "2026-10-30T12:41:49.000Z",
+      "updated_at": "2026-10-30T12:41:49.000Z"
+    },
+    {
+      "id": 11,
+      "business_id": 1,
+      "conversation_id": 1,
+      "contact_id": 1,
+      "whatsapp_account_id": 1,
+      "meta_message_id": "wamid.out_1793364109327",
+      "direction": "OUTBOUND",
+      "message_type": "text",
+      "message_body": "Thanks for contacting us! How can we assist you?",
+      "message_status": "sent",
+      "sender_user_id": 2,
+      "sent_at": "2026-10-30T12:41:49.327Z",
+      "created_at": "2026-10-30T12:41:49.327Z",
+      "updated_at": "2026-10-30T12:41:49.327Z"
+    },
+    {
+      "id": 12,
+      "business_id": 1,
+      "conversation_id": 2,
+      "contact_id": 2,
+      "whatsapp_account_id": 1,
+      "meta_message_id": "wamid.out_tpl_1793364109329",
+      "direction": "OUTBOUND",
+      "message_type": "template",
+      "message_body": "[Template: hello_world]",
+      "template_name": "hello_world",
+      "template_components_json": "[{\"type\":\"body\",\"parameters\":[{\"type\":\"text\",\"text\":\"Vikram\"}]}]",
+      "message_status": "sent",
+      "sender_user_id": 2,
+      "sent_at": "2026-10-30T12:41:49.329Z",
+      "created_at": "2026-10-30T12:41:49.329Z",
+      "updated_at": "2026-10-30T12:41:49.329Z"
     }
   ],
   "whatsapp_message_media": [],
-  "whatsapp_conversation_assignments": [],
+  "whatsapp_conversation_assignments": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "conversation_id": 1,
+      "assigned_from": 4,
+      "assigned_to": 4,
+      "assigned_by": 2,
+      "created_at": "2026-10-30T12:41:49.330Z"
+    }
+  ],
   "whatsapp_conversation_notes": [
     {
       "id": 1,
@@ -1540,7 +1233,94 @@
       "note": "Customer is looking for premium festive hampers. Follow up with catalog by evening.",
       "created_at": "2026-10-30T06:58:15.932Z",
       "updated_at": "2026-10-30T06:58:15.932Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "conversation_id": 1,
+      "user_id": 2,
+      "user_name": "Rahul Sharma",
+      "note": "Customer requested special holiday gift wrapping.",
+      "created_at": "2026-10-30T12:41:49.334Z",
+      "updated_at": "2026-10-30T12:41:49.334Z"
     }
   ],
-  "whatsapp_conversation_events": []
+  "whatsapp_conversation_events": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "conversation_id": 1,
+      "user_id": 2,
+      "event_type": "status_changed",
+      "event_data_json": "{\"old_status\":\"closed\",\"new_status\":\"closed\"}",
+      "created_at": "2026-10-30T12:41:49.331Z"
+    },
+    {
+      "id": 2,
+      "business_id": 1,
+      "conversation_id": 1,
+      "user_id": 2,
+      "event_type": "status_changed",
+      "event_data_json": "{\"old_status\":\"open\",\"new_status\":\"open\"}",
+      "created_at": "2026-10-30T12:41:49.332Z"
+    }
+  ],
+  "tenant_meta_integrations": [
+    {
+      "id": 1,
+      "business_id": 1,
+      "integration_mode": "client_owned",
+      "setup_step": 3,
+      "configuration_status": "configured",
+      "created_at": "2026-10-30T13:26:47.948Z",
+      "updated_at": "2026-10-30T17:26:26.469Z",
+      "meta_app_id": "1165054629187576",
+      "encrypted_meta_app_secret": "a358a1c8077a9e2d60c9c88afda458ad:64308472d9911a8cb86fe2dc79e84f86:830dd62cb8651c564612a67ed455d9d70a7895cb930738596b1188c71f0006cf",
+      "last_validation_at": "2026-10-30T17:26:26.469Z"
+    },
+    {
+      "id": 2,
+      "business_id": 4,
+      "integration_mode": "client_owned",
+      "setup_step": 3,
+      "configuration_status": "pending",
+      "created_at": "2026-10-30T14:41:43.383Z",
+      "updated_at": "2026-10-30T16:08:24.241Z"
+    },
+    {
+      "id": 3,
+      "business_id": 505,
+      "integration_mode": "client_owned",
+      "setup_step": 5,
+      "configuration_status": "configured",
+      "created_at": "2026-10-30T14:48:38.591Z",
+      "updated_at": "2026-10-30T14:48:38.602Z",
+      "meta_app_id": "987654321098765",
+      "encrypted_meta_app_secret": "4c40efd9a8f927476a4e62b0f8001d0a:8732e4f731c7208fbcf173903e9fbd9a:5e042477cf3b57ab353e1620f1dd5ba09a23ab263c870e1587b23969",
+      "embedded_signup_config_id": "config_embedded_999",
+      "last_validation_at": "2026-10-30T14:48:38.599Z"
+    },
+    {
+      "id": 4,
+      "business_id": 3,
+      "integration_mode": "platform_managed",
+      "setup_step": 1,
+      "configuration_status": "pending",
+      "created_at": "2026-10-30T16:57:31.029Z",
+      "updated_at": "2026-10-30T16:57:31.029Z"
+    },
+    {
+      "id": 5,
+      "business_id": 7911,
+      "integration_mode": "client_owned",
+      "setup_step": 5,
+      "configuration_status": "configured",
+      "created_at": "2026-10-30T18:13:15.042Z",
+      "updated_at": "2026-10-30T18:13:15.052Z",
+      "meta_app_id": "987654321098765",
+      "encrypted_meta_app_secret": "7d61cf1fa1bb4e13d0e9ae53793d5693:b8f21743df82f8b919d38aa9c5d91e6b:db7fa798db42a8293d32fbb2864ce155577f4f5bb2c9b2fced974f96",
+      "embedded_signup_config_id": "config_embedded_999",
+      "last_validation_at": "2026-10-30T18:13:15.049Z"
+    }
+  ]
 }

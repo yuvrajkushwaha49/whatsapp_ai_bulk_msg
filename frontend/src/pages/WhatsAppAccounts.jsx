@@ -1,20 +1,107 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
+import WhatsAppConnectButton from '../components/WhatsAppConnectButton';
+import MetaSetupWizardModal from '../components/MetaSetupWizardModal';
 
 export default function WhatsAppAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState(null);
-  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [verifyingId, setVerifyingId] = useState(null);
+  const [settingPrimaryId, setSettingPrimaryId] = useState(null);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', text: '' });
+  const [disconnectModal, setDisconnectModal] = useState(null);
 
-  const [formData, setFormData] = useState({
+  const [manualForm, setManualForm] = useState({
     displayName: '',
     phoneNumber: '',
     phoneNumberId: '',
     wabaId: '',
     accessToken: ''
   });
+
+  // In-Software Meta Test Messenger & Webhook Status States
+  const [testModal, setTestModal] = useState({
+    isOpen: false,
+    accountId: '',
+    recipientPhone: '918601467210',
+    messageType: 'template',
+    templateName: 'hello_world',
+    textBody: 'Hello from CampaignFlow WhatsApp Cloud API!',
+    sending: false,
+    result: null,
+    error: null
+  });
+  const [webhookStatus, setWebhookStatus] = useState(null);
+  const [pingingWebhook, setPingingWebhook] = useState(false);
+
+  const openTestModal = (accId) => {
+    setTestModal(prev => ({
+      ...prev,
+      isOpen: true,
+      accountId: accId || accounts[0]?.id || '',
+      result: null,
+      error: null
+    }));
+  };
+
+  const closeTestModal = () => {
+    setTestModal(prev => ({ ...prev, isOpen: false, result: null, error: null }));
+  };
+
+  const handleSendTestMessage = async (e) => {
+    e.preventDefault();
+    if (!testModal.accountId) {
+      setTestModal(prev => ({ ...prev, error: 'Please select a WhatsApp sender account.' }));
+      return;
+    }
+    setTestModal(prev => ({ ...prev, sending: true, error: null, result: null }));
+    try {
+      const res = await api.post(`/whatsapp/accounts/${testModal.accountId}/test-message`, {
+        recipientPhone: testModal.recipientPhone,
+        messageType: testModal.messageType,
+        templateName: testModal.templateName,
+        textBody: testModal.textBody
+      });
+      if (res.data?.success) {
+        setTestModal(prev => ({
+          ...prev,
+          sending: false,
+          result: res.data.data
+        }));
+      }
+    } catch (err) {
+      setTestModal(prev => ({
+        ...prev,
+        sending: false,
+        error: err.response?.data?.message || err.response?.data?.error?.message || 'Failed to send test message via Meta API.'
+      }));
+    }
+  };
+
+  const handlePingWebhook = async () => {
+    setPingingWebhook(true);
+    try {
+      const res = await api.get('/whatsapp/webhook/ping');
+      if (res.data?.success) {
+        setWebhookStatus(res.data.data);
+        setFeedback({
+          type: 'success',
+          text: `✅ Meta Webhook listener is ACTIVE at ${res.data.data.webhookUrl}! Subscribed to messages and template delivery updates.`
+        });
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'warning',
+        text: 'Webhook check: verify your local backend server is running.'
+      });
+    } finally {
+      setPingingWebhook(false);
+    }
+  };
 
   useEffect(() => {
     fetchAccounts();
@@ -24,11 +111,72 @@ export default function WhatsAppAccounts() {
     try {
       setLoading(true);
       const res = await api.get('/whatsapp/accounts');
-      if (res.data?.success) setAccounts(res.data.data);
+      if (res.data?.success) {
+        setAccounts(res.data.data || []);
+      }
     } catch (err) {
       console.error('Failed to load WhatsApp accounts', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOnboardingSuccess = (newAccount) => {
+    setFeedback({
+      type: 'success',
+      text: `🎉 WhatsApp Business Account "${newAccount.display_name || newAccount.waba_id}" successfully connected and verified with Meta!`
+    });
+    fetchAccounts();
+  };
+
+  const handleOnboardingError = (errMsg) => {
+    setFeedback({
+      type: 'danger',
+      text: errMsg || 'WhatsApp connection failed. Please try again.'
+    });
+  };
+
+  const handleSetPrimary = async (accountId) => {
+    setSettingPrimaryId(accountId);
+    setFeedback({ type: '', text: '' });
+    try {
+      const res = await api.post(`/whatsapp/accounts/${accountId}/primary`);
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: `⭐ Default primary sender updated! All broadcasts and chats will default to this number.`
+        });
+        fetchAccounts();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || 'Failed to set primary account'
+      });
+    } finally {
+      setSettingPrimaryId(null);
+    }
+  };
+
+  const handleVerifyAccount = async (accountId) => {
+    setVerifyingId(accountId);
+    setFeedback({ type: '', text: '' });
+    try {
+      const res = await api.post(`/whatsapp/accounts/${accountId}/verify`);
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: `Account verified! Quality Rating: ${res.data.data.qualityRating || 'GREEN'}, Webhook Subscribed: Active.`
+        });
+        fetchAccounts();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'warning',
+        text: err.response?.data?.message || 'Verification refresh failed. Please check Meta permissions.'
+      });
+    } finally {
+      setVerifyingId(null);
     }
   };
 
@@ -39,215 +187,611 @@ export default function WhatsAppAccounts() {
       const res = await api.post(`/whatsapp/accounts/${accountId}/sync-templates`);
       setFeedback({
         type: 'success',
-        text: `Successfully synced ${res.data.data.syncedCount} approved templates from Meta Cloud API!`
+        text: `Successfully synced approved templates from Meta Cloud API!`
       });
     } catch (err) {
       setFeedback({
         type: 'danger',
-        text: err.response?.data?.error?.message || 'Template synchronization failed'
+        text: err.response?.data?.message || err.response?.data?.error?.message || 'Template synchronization failed'
       });
     } finally {
       setSyncingId(null);
     }
   };
 
-  const handleConnect = async (e) => {
-    e.preventDefault();
+  const handleDisconnect = async (accountId) => {
     try {
-      await api.post('/whatsapp/connect', formData);
-      setShowConnectModal(false);
-      setFormData({ displayName: '', phoneNumber: '', phoneNumberId: '', wabaId: '', accessToken: '' });
-      setFeedback({ type: 'success', text: 'WhatsApp Business account successfully connected!' });
+      await api.delete(`/whatsapp/accounts/${accountId}`);
+      setDisconnectModal(null);
+      setFeedback({ type: 'info', text: 'WhatsApp account disconnected successfully.' });
       fetchAccounts();
     } catch (err) {
-      setFeedback({ type: 'danger', text: err.response?.data?.error?.message || 'Failed to connect WhatsApp account' });
+      setFeedback({ type: 'danger', text: err.response?.data?.message || 'Failed to disconnect account' });
     }
   };
 
+  const handleManualConnect = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/whatsapp/connect', manualForm);
+      setShowManualModal(false);
+      setManualForm({ displayName: '', phoneNumber: '', phoneNumberId: '', wabaId: '', accessToken: '' });
+      setFeedback({ type: 'success', text: 'WhatsApp Business account successfully connected!' });
+      fetchAccounts();
+    } catch (err) {
+      setFeedback({ type: 'danger', text: err.response?.data?.message || 'Failed to connect WhatsApp account' });
+    }
+  };
+
+  const handleContinueWithFacebook = () => {
+    setShowSetupWizard(true);
+  };
+
   return (
-    <div>
+    <div className="container-fluid py-4">
+      {/* Page Title & Top CTA */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
         <div>
           <h2 className="brand-font mb-1">Official WhatsApp Business Accounts</h2>
-          <p className="text-muted mb-0">Meta Cloud API v21.0 WABA & Phone Number ID Management</p>
+          <p className="text-muted mb-0">Meta WhatsApp Cloud API v21.0 WABA & Phone Number Management</p>
         </div>
-        <button onClick={() => setShowConnectModal(true)} className="btn btn-cf-primary d-flex align-items-center gap-2">
-          <i className="bi bi-plus-lg"></i>
-          <span>Connect WABA Account</span>
-        </button>
+        <div className="d-flex align-items-center gap-2">
+          {/* Guided Meta Setup Wizard CTA */}
+          <button
+            type="button"
+            onClick={handleContinueWithFacebook}
+            className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
+            style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+          >
+            <i className="bi bi-facebook fs-5"></i>
+            <span>{accounts.length > 0 ? "+ Connect Another Number" : "Continue with Facebook"}</span>
+          </button>
+          <button
+            onClick={() => setShowManualModal(true)}
+            className="btn btn-outline-secondary"
+            title="Advanced Manual Configuration"
+          >
+            <i className="bi bi-gear-fill me-1"></i>
+            Manual Setup
+          </button>
+        </div>
       </div>
 
+      {/* Alert / Feedback Notification */}
       {feedback.text && (
-        <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4`} role="alert">
-          {feedback.text}
+        <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4 shadow-sm`} role="alert">
+          <div className="d-flex align-items-center gap-2">
+            <i className={`bi ${feedback.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-5`}></i>
+            <div>{feedback.text}</div>
+          </div>
           <button type="button" className="btn-close" onClick={() => setFeedback({ type: '', text: '' })}></button>
         </div>
       )}
 
-      {/* Account Cards */}
+      {/* Multi-Account Info Banner (When 1 or more accounts are connected) */}
+      {accounts.length > 0 && !loading && (
+        <div className="card border-0 shadow-sm mb-4" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderRadius: '12px' }}>
+          <div className="card-body p-3 p-md-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div className="d-flex align-items-center gap-3">
+              <div className="rounded-circle bg-success text-white p-3 d-flex align-items-center justify-content-center shadow-xs" style={{ width: '46px', height: '46px' }}>
+                <i className="bi bi-diagram-3-fill fs-5"></i>
+              </div>
+              <div>
+                <div className="d-flex align-items-center gap-2">
+                  <h5 className="mb-0 fw-bold">{accounts.length} Connected WhatsApp {accounts.length === 1 ? 'Number' : 'Numbers'}</h5>
+                  <span className="badge bg-success-subtle text-success border border-success-subtle">Multi-Account Enabled</span>
+                </div>
+                <p className="text-muted small mb-0 mt-1">
+                  You can connect multiple phone numbers under the same or different WABAs. Broadcast campaigns can round-robin send across all numbers to increase throughput.
+                </p>
+              </div>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                onClick={handleContinueWithFacebook}
+                className="btn btn-sm btn-primary d-flex align-items-center gap-2 fw-semibold shadow-xs"
+                style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+              >
+                <i className="bi bi-facebook"></i>
+                <span>+ Add WhatsApp Number</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Meta Developer In-Software Control Center (All Developer Operations in CampaignFlow) */}
+      {accounts.length > 0 && !loading && (
+        <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '14px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)' }}>
+          <div className="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div className="d-flex align-items-center gap-2">
+              <div className="p-2 rounded-circle bg-primary-subtle text-primary">
+                <i className="bi bi-cpu-fill fs-5"></i>
+              </div>
+              <div>
+                <h6 className="mb-0 fw-bold">Meta Developer In-Software Control Center</h6>
+                <p className="text-muted small mb-0">Meta Developer Console ke saare zaroori kaam ab aap seedhe CampaignFlow me aasani se kar sakte hain</p>
+              </div>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <button
+                onClick={() => openTestModal(accounts[0]?.id)}
+                className="btn btn-sm btn-primary fw-semibold d-inline-flex align-items-center gap-2 shadow-xs"
+                style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+              >
+                <i className="bi bi-send-fill"></i>
+                <span>Send Test Message</span>
+              </button>
+              <button
+                onClick={handlePingWebhook}
+                disabled={pingingWebhook}
+                className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                title="Verify Webhook receiver readiness"
+              >
+                {pingingWebhook ? <span className="spinner-border spinner-border-sm me-1"></span> : <i className="bi bi-broadcast"></i>}
+                <span>Ping Webhook</span>
+              </button>
+            </div>
+          </div>
+          <div className="card-body p-4">
+            <div className="row g-3">
+              {/* Tool 1: Test Messenger */}
+              <div className="col-lg-4">
+                <div className="p-3 border rounded-3 bg-white h-100 shadow-xs d-flex flex-column justify-content-between">
+                  <div>
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <span className="badge bg-primary-subtle text-primary">Live Cloud API</span>
+                      <strong className="small">Meta Test Messenger</strong>
+                    </div>
+                    <p className="text-secondary small mb-3">
+                      Test karein official <code>hello_world</code> template ya custom text message kisi bhi mobile number par bina Meta console khole.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => openTestModal(accounts[0]?.id)}
+                    className="btn btn-sm btn-outline-primary w-100 fw-semibold"
+                  >
+                    <i className="bi bi-send me-1"></i> Open Test Messenger
+                  </button>
+                </div>
+              </div>
+
+              {/* Tool 2: Webhook Credentials */}
+              <div className="col-lg-4">
+                <div className="p-3 border rounded-3 bg-white h-100 shadow-xs d-flex flex-column justify-content-between">
+                  <div>
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <span className="badge bg-info-subtle text-info">Webhook Config</span>
+                      <strong className="small">Webhook Live Status</strong>
+                    </div>
+                    <div className="small mb-2">
+                      <span className="text-muted" style={{ fontSize: '0.75rem' }}>Callback URL:</span>
+                      <div className="d-flex align-items-center justify-content-between bg-light p-1 rounded font-monospace small">
+                        <span className="text-truncate me-1" style={{ maxWidth: '180px', fontSize: '0.72rem' }}>
+                          {window.location.origin.replace('5173', '5000')}/api/webhooks/whatsapp
+                        </span>
+                        <button
+                          className="btn btn-xs btn-link p-0 text-secondary"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin.replace('5173', '5000')}/api/webhooks/whatsapp`);
+                            setFeedback({ type: 'success', text: 'Webhook Callback URL copied to clipboard!' });
+                          }}
+                          title="Copy Callback URL"
+                        >
+                          <i className="bi bi-clipboard"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="small mb-2">
+                      <span className="text-muted" style={{ fontSize: '0.75rem' }}>Verify Token:</span>
+                      <div className="d-flex align-items-center justify-content-between bg-light p-1 rounded font-monospace small">
+                        <span style={{ fontSize: '0.72rem' }}>campaignflow_secure_webhook_token_2026</span>
+                        <button
+                          className="btn btn-xs btn-link p-0 text-secondary"
+                          onClick={() => {
+                            navigator.clipboard.writeText('campaignflow_secure_webhook_token_2026');
+                            setFeedback({ type: 'success', text: 'Verify Token copied to clipboard!' });
+                          }}
+                          title="Copy Verify Token"
+                        >
+                          <i className="bi bi-clipboard"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handlePingWebhook}
+                    disabled={pingingWebhook}
+                    className="btn btn-sm btn-outline-secondary w-100"
+                  >
+                    <i className="bi bi-broadcast me-1"></i> Verify Webhook Health
+                  </button>
+                </div>
+              </div>
+
+              {/* Tool 3: In-Software WhatsApp Operations */}
+              <div className="col-lg-4">
+                <div className="p-3 border rounded-3 bg-white h-100 shadow-xs d-flex flex-column justify-content-between">
+                  <div>
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <span className="badge bg-success-subtle text-success">All-In-One</span>
+                      <strong className="small">WhatsApp Operations Suite</strong>
+                    </div>
+                    <p className="text-secondary small mb-3">
+                      Marketing campaigns bhejein, live 2-way inbox me chat karein, aur approved Meta templates sync karein.
+                    </p>
+                  </div>
+                  <div className="d-grid gap-1">
+                    <Link to="/campaigns" className="btn btn-sm btn-outline-success text-start py-1" style={{ fontSize: '0.78rem' }}>
+                      <i className="bi bi-megaphone-fill me-1 text-success"></i> Launch Broadcast Campaign
+                    </Link>
+                    <Link to="/inbox" className="btn btn-sm btn-outline-primary text-start py-1" style={{ fontSize: '0.78rem' }}>
+                      <i className="bi bi-chat-dots-fill me-1 text-primary"></i> Two-Way Live Chat Inbox
+                    </Link>
+                    <Link to="/templates" className="btn btn-sm btn-outline-secondary text-start py-1" style={{ fontSize: '0.78rem' }}>
+                      <i className="bi bi-file-earmark-text-fill me-1 text-secondary"></i> Sync & Create Meta Templates
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Embedded Signup Onboarding Banner (If no account connected) */}
+      {accounts.length === 0 && !loading && (
+        <div className="card border-0 shadow-sm mb-4" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)', borderRadius: '14px' }}>
+          <div className="card-body p-4 p-md-5">
+            <div className="row align-items-center">
+              <div className="col-lg-8 mb-4 mb-lg-0">
+                <span className="badge bg-success-subtle text-success border border-success-subtle mb-2 px-3 py-1 fw-bold">
+                  OFFICIAL META EMBEDDED SIGNUP
+                </span>
+                <h3 className="fw-bold text-dark mb-2">Connect Your WhatsApp Business Account in 2 Minutes</h3>
+                <p className="text-secondary mb-4" style={{ maxWidth: '640px' }}>
+                  No complex Facebook developer setup required. Click <strong>"Continue with Facebook"</strong> to log in, select or create your Meta Business Portfolio, register your official phone number, and start receiving customer messages and sending broadcasts instantly!
+                </p>
+
+                {/* 4-Step Visual Onboarding Tracker */}
+                <div className="row g-2 mb-4">
+                  <div className="col-6 col-md-3">
+                    <div className="p-2 bg-white rounded shadow-xs text-center border">
+                      <div className="fw-bold text-primary small">1. Facebook Login</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Authenticate with Meta</div>
+                    </div>
+                  </div>
+                  <div className="col-6 col-md-3">
+                    <div className="p-2 bg-white rounded shadow-xs text-center border">
+                      <div className="fw-bold text-primary small">2. Select WABA</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Choose or create account</div>
+                    </div>
+                  </div>
+                  <div className="col-6 col-md-3">
+                    <div className="p-2 bg-white rounded shadow-xs text-center border">
+                      <div className="fw-bold text-primary small">3. Verify Phone</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>OTP verification</div>
+                    </div>
+                  </div>
+                  <div className="col-6 col-md-3">
+                    <div className="p-2 bg-white rounded shadow-xs text-center border">
+                      <div className="fw-bold text-success small">4. Live Inbox Ready</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Instant chat & campaigns</div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleContinueWithFacebook}
+                  className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2 px-4 py-2 fw-bold shadow-sm"
+                  style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', borderRadius: '10px' }}
+                >
+                  <i className="bi bi-facebook fs-5"></i>
+                  <span>Continue with Facebook</span>
+                </button>
+              </div>
+
+              <div className="col-lg-4 text-center">
+                <div className="p-4 bg-white rounded-circle shadow-sm d-inline-block">
+                  <i className="bi bi-whatsapp text-success" style={{ fontSize: '4.5rem' }}></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connected Accounts Grid */}
       <div className="row g-4 mb-4">
         {loading ? (
           <div className="text-center py-5">
             <div className="spinner-border text-success" role="status"></div>
+            <div className="text-muted small mt-2">Loading WhatsApp accounts...</div>
           </div>
-        ) : accounts.length === 0 ? (
-          <div className="col-12">
-            <div className="cf-card text-center py-5">
-              <i className="bi bi-whatsapp text-muted fs-1 mb-3"></i>
-              <h5>No WhatsApp Accounts Connected</h5>
-              <p className="text-muted small">Connect your official Meta WhatsApp Business Account to start sending broadcasts.</p>
-              <button onClick={() => setShowConnectModal(true)} className="btn btn-cf-primary">
-                Connect Account Now
-              </button>
-            </div>
-          </div>
-        ) : (
-          accounts.map(acc => (
-            <div key={acc.id} className="col-12 col-lg-6">
-              <div className="cf-card h-100">
-                <div className="cf-card-header bg-light">
-                  <div className="d-flex align-items-center gap-2">
-                    <i className="bi bi-patch-check-fill text-success fs-5"></i>
-                    <div>
-                      <h5 className="mb-0 fw-bold">{acc.display_name}</h5>
-                      <span className="small text-muted">{acc.phone_number}</span>
+        ) : accounts.length === 0 ? null : (
+          accounts.map((acc) => {
+            const isConnected = acc.connection_status === 'CONNECTED' || acc.status === 'connected';
+            const qualityColor = acc.quality_rating === 'GREEN' ? 'success' : acc.quality_rating === 'YELLOW' ? 'warning' : 'danger';
+
+            return (
+              <div key={acc.id} className="col-lg-6">
+                <div className="card h-100 border shadow-sm" style={{ borderRadius: '12px' }}>
+                  {/* Card Header */}
+                  <div className="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="rounded-circle bg-success text-white p-2 d-flex align-items-center justify-content-center" style={{ width: '38px', height: '38px' }}>
+                        <i className="bi bi-whatsapp fs-5"></i>
+                      </div>
+                      <div>
+                        <div className="d-flex align-items-center gap-2">
+                          <h6 className="mb-0 fw-bold">{acc.display_name || acc.verified_name || 'WhatsApp Account'}</h6>
+                          {acc.is_primary && (
+                            <span className="badge bg-warning text-dark border border-warning-subtle" style={{ fontSize: '0.7rem' }}>
+                              <i className="bi bi-star-fill me-1 text-dark"></i>
+                              Primary Default
+                            </span>
+                          )}
+                        </div>
+                        <span className="small text-muted">{acc.phone_number}</span>
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                      {!acc.is_primary && (
+                        <button
+                          className="btn btn-sm btn-outline-warning text-dark py-1 px-2 d-flex align-items-center gap-1"
+                          onClick={() => handleSetPrimary(acc.id)}
+                          disabled={settingPrimaryId === acc.id}
+                          title="Set this account as the primary default sender"
+                          style={{ fontSize: '0.75rem' }}
+                        >
+                          {settingPrimaryId === acc.id ? (
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                          ) : (
+                            <i className="bi bi-star"></i>
+                          )}
+                          <span>Set Default</span>
+                        </button>
+                      )}
+                      <span className={`badge ${isConnected ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'} px-3 py-1 rounded-pill`}>
+                        <i className={`bi ${isConnected ? 'bi-patch-check-fill' : 'bi-x-circle-fill'} me-1`}></i>
+                        {acc.connection_status || 'CONNECTED'}
+                      </span>
                     </div>
                   </div>
-                  <span className="badge-status badge-approved">{acc.status}</span>
-                </div>
-                <div className="cf-card-body">
-                  <div className="row g-2 mb-3">
-                    <div className="col-6">
-                      <div className="p-2 border rounded bg-light">
-                        <div className="text-muted small">Quality Rating</div>
-                        <div className="fw-bold text-success d-flex align-items-center gap-1">
-                          <span className="badge bg-success rounded-circle" style={{ width: 8, height: 8 }}></span>
-                          {acc.quality_rating || 'HIGH'}
+
+                  {/* Card Body with Detailed Metadata */}
+                  <div className="card-body">
+                    <div className="row g-3 mb-3">
+                      <div className="col-sm-6">
+                        <label className="text-muted small text-uppercase fw-semibold" style={{ fontSize: '0.7rem' }}>WABA ID</label>
+                        <div className="d-flex align-items-center justify-content-between p-2 bg-light rounded border">
+                          <code className="small text-dark font-monospace">{acc.waba_id}</code>
+                          <button
+                            className="btn btn-sm text-secondary p-0"
+                            onClick={() => navigator.clipboard.writeText(acc.waba_id)}
+                            title="Copy WABA ID"
+                          >
+                            <i className="bi bi-clipboard"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="col-sm-6">
+                        <label className="text-muted small text-uppercase fw-semibold" style={{ fontSize: '0.7rem' }}>Phone Number ID</label>
+                        <div className="d-flex align-items-center justify-content-between p-2 bg-light rounded border">
+                          <code className="small text-dark font-monospace">{acc.phone_number_id}</code>
+                          <button
+                            className="btn btn-sm text-secondary p-0"
+                            onClick={() => navigator.clipboard.writeText(acc.phone_number_id)}
+                            title="Copy Phone Number ID"
+                          >
+                            <i className="bi bi-clipboard"></i>
+                          </button>
                         </div>
                       </div>
                     </div>
-                    <div className="col-6">
-                      <div className="p-2 border rounded bg-light">
-                        <div className="text-muted small">Daily Messaging Tier</div>
-                        <div className="fw-bold text-dark">{acc.messaging_limit_tier || 'TIER_10K'}</div>
-                      </div>
+
+                    <div className="d-flex flex-wrap gap-2 mb-3">
+                      <span className={`badge bg-${qualityColor}-subtle text-${qualityColor} border border-${qualityColor}-subtle`}>
+                        <i className="bi bi-shield-check me-1"></i>
+                        Quality: {acc.quality_rating || 'GREEN'}
+                      </span>
+                      <span className="badge bg-secondary-subtle text-secondary border">
+                        <i className="bi bi-speedometer2 me-1"></i>
+                        Tier: {acc.messaging_limit_tier || 'STANDARD'}
+                      </span>
+                      <span className="badge bg-info-subtle text-info border border-info-subtle">
+                        <i className="bi bi-bell-fill me-1"></i>
+                        Webhook: Subscribed
+                      </span>
+                    </div>
+
+                    <div className="small text-muted border-top pt-2 d-flex justify-content-between">
+                      <span>Connected: {new Date(acc.created_at).toLocaleDateString()}</span>
+                      <span>Verified: {acc.last_verified_at ? new Date(acc.last_verified_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Live'}</span>
                     </div>
                   </div>
 
-                  <div className="small text-muted mb-2">
-                    <strong>WABA ID:</strong> <code>{acc.waba_id}</code>
-                  </div>
-                  <div className="small text-muted mb-4">
-                    <strong>Phone Number ID:</strong> <code>{acc.phone_number_id}</code>
-                  </div>
+                  {/* Card Actions Footer */}
+                  <div className="card-footer bg-light border-top py-2 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                    <div className="d-flex gap-2">
+                      <button
+                        className="btn btn-sm btn-outline-success"
+                        onClick={() => handleVerifyAccount(acc.id)}
+                        disabled={verifyingId === acc.id}
+                        title="Verify connection health check with Meta"
+                      >
+                        {verifyingId === acc.id ? (
+                          <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                        ) : (
+                          <i className="bi bi-arrow-repeat me-1"></i>
+                        )}
+                        Verify Status
+                      </button>
 
-                  <div className="d-flex gap-2">
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => handleSyncTemplates(acc.id)}
+                        disabled={syncingId === acc.id}
+                        title="Sync approved WhatsApp Templates"
+                      >
+                        {syncingId === acc.id ? (
+                          <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                        ) : (
+                          <i className="bi bi-card-text me-1"></i>
+                        )}
+                        Sync Templates
+                      </button>
+
+                      <Link to="/inbox" className="btn btn-sm btn-outline-primary" title="Go to WhatsApp Inbox">
+                        <i className="bi bi-chat-dots-fill me-1"></i>
+                        Inbox
+                      </Link>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-xs"
+                        style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+                        onClick={() => openTestModal(acc.id)}
+                        title="Send a live test message (Meta Cloud API Test Messenger)"
+                      >
+                        <i className="bi bi-send-fill"></i>
+                        <span>Send Test</span>
+                      </button>
+                    </div>
+
                     <button
-                      onClick={() => handleSyncTemplates(acc.id)}
-                      disabled={syncingId === acc.id}
-                      className="btn btn-outline-success btn-sm d-flex align-items-center gap-2"
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => setDisconnectModal(acc)}
+                      title="Disconnect WhatsApp Account"
                     >
-                      {syncingId === acc.id ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm" role="status"></span>
-                          <span>Syncing with Meta...</span>
-                        </>
-                      ) : (
-                        <>
-                          <i className="bi bi-arrow-repeat"></i>
-                          <span>Synchronize Meta Templates</span>
-                        </>
-                      )}
+                      <i className="bi bi-power me-1"></i>
+                      Disconnect
                     </button>
-                    <a href="/templates" className="btn btn-outline-secondary btn-sm">
-                      View Templates
-                    </a>
                   </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
-      {/* Connect Account Modal */}
-      {showConnectModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      {/* Disconnect Confirmation Modal */}
+      {disconnectModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
-              <div className="modal-header border-bottom">
-                <h5 className="modal-title fw-bold">Connect WhatsApp Business Account</h5>
-                <button type="button" className="btn-close" onClick={() => setShowConnectModal(false)}></button>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold text-danger">
+                  <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                  Disconnect WhatsApp Account?
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setDisconnectModal(null)}></button>
               </div>
-              <form onSubmit={handleConnect}>
-                <div className="modal-body p-4">
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Display Brand Name</label>
+              <div className="modal-body">
+                <p>
+                  Are you sure you want to disconnect <strong>{disconnectModal.display_name || disconnectModal.phone_number}</strong>?
+                </p>
+                <div className="alert alert-warning small">
+                  Disconnecting will stop sending outbound broadcasts and free-form chat replies through this number until reconnected. Existing chat history and contact information will remain safe.
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setDisconnectModal(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-danger"
+                  onClick={() => handleDisconnect(disconnectModal.id)}
+                >
+                  Yes, Disconnect Account
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Advanced Connection Modal */}
+      {showManualModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <form onSubmit={handleManualConnect}>
+                <div className="modal-header">
+                  <h5 className="modal-title fw-bold">Manual WABA Credentials Setup</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowManualModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="alert alert-secondary small mb-3">
+                    Use this form only if you have custom Meta Permanent System User tokens instead of the one-click Facebook Login.
+                  </div>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold">Display / Channel Name</label>
                     <input
                       type="text"
-                      className="form-control"
-                      placeholder="e.g. Acme Retail Support"
-                      value={formData.displayName}
-                      onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                       required
+                      className="form-control form-control-sm"
+                      placeholder="e.g. Acme Support"
+                      value={manualForm.displayName}
+                      onChange={(e) => setManualForm({ ...manualForm, displayName: e.target.value })}
                     />
                   </div>
-
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">WhatsApp Sender Phone Number</label>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold">WhatsApp Phone Number</label>
                     <input
                       type="text"
-                      className="form-control"
-                      placeholder="+919876543210"
-                      value={formData.phoneNumber}
-                      onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                       required
+                      className="form-control form-control-sm"
+                      placeholder="+91 98765 43210"
+                      value={manualForm.phoneNumber}
+                      onChange={(e) => setManualForm({ ...manualForm, phoneNumber: e.target.value })}
                     />
                   </div>
-
-                  <div className="mb-3">
+                  <div className="mb-2">
                     <label className="form-label small fw-semibold">Meta Phone Number ID</label>
                     <input
                       type="text"
-                      className="form-control font-monospace"
-                      placeholder="e.g. 1092837465992"
-                      value={formData.phoneNumberId}
-                      onChange={(e) => setFormData({ ...formData, phoneNumberId: e.target.value })}
                       required
+                      className="form-control form-control-sm"
+                      placeholder="e.g. 1341070215765610"
+                      value={manualForm.phoneNumberId}
+                      onChange={(e) => setManualForm({ ...manualForm, phoneNumberId: e.target.value })}
                     />
                   </div>
-
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">Meta WABA ID (WhatsApp Business Account ID)</label>
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold">Meta WABA ID</label>
                     <input
                       type="text"
-                      className="form-control font-monospace"
-                      placeholder="e.g. 992837465001"
-                      value={formData.wabaId}
-                      onChange={(e) => setFormData({ ...formData, wabaId: e.target.value })}
                       required
+                      className="form-control form-control-sm"
+                      placeholder="e.g. 28532933229644434"
+                      value={manualForm.wabaId}
+                      onChange={(e) => setManualForm({ ...manualForm, wabaId: e.target.value })}
                     />
                   </div>
-
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold">System User Access Token</label>
-                    <input
-                      type="password"
-                      className="form-control font-monospace"
-                      placeholder="Permanent Meta Graph API Token"
-                      value={formData.accessToken}
-                      onChange={(e) => setFormData({ ...formData, accessToken: e.target.value })}
+                  <div className="mb-2">
+                    <label className="form-label small fw-semibold">Meta Access Token</label>
+                    <textarea
+                      required
+                      className="form-control form-control-sm"
+                      rows="3"
+                      placeholder="EAAB..."
+                      value={manualForm.accessToken}
+                      onChange={(e) => setManualForm({ ...manualForm, accessToken: e.target.value })}
                     />
-                    <div className="form-text small">Encrypted securely at rest. Leave blank to use development mock adapter.</div>
                   </div>
                 </div>
-
-                <div className="modal-footer border-top bg-light">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowConnectModal(false)}>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setShowManualModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-cf-primary">
-                    Connect Account
+                  <button type="submit" className="btn btn-sm btn-success">
+                    Save Account
                   </button>
                 </div>
               </form>
@@ -255,6 +799,180 @@ export default function WhatsAppAccounts() {
           </div>
         </div>
       )}
+
+      {/* Meta Test Messenger Modal (In-Software Meta Developer Testing Tool) */}
+      {testModal.isOpen && (
+        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', zIndex: 1060 }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+              <div
+                className="modal-header py-3 text-white"
+                style={{ background: 'linear-gradient(135deg, #1877F2 0%, #0369a1 100%)' }}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <i className="bi bi-send-fill fs-5"></i>
+                  <h5 className="modal-title fw-bold mb-0">Meta Test Messenger</h5>
+                </div>
+                <button type="button" className="btn-close btn-close-white" onClick={closeTestModal}></button>
+              </div>
+
+              <form onSubmit={handleSendTestMessage}>
+                <div className="modal-body p-4 bg-white">
+                  <p className="text-secondary small mb-3">
+                    Bina Meta Developer Console khole, CampaignFlow se direct official Meta Cloud API test message send karein aur live delivery status verify karein.
+                  </p>
+
+                  {testModal.error && (
+                    <div className="alert alert-danger p-2 small mb-3 d-flex align-items-center gap-2">
+                      <i className="bi bi-exclamation-octagon-fill fs-5 flex-shrink-0"></i>
+                      <div>{testModal.error}</div>
+                    </div>
+                  )}
+
+                  {testModal.result && (
+                    <div className="alert alert-success p-3 small mb-3 border border-success-subtle bg-success-subtle rounded-3">
+                      <div className="d-flex align-items-center gap-2 mb-2 fw-bold text-success fs-6">
+                        <i className="bi bi-check-circle-fill"></i> Message Sent Successfully via Meta Cloud API!
+                      </div>
+                      <div className="mb-1"><strong>Recipient:</strong> +{testModal.result.recipientPhone}</div>
+                      <div className="mb-1"><strong>Sender:</strong> {testModal.result.account?.displayName} ({testModal.result.account?.phoneNumber})</div>
+                      <div className="mb-1">
+                        <strong>Meta Message ID:</strong> <code className="text-dark bg-white px-2 py-1 rounded font-monospace">{testModal.result.messageId}</code>
+                      </div>
+                      <div className="text-muted mt-2" style={{ fontSize: '0.74rem' }}>
+                        <i className="bi bi-shield-check text-success me-1"></i> Verified by WhatsApp Cloud API v21.0
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sender Account */}
+                  <div className="mb-3">
+                    <label className="form-label small fw-bold">Sender WhatsApp Account</label>
+                    <select
+                      className="form-select form-select-sm"
+                      value={testModal.accountId}
+                      onChange={(e) => setTestModal({ ...testModal, accountId: e.target.value })}
+                      required
+                    >
+                      {accounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.display_name} ({acc.phone_number}) {acc.is_primary ? '★ Primary' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Recipient Phone */}
+                  <div className="mb-3">
+                    <label className="form-label small fw-bold">
+                      Recipient Mobile Number <span className="text-danger">*</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light text-muted">
+                        <i className="bi bi-telephone-fill"></i>
+                      </span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. 918601467210 (Country code + Mobile)"
+                        value={testModal.recipientPhone}
+                        onChange={(e) => setTestModal({ ...testModal, recipientPhone: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="form-text small" style={{ fontSize: '0.74rem' }}>
+                      Country code ke sath enter karein (e.g. India ke liye 91XXXXXXXXXX).
+                    </div>
+                  </div>
+
+                  {/* Message Type */}
+                  <div className="mb-3">
+                    <label className="form-label small fw-bold">Message Format</label>
+                    <div className="d-flex flex-column gap-2 bg-light p-3 rounded border">
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="testMsgType"
+                          id="typeTemplate"
+                          checked={testModal.messageType === 'template'}
+                          onChange={() => setTestModal({ ...testModal, messageType: 'template' })}
+                        />
+                        <label className="form-check-label small" htmlFor="typeTemplate">
+                          <strong>Official <code>hello_world</code> Template</strong>
+                          <div className="text-muted" style={{ fontSize: '0.74rem' }}>
+                            Recommended by Meta: Kisi bhi naye ya uncontacted number par deliver hota hai.
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="testMsgType"
+                          id="typeText"
+                          checked={testModal.messageType === 'text'}
+                          onChange={() => setTestModal({ ...testModal, messageType: 'text' })}
+                        />
+                        <label className="form-check-label small" htmlFor="typeText">
+                          <strong>Custom Free-form Text Message</strong>
+                          <div className="text-muted" style={{ fontSize: '0.74rem' }}>
+                            24-hour active customer service session me text bhejne ke liye.
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {testModal.messageType === 'text' && (
+                    <div className="mb-3">
+                      <label className="form-label small fw-bold">Custom Text Message Body</label>
+                      <textarea
+                        className="form-control form-control-sm"
+                        rows="2"
+                        value={testModal.textBody}
+                        onChange={(e) => setTestModal({ ...testModal, textBody: e.target.value })}
+                        placeholder="Enter message text..."
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="modal-footer bg-light py-2">
+                  <button type="button" className="btn btn-sm btn-outline-secondary" onClick={closeTestModal}>
+                    Close
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={testModal.sending}
+                    className="btn btn-sm btn-primary fw-semibold shadow-xs"
+                    style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+                  >
+                    {testModal.sending ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                        Sending via Meta API...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-send-fill me-1"></i> Send Test Message
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Meta Setup Wizard Modal */}
+      <MetaSetupWizardModal
+        isOpen={showSetupWizard}
+        onClose={() => setShowSetupWizard(false)}
+        onSuccess={handleOnboardingSuccess}
+      />
     </div>
   );
 }

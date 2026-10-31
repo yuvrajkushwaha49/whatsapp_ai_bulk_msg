@@ -4,6 +4,7 @@ import api from '../services/api';
 export default function SuperAdminDashboard() {
   const [stats, setStats] = useState(null);
   const [businesses, setBusinesses] = useState([]);
+  const [whatsappAccounts, setWhatsappAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState({ type: '', text: '' });
 
@@ -14,13 +15,15 @@ export default function SuperAdminDashboard() {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      const [statsRes, bizRes] = await Promise.all([
+      const [statsRes, bizRes, waRes] = await Promise.all([
         api.get('/admin/dashboard'),
-        api.get('/admin/businesses')
+        api.get('/admin/businesses'),
+        api.get('/admin/whatsapp-accounts').catch(() => ({ data: { success: true, data: [] } }))
       ]);
 
       if (statsRes.data?.success) setStats(statsRes.data.data);
       if (bizRes.data?.success) setBusinesses(bizRes.data.data);
+      if (waRes.data?.success) setWhatsappAccounts(waRes.data.data || []);
     } catch (err) {
       console.error('Failed to load SuperAdmin data', err);
     } finally {
@@ -164,6 +167,143 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Meta WABA Multi-Tenant Asset Overview */}
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="stat-card border-success-subtle">
+            <div className="stat-icon-wrapper stat-icon-green">
+              <i className="bi bi-diagram-3-fill"></i>
+            </div>
+            <div>
+              <div className="stat-label">Client WABAs</div>
+              <div className="stat-value">{stats?.totalWABAs || 0}</div>
+              <div className="small text-muted">Independent Client Accounts</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="stat-card border-primary-subtle">
+            <div className="stat-icon-wrapper stat-icon-blue">
+              <i className="bi bi-telephone-fill"></i>
+            </div>
+            <div>
+              <div className="stat-label">Phone Numbers</div>
+              <div className="stat-value">{stats?.totalPhoneNumbers || 0}</div>
+              <div className="small text-muted">Registered Official Senders</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="stat-card">
+            <div className="stat-icon-wrapper stat-icon-purple">
+              <i className="bi bi-shield-check"></i>
+            </div>
+            <div>
+              <div className="stat-label">Active Connections</div>
+              <div className="stat-value">{stats?.connectedAccounts || 0}</div>
+              <div className="small text-success">Verified with Meta Cloud</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="stat-card">
+            <div className="stat-icon-wrapper stat-icon-orange">
+              <i className="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div>
+              <div className="stat-label">Requires Attention</div>
+              <div className="stat-value text-warning">{stats?.attentionRequiredAccounts || 0}</div>
+              <div className="small text-muted">Expired token or pending</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Client WhatsApp Business Accounts Table */}
+      <div className="cf-card mb-4">
+        <div className="cf-card-header d-flex align-items-center justify-content-between">
+          <h5 className="mb-0">
+            <i className="bi bi-whatsapp text-success me-2"></i> Client WhatsApp Business Accounts ({whatsappAccounts.length})
+          </h5>
+          <span className="badge bg-light text-dark border">Strict Token Isolation Active</span>
+        </div>
+        <div className="table-responsive">
+          <table className="table cf-table">
+            <thead>
+              <tr>
+                <th>Tenant / Business</th>
+                <th>Display Name & Phone</th>
+                <th>Phone Number ID</th>
+                <th>WABA ID</th>
+                <th>Quality</th>
+                <th>Status</th>
+                <th>Last Verified</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="text-center py-4">
+                    <div className="spinner-border text-success" role="status"></div>
+                  </td>
+                </tr>
+              ) : whatsappAccounts.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="text-center text-muted py-4">
+                    No client WhatsApp accounts registered yet.
+                  </td>
+                </tr>
+              ) : (
+                whatsappAccounts.map(wa => (
+                  <tr key={wa.id}>
+                    <td>
+                      <div className="fw-bold text-dark">{wa.tenant_name || `Tenant #${wa.business_id}`}</div>
+                      <code className="small text-muted">{wa.business_slug || `tenant-${wa.business_id}`}</code>
+                    </td>
+                    <td>
+                      <div className="fw-bold">{wa.verified_name || wa.account_name}</div>
+                      <div className="small text-muted">{wa.display_phone_number || 'No phone verified'}</div>
+                    </td>
+                    <td>
+                      <code className="small text-muted">{wa.phone_number_id || '—'}</code>
+                    </td>
+                    <td>
+                      <code className="small text-muted">{wa.waba_id}</code>
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        wa.quality_rating === 'GREEN' ? 'bg-success-subtle text-success' :
+                        wa.quality_rating === 'YELLOW' ? 'bg-warning-subtle text-warning' :
+                        wa.quality_rating === 'RED' ? 'bg-danger-subtle text-danger' :
+                        'bg-light text-muted'
+                      }`}>
+                        {wa.quality_rating || 'UNKNOWN'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        wa.status === 'connected' ? 'bg-success text-white' :
+                        wa.status === 'action_required' ? 'bg-warning text-dark' :
+                        wa.status === 'token_expired' ? 'bg-danger text-white' :
+                        'bg-secondary text-white'
+                      }`}>
+                        {wa.status}
+                      </span>
+                    </td>
+                    <td className="small text-muted">
+                      {wa.last_verified_at ? new Date(wa.last_verified_at).toLocaleString() : 'Pending'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

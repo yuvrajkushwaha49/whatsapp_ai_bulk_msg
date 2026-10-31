@@ -3,6 +3,7 @@ import IORedis from 'ioredis';
 import logger from '../utils/logger.js';
 import { executeQuery, isUsingFallback, getMemoryStore } from '../database/db.js';
 import { MetaCloudApiClient } from '../modules/whatsapp/metaClient.js';
+import { decryptToken } from '../utils/crypto.js';
 
 let redisConnection = null;
 let campaignQueue = null;
@@ -152,9 +153,11 @@ export async function executeCampaignDispatch(campaignId, businessId) {
     // Select active sending WhatsApp account with round-robin rotation
     const activeAccount = (senderAccounts && senderAccounts.length > 0)
       ? senderAccounts[i % senderAccounts.length]
-      : (account || {});
-
-    const tokenToUse = activeAccount?.access_token_encrypted || process.env.META_ACCESS_TOKEN;
+      : null;
+    const decryptedAccountToken = activeAccount?.access_token_encrypted 
+      ? decryptToken(activeAccount.access_token_encrypted) 
+      : null;
+    const tokenToUse = decryptedAccountToken || process.env.META_ACCESS_TOKEN;
     const phoneIdToUse = activeAccount?.phone_number_id || process.env.META_PHONE_NUMBER_ID;
     const wabaIdToUse = activeAccount?.waba_id || process.env.META_WABA_ID;
 

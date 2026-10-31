@@ -1,11 +1,577 @@
 import { executeQuery, isUsingFallback, getMemoryStore, saveMemoryStore } from '../../database/db.js';
 import { MetaCloudApiClient } from './metaClient.js';
+import { encryptToken, decryptToken } from '../../utils/crypto.js';
 import logger from '../../utils/logger.js';
 
+/**
+ * Return Meta Embedded Signup configuration required by the frontend Facebook JS SDK
+ */
+export async function getConnectConfig(businessId) {
+  const appId = process.env.META_APP_ID || '1165054629187576';
+  const configId = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
+  const version = process.env.WHATSAPP_API_VERSION || 'v21.0';
+
+  return {
+    appId,
+    configId,
+    version,
+    hasConfigId: Boolean(configId && configId !== 'your_embedded_signup_config_id'),
+    hasAppId: Boolean(appId && appId !== 'your_meta_app_id')
+  };
+}
+
+/**
+ * Complete Meta Embedded Signup Onboarding
+ * 1. Exchanges OAuth Code for System/User Access Token
+ * 2. Fetches WABA & Phone details from Meta Graph API
+ * 3. Subscribes App to WABA Webhooks
+ * 4. Registers Phone Number
+ * 5. Encrypts token at rest and stores account against tenant
+ */
+export async function completeEmbeddedSignup(businessId, payload = {}) {
+  const { code, wabaId, phoneNumberId, waba_id, phone_number_id, businessName } = payload;
+  if (!code) {
+    const err = new Error('Authorization code is required from Meta Embedded Signup');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const numBusinessId = Number(businessId);
+  logger.info(`🚀 [EmbeddedSignup] Completing onboarding for Business #${numBusinessId}...`);
+
+  // 1. Exchange OAuth code for Meta Access Token
+  const tokenData = await MetaCloudApiClient.exchangeCodeForToken(code);
+  const accessToken = tokenData.access_token;
+  const encryptedToken = encryptToken(accessToken);
+
+  // 2. Resolve WABA ID and Phone Number ID (from frontend session listener, Meta Graph API, or payload)
+  let targetWabaId = wabaId || waba_id;
+  let targetPhoneId = phoneNumberId || phone_number_id;
+
+  // If WABA ID not supplied by frontend listener, discover via Meta debug_token
+  if (!targetWabaId) {
+    const grantedWabas = await MetaCloudApiClient.getGranularTargetIds(accessToken);
+    if (grantedWabas.length > 0) {
+      targetWabaId = grantedWabas[0];
+      logger.info(`[EmbeddedSignup] Discovered WABA ID ${targetWabaId} from Meta granted permissions`);
+    }
+  }
+
+  if (!targetWabaId) {
+    targetWabaId = process.env.META_WABA_ID || '28532933229644434';
+  }
+
+  // 3. Initialize client to query Meta API & complete asset access
+  let client = new MetaCloudApiClient(accessToken, targetPhoneId, targetWabaId);
+
+  // If Phone Number ID not supplied by frontend listener, fetch actual numbers from client's WABA
+  let phoneDetails = null;
+  if (!targetPhoneId) {
+    const wabaPhones = await client.getWabaPhoneNumbers(targetWabaId);
+    if (wabaPhones.length > 0) {
+      targetPhoneId = wabaPhones[0].id;
+      phoneDetails = wabaPhones[0];
+      logger.info(`[EmbeddedSignup] Discovered Phone Number ID ${targetPhoneId} (${phoneDetails.display_phone_number}) from Meta WABA`);
+    }
+  }
+
+  if (!targetPhoneId) {
+    targetPhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
+  }
+
+  client = new MetaCloudApiClient(accessToken, targetPhoneId, targetWabaId);
+
+  // Fetch phone details and WABA details
+  if (!phoneDetails) {
+    phoneDetails = await client.getPhoneNumberDetails(targetPhoneId);
+  }
+  const wabaDetails = await client.getWabaDetails(targetWabaId);
+
+  // 4. Subscribe App to WABA Webhooks
+  await client.subscribeWabaWebhook(targetWabaId);
+
+  // 5. Register Phone Number
+  await client.registerPhoneNumber(targetPhoneId);
+
+  const displayName = phoneDetails.verified_name || phoneDetails.display_phone_number || businessName || 'Official WhatsApp Account';
+  const phoneNumber = phoneDetails.display_phone_number || (targetPhoneId ? `+${targetPhoneId}` : 'Verified WhatsApp Account');
+  const qualityRating = phoneDetails.quality_rating || 'GREEN';
+  const messagingTier = phoneDetails.messaging_limit_tier || 'TIER_10K';
+  const now = new Date();
+
+  let savedAccount = null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    if (!store.whatsapp_accounts) store.whatsapp_accounts = [];
+
+    // Check if THIS SPECIFIC phone number is already registered for this business
+    let account = store.whatsapp_accounts.find(
+      a => a.business_id === numBusinessId && a.phone_number_id === targetPhoneId
+    );
+
+    const existingAccounts = store.whatsapp_accounts.filter(a => a.business_id === numBusinessId);
+    const isFirstAccount = existingAccounts.length === 0;
+
+    if (!account) {
+      account = {
+        id: store.whatsapp_accounts.length + 1,
+        business_id: numBusinessId,
+        meta_business_id: wabaDetails.id || null,
+        waba_id: targetWabaId,
+        phone_number_id: targetPhoneId,
+        phone_number: phoneNumber,
+        display_name: displayName,
+        verified_name: phoneDetails.verified_name || displayName,
+        quality_rating: qualityRating,
+        messaging_limit_tier: messagingTier,
+        status: 'connected',
+        connection_status: 'CONNECTED',
+        is_primary: isFirstAccount ? 1 : 0,
+        access_token_encrypted: encryptedToken,
+        last_verified_at: now,
+        webhook_subscribed_at: now,
+        created_at: now,
+        updated_at: now
+      };
+      store.whatsapp_accounts.push(account);
+    } else {
+      account.waba_id = targetWabaId;
+      account.phone_number_id = targetPhoneId;
+      account.phone_number = phoneNumber;
+      account.display_name = displayName;
+      account.verified_name = phoneDetails.verified_name || displayName;
+      account.quality_rating = qualityRating;
+      account.messaging_limit_tier = messagingTier;
+      account.status = 'connected';
+      account.connection_status = 'CONNECTED';
+      account.access_token_encrypted = encryptedToken;
+      account.last_verified_at = now;
+      account.webhook_subscribed_at = now;
+      account.updated_at = now;
+    }
+
+    saveMemoryStore();
+    savedAccount = { ...account };
+  } else {
+    // MySQL Execution: Match only on business_id and phone_number_id to allow multiple numbers under the same WABA
+    const existing = await executeQuery(
+      'SELECT id, is_primary FROM whatsapp_accounts WHERE business_id = ? AND phone_number_id = ? LIMIT 1',
+      [numBusinessId, targetPhoneId]
+    );
+
+    if (existing.length > 0) {
+      await executeQuery(
+        `UPDATE whatsapp_accounts 
+         SET waba_id = ?, phone_number_id = ?, phone_number = ?, display_name = ?, verified_name = ?,
+             quality_rating = ?, messaging_limit_tier = ?, status = 'connected', connection_status = 'CONNECTED',
+             access_token_encrypted = ?, last_verified_at = NOW(), webhook_subscribed_at = NOW(), updated_at = NOW()
+         WHERE id = ?`,
+        [targetWabaId, targetPhoneId, phoneNumber, displayName, phoneDetails.verified_name, qualityRating, messagingTier, encryptedToken, existing[0].id]
+      );
+      const rows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ? LIMIT 1', [existing[0].id]);
+      savedAccount = rows[0];
+    } else {
+      // Check if business has any existing accounts
+      const countRows = await executeQuery(
+        'SELECT COUNT(*) as total FROM whatsapp_accounts WHERE business_id = ?',
+        [numBusinessId]
+      );
+      const isFirst = (countRows?.[0]?.total || 0) === 0;
+
+      const result = await executeQuery(
+        `INSERT INTO whatsapp_accounts 
+         (business_id, meta_business_id, waba_id, phone_number_id, phone_number, display_name, verified_name,
+          quality_rating, messaging_limit_tier, status, connection_status, is_primary, access_token_encrypted, last_verified_at, webhook_subscribed_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'connected', 'CONNECTED', ?, ?, NOW(), NOW(), NOW(), NOW())`,
+        [numBusinessId, wabaDetails.id || null, targetWabaId, targetPhoneId, phoneNumber, displayName, phoneDetails.verified_name, qualityRating, messagingTier, isFirst ? 1 : 0, encryptedToken]
+      );
+      const rows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ? LIMIT 1', [result.insertId]);
+      savedAccount = rows[0];
+    }
+  }
+
+  logger.info(`✅ [EmbeddedSignup] WhatsApp account connected successfully for Business #${numBusinessId} (Phone: ${phoneNumber}, WABA: ${targetWabaId})`);
+
+  // Return sanitized object (NEVER return access_token_encrypted to frontend)
+  return sanitizeAccount(savedAccount);
+}
+
+/**
+ * Live Verification Health Check for Connected Account
+ */
+export async function verifyAccount(businessId, accountId) {
+  const numBusinessId = Number(businessId);
+  const numAccountId = Number(accountId);
+
+  let account = null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    account = store.whatsapp_accounts?.find(a => a.id === numAccountId && a.business_id === numBusinessId);
+  } else {
+    const rows = await executeQuery(
+      'SELECT * FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
+      [numAccountId, numBusinessId]
+    );
+    account = rows?.[0] || null;
+  }
+
+  if (!account) {
+    const err = new Error('WhatsApp Account not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Decrypt token
+  const token = decryptToken(account.access_token_encrypted) || process.env.META_ACCESS_TOKEN;
+  const client = new MetaCloudApiClient(token, account.phone_number_id, account.waba_id);
+
+  const verification = await client.verifyAccountConnection(account.waba_id, account.phone_number_id);
+  const newStatus = verification.isConnected ? 'connected' : 'restricted';
+  const newConnStatus = verification.status || (verification.isConnected ? 'CONNECTED' : 'ACTION_REQUIRED');
+  const qualityRating = verification.qualityRating || account.quality_rating;
+  const now = new Date();
+
+  if (isUsingFallback()) {
+    account.status = newStatus;
+    account.connection_status = newConnStatus;
+    account.quality_rating = qualityRating;
+    account.last_verified_at = now;
+    if (verification.webhookSubscribed) account.webhook_subscribed_at = now;
+    saveMemoryStore();
+  } else {
+    await executeQuery(
+      `UPDATE whatsapp_accounts 
+       SET status = ?, connection_status = ?, quality_rating = ?, last_verified_at = NOW(), updated_at = NOW() 
+       WHERE id = ?`,
+      [newStatus, newConnStatus, qualityRating, numAccountId]
+    );
+  }
+
+  return {
+    ...verification,
+    account: sanitizeAccount(account)
+  };
+}
+
+/**
+ * Send Test WhatsApp Message (Direct In-Software Meta Test Messenger)
+ * Sends hello_world template or custom text message to verify connectivity
+ */
+export async function sendTestMessage(businessId, accountId, payload = {}) {
+  const numBusinessId = Number(businessId);
+  const numAccountId = Number(accountId);
+  const { recipientPhone, messageType = 'template', textBody, templateName = 'hello_world' } = payload;
+
+  if (!recipientPhone) {
+    const err = new Error('Recipient phone number is required (with country code, e.g. 918601467210)');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const cleanRecipient = recipientPhone.replace(/\D/g, '');
+  if (cleanRecipient.length < 10) {
+    const err = new Error('Please enter a valid phone number with country code (e.g. 918601467210)');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Fetch account
+  let account = null;
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    account = store.whatsapp_accounts?.find(a => a.id === numAccountId && a.business_id === numBusinessId);
+  } else {
+    const rows = await executeQuery(
+      'SELECT * FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
+      [numAccountId, numBusinessId]
+    );
+    account = rows?.[0] || null;
+  }
+
+  if (!account) {
+    const err = new Error('WhatsApp Account not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const token = decryptToken(account.access_token_encrypted) || process.env.META_ACCESS_TOKEN;
+  const client = new MetaCloudApiClient(token, account.phone_number_id, account.waba_id);
+
+  logger.info(`[TestMessenger] Dispatching test ${messageType} from ${account.phone_number} to ${cleanRecipient}...`);
+
+  let response;
+  if (messageType === 'text') {
+    response = await client.sendTextMessage({
+      recipientPhone: cleanRecipient,
+      textBody: textBody || 'Hello! This is a test message from CampaignFlow WhatsApp Cloud API.'
+    });
+  } else {
+    // Official WhatsApp Cloud API hello_world template test
+    response = await client.sendTemplateMessage({
+      recipientPhone: cleanRecipient,
+      templateName: templateName || 'hello_world',
+      languageCode: 'en_US'
+    });
+  }
+
+  const messageId = response?.messages?.[0]?.id || `wamid.${Date.now()}`;
+
+  return {
+    success: true,
+    messageId,
+    recipientPhone: cleanRecipient,
+    messageType,
+    sentAt: new Date(),
+    account: {
+      id: account.id,
+      phoneNumber: account.phone_number,
+      displayName: account.display_name
+    },
+    metaResponse: response
+  };
+}
+
+/**
+ * Test Webhook Ping and Verification Status
+ */
+export async function testWebhookPing(businessId) {
+  const webhookUrl = `${process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace('5173', '5000') : 'http://localhost:5000'}/api/webhooks/whatsapp`;
+  const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN || 'campaignflow_secure_webhook_token_2026';
+
+  return {
+    success: true,
+    status: 'ACTIVE',
+    webhookUrl,
+    verifyToken,
+    subscribedFields: ['messages', 'message_template_status_update'],
+    apiVersion: process.env.WHATSAPP_API_VERSION || 'v21.0',
+    timestamp: new Date().toISOString()
+  };
+}
+
+/**
+ * Disconnect Account
+ */
+export async function disconnectAccount(businessId, accountId) {
+  const numBusinessId = Number(businessId);
+  const numAccountId = Number(accountId);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const account = store.whatsapp_accounts?.find(a => a.id === numAccountId && a.business_id === numBusinessId);
+    if (!account) {
+      const err = new Error('WhatsApp Account not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    account.status = 'disconnected';
+    account.connection_status = 'DISCONNECTED';
+    account.disconnected_at = new Date();
+
+    // If this was primary, promote another connected account
+    if (account.is_primary) {
+      account.is_primary = 0;
+      const nextActive = store.whatsapp_accounts.find(
+        a => a.business_id === numBusinessId && a.id !== numAccountId && a.status === 'connected'
+      );
+      if (nextActive) nextActive.is_primary = 1;
+    }
+
+    saveMemoryStore();
+    return { success: true, message: 'WhatsApp account disconnected successfully' };
+  }
+
+  // Check if target account was primary
+  const targetRows = await executeQuery(
+    'SELECT is_primary FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
+    [numAccountId, numBusinessId]
+  );
+
+  await executeQuery(
+    `UPDATE whatsapp_accounts 
+     SET status = 'disconnected', connection_status = 'DISCONNECTED', is_primary = FALSE, disconnected_at = NOW(), updated_at = NOW()
+     WHERE id = ? AND business_id = ?`,
+    [numAccountId, numBusinessId]
+  );
+
+  // If was primary, promote another connected account
+  if (targetRows?.[0]?.is_primary) {
+    await executeQuery(
+      `UPDATE whatsapp_accounts 
+       SET is_primary = TRUE 
+       WHERE business_id = ? AND status = 'connected' AND id != ? 
+       ORDER BY created_at ASC LIMIT 1`,
+      [numBusinessId, numAccountId]
+    );
+  }
+
+  return { success: true, message: 'WhatsApp account disconnected successfully' };
+}
+
+/**
+ * Designate an account as the Primary / Default sender for this tenant
+ */
+export async function setPrimaryAccount(businessId, accountId) {
+  const numBusinessId = Number(businessId);
+  const numAccountId = Number(accountId);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const tenantAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === numBusinessId);
+    const target = tenantAccounts.find(a => a.id === numAccountId);
+
+    if (!target) {
+      const err = new Error('WhatsApp Account not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    tenantAccounts.forEach(a => {
+      a.is_primary = a.id === numAccountId ? 1 : 0;
+    });
+
+    saveMemoryStore();
+    return sanitizeAccount(target);
+  }
+
+  const existing = await executeQuery(
+    'SELECT id FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
+    [numAccountId, numBusinessId]
+  );
+
+  if (existing.length === 0) {
+    const err = new Error('WhatsApp Account not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Reset all other accounts for this business
+  await executeQuery(
+    'UPDATE whatsapp_accounts SET is_primary = FALSE WHERE business_id = ?',
+    [numBusinessId]
+  );
+
+  // Set selected account as primary
+  await executeQuery(
+    'UPDATE whatsapp_accounts SET is_primary = TRUE WHERE id = ? AND business_id = ?',
+    [numAccountId, numBusinessId]
+  );
+
+  const rows = await executeQuery(
+    'SELECT * FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
+    [numAccountId, numBusinessId]
+  );
+  return sanitizeAccount(rows[0]);
+}
+
+/**
+ * Get Single Account Details (Sanitized)
+ */
+export async function getAccount(businessId, accountId) {
+  const numBusinessId = Number(businessId);
+  const numAccountId = Number(accountId);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const account = store.whatsapp_accounts?.find(a => a.id === numAccountId && a.business_id === numBusinessId);
+    return account ? sanitizeAccount(account) : null;
+  }
+
+  const rows = await executeQuery(
+    'SELECT * FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
+    [numAccountId, numBusinessId]
+  );
+
+  return rows?.[0] ? sanitizeAccount(rows[0]) : null;
+}
+
+/**
+ * Retrieve account with decrypted credentials (INTERNAL ONLY - NEVER EXPOSE TO API RESPONSES)
+ */
+export async function getAccountWithCredentials(businessId, accountId = null) {
+  const numBusinessId = Number(businessId);
+  const numAccountId = accountId ? Number(accountId) : null;
+
+  let account = null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const tenantAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === numBusinessId);
+    if (numAccountId) {
+      account = tenantAccounts.find(a => a.id === numAccountId);
+      if (!account) {
+        const err = new Error('WhatsApp Account not found or unauthorized for this tenant');
+        err.statusCode = 404;
+        throw err;
+      }
+    } else {
+      // Pick primary or first active account
+      account = tenantAccounts.find(a => a.is_primary && a.status === 'connected') ||
+                tenantAccounts.find(a => a.status === 'connected') ||
+                tenantAccounts[0];
+    }
+  } else {
+    if (numAccountId) {
+      const rows = await executeQuery(
+        'SELECT * FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
+        [numAccountId, numBusinessId]
+      );
+      account = rows?.[0] || null;
+      if (!account) {
+        const err = new Error('WhatsApp Account not found or unauthorized for this tenant');
+        err.statusCode = 404;
+        throw err;
+      }
+    } else {
+      const rows = await executeQuery(
+        'SELECT * FROM whatsapp_accounts WHERE business_id = ? ORDER BY is_primary DESC, created_at ASC LIMIT 1',
+        [numBusinessId]
+      );
+      account = rows?.[0] || null;
+    }
+  }
+
+  if (!account) {
+    return null;
+  }
+
+  const decryptedToken = decryptToken(account.access_token_encrypted) || 
+                         account.access_token_encrypted || 
+                         process.env.META_ACCESS_TOKEN;
+
+  return {
+    ...account,
+    decryptedToken,
+    phone_number_id: account.phone_number_id || process.env.META_PHONE_NUMBER_ID,
+    waba_id: account.waba_id || process.env.META_WABA_ID
+  };
+}
+
+/**
+ * Helper to strip encrypted credentials from API responses
+ */
+function sanitizeAccount(acc) {
+  if (!acc) return null;
+  const { access_token_encrypted, ...sanitized } = acc;
+  return {
+    ...sanitized,
+    is_primary: Boolean(acc.is_primary),
+    hasToken: Boolean(access_token_encrypted),
+    connection_status: acc.connection_status || (acc.status === 'connected' ? 'CONNECTED' : 'DISCONNECTED')
+  };
+}
+
 export async function connectAccount(businessId, { wabaId, phoneNumberId, phoneNumber, displayName, accessToken }) {
+  const encryptedToken = encryptToken(accessToken);
+
   if (isUsingFallback()) {
     const store = getMemoryStore();
     let account = store.whatsapp_accounts.find(a => a.business_id === Number(businessId) && a.phone_number_id === phoneNumberId);
+    const existingAccounts = store.whatsapp_accounts.filter(a => a.business_id === Number(businessId));
+    const isFirstAccount = existingAccounts.length === 0;
+
     if (!account) {
       account = {
         id: store.whatsapp_accounts.length + 1,
@@ -14,9 +580,15 @@ export async function connectAccount(businessId, { wabaId, phoneNumberId, phoneN
         phone_number_id: phoneNumberId,
         phone_number: phoneNumber,
         display_name: displayName,
+        verified_name: displayName,
         quality_rating: 'GREEN',
         messaging_limit_tier: 'TIER_10K',
         status: 'connected',
+        connection_status: 'CONNECTED',
+        is_primary: isFirstAccount ? 1 : 0,
+        access_token_encrypted: encryptedToken,
+        last_verified_at: new Date(),
+        webhook_subscribed_at: new Date(),
         created_at: new Date()
       };
       store.whatsapp_accounts.push(account);
@@ -24,43 +596,63 @@ export async function connectAccount(businessId, { wabaId, phoneNumberId, phoneN
       account.display_name = displayName;
       account.phone_number = phoneNumber;
       account.status = 'connected';
+      account.connection_status = 'CONNECTED';
+      account.access_token_encrypted = encryptedToken;
+      account.last_verified_at = new Date();
     }
-    return account;
+    saveMemoryStore();
+    return sanitizeAccount(account);
   }
 
   const existing = await executeQuery(
-    'SELECT id FROM whatsapp_accounts WHERE business_id = ? AND phone_number_id = ? LIMIT 1',
+    'SELECT id, is_primary FROM whatsapp_accounts WHERE business_id = ? AND phone_number_id = ? LIMIT 1',
     [businessId, phoneNumberId]
   );
 
   if (existing.length > 0) {
     await executeQuery(
       `UPDATE whatsapp_accounts 
-       SET waba_id = ?, phone_number = ?, display_name = ?, status = 'connected', access_token_encrypted = ?
+       SET waba_id = ?, phone_number = ?, display_name = ?, status = 'connected', connection_status = 'CONNECTED', access_token_encrypted = ?, last_verified_at = NOW(), updated_at = NOW()
        WHERE id = ?`,
-      [wabaId, phoneNumber, displayName, accessToken, existing[0].id]
+      [wabaId, phoneNumber, displayName, encryptedToken, existing[0].id]
     );
-    return { id: existing[0].id, wabaId, phoneNumberId, phoneNumber, displayName, status: 'connected' };
+    const updated = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ? LIMIT 1', [existing[0].id]);
+    return sanitizeAccount(updated[0]);
   }
 
+  const countRows = await executeQuery(
+    'SELECT COUNT(*) as total FROM whatsapp_accounts WHERE business_id = ?',
+    [businessId]
+  );
+  const isFirst = (countRows?.[0]?.total || 0) === 0;
+
   const result = await executeQuery(
-    `INSERT INTO whatsapp_accounts (business_id, waba_id, phone_number_id, phone_number, display_name, status, access_token_encrypted)
-     VALUES (?, ?, ?, ?, ?, 'connected', ?)`,
-    [businessId, wabaId, phoneNumberId, phoneNumber, displayName, accessToken]
+    `INSERT INTO whatsapp_accounts (business_id, waba_id, phone_number_id, phone_number, display_name, status, connection_status, is_primary, access_token_encrypted, last_verified_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'connected', 'CONNECTED', ?, ?, NOW(), NOW(), NOW())`,
+    [businessId, wabaId, phoneNumberId, phoneNumber, displayName, isFirst ? 1 : 0, encryptedToken]
   );
 
-  return { id: result.insertId, wabaId, phoneNumberId, phoneNumber, displayName, status: 'connected' };
+  const inserted = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ? LIMIT 1', [result.insertId]);
+  return sanitizeAccount(inserted[0]);
 }
 
 export async function listAccounts(businessId) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    return store.whatsapp_accounts.filter(a => a.business_id === Number(businessId));
+    return (store.whatsapp_accounts || [])
+      .filter(a => a.business_id === Number(businessId))
+      .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
+      .map(sanitizeAccount);
   }
-  return executeQuery(
-    'SELECT id, business_id, waba_id, phone_number_id, phone_number, display_name, quality_rating, messaging_limit_tier, status, created_at FROM whatsapp_accounts WHERE business_id = ?',
+  const rows = await executeQuery(
+    `SELECT id, business_id, meta_business_id, waba_id, phone_number_id, phone_number, display_name, verified_name, 
+            quality_rating, messaging_limit_tier, status, connection_status, is_primary, last_verified_at, webhook_subscribed_at, created_at 
+     FROM whatsapp_accounts 
+     WHERE business_id = ? 
+     ORDER BY is_primary DESC, created_at DESC`,
     [businessId]
   );
+  return rows.map(sanitizeAccount);
 }
 
 /**
@@ -72,6 +664,7 @@ export async function listTemplates(businessId, query = {}) {
     status,
     language,
     search,
+    accountId,
     page = 1,
     limit = 20
   } = query;
@@ -95,6 +688,9 @@ export async function listTemplates(businessId, query = {}) {
 
     let filtered = [...allBusinessTemplates];
 
+    if (accountId && accountId !== 'ALL') {
+      filtered = filtered.filter(t => t.whatsapp_account_id === Number(accountId));
+    }
     if (category && category !== 'ALL') {
       filtered = filtered.filter(t => t.category?.toUpperCase() === category.toUpperCase());
     }
@@ -158,6 +754,10 @@ export async function listTemplates(businessId, query = {}) {
   let whereClauses = ['business_id = ?'];
   const params = [businessId];
 
+  if (accountId && accountId !== 'ALL') {
+    whereClauses.push('whatsapp_account_id = ?');
+    params.push(Number(accountId));
+  }
   if (category && category !== 'ALL') {
     whereClauses.push('category = ?');
     params.push(category);
@@ -404,20 +1004,13 @@ export async function createTemplate(businessId, userId, templateData) {
     }
   }
 
-  // 4. Get connected WhatsApp Account
-  const accounts = await listAccounts(businessId);
-  if (!accounts || accounts.length === 0) {
+  // 4. Get connected WhatsApp Account with Decrypted Credentials
+  const authAccount = await getAccountWithCredentials(businessId, accountId);
+  if (!authAccount) {
     throw new Error('No connected WhatsApp Account found for this business. Please connect an account first.');
   }
 
-  let selectedAccount = accounts[0];
-  if (accountId) {
-    const matched = accounts.find(a => a.id === Number(accountId));
-    if (matched) selectedAccount = matched;
-  }
-
-  const token = selectedAccount.access_token_encrypted || process.env.META_ACCESS_TOKEN;
-  const client = new MetaCloudApiClient(token, selectedAccount.phone_number_id, selectedAccount.waba_id);
+  const client = new MetaCloudApiClient(authAccount.decryptedToken, authAccount.phone_number_id, authAccount.waba_id);
 
   logger.info(`[WhatsApp] Submitting template "${cleanName}" to Meta for Business #${businessId}`);
 
@@ -438,7 +1031,7 @@ export async function createTemplate(businessId, userId, templateData) {
     const newRecord = {
       id: store.templates.length + 1,
       business_id: Number(businessId),
-      whatsapp_account_id: selectedAccount.id,
+      whatsapp_account_id: authAccount.id,
       meta_template_id: metaTemplateId,
       name: cleanName,
       language: language || 'en_US',
@@ -466,7 +1059,7 @@ export async function createTemplate(businessId, userId, templateData) {
 
   const result = await executeQuery(insertSql, [
     businessId,
-    selectedAccount.id,
+    authAccount.id,
     metaTemplateId,
     cleanName,
     language || 'en_US',
@@ -479,7 +1072,7 @@ export async function createTemplate(businessId, userId, templateData) {
   return {
     id: result.insertId,
     business_id: businessId,
-    whatsapp_account_id: selectedAccount.id,
+    whatsapp_account_id: authAccount.id,
     meta_template_id: metaTemplateId,
     name: cleanName,
     language: language || 'en_US',
@@ -496,16 +1089,27 @@ export async function createTemplate(businessId, userId, templateData) {
  * Synchronize all templates from Meta Cloud API for a business
  */
 export async function syncTemplates(businessId, accountId = null) {
-  const accounts = await listAccounts(businessId);
-  if (!accounts || accounts.length === 0) {
-    throw new Error('No WhatsApp accounts connected to synchronize.');
+  let targetAccounts = [];
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    targetAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === Number(businessId) && a.status === 'connected');
+    if (accountId) targetAccounts = targetAccounts.filter(a => a.id === Number(accountId));
+  } else {
+    if (accountId) {
+      targetAccounts = await executeQuery('SELECT * FROM whatsapp_accounts WHERE business_id = ? AND id = ?', [businessId, accountId]);
+    } else {
+      targetAccounts = await executeQuery('SELECT * FROM whatsapp_accounts WHERE business_id = ? AND status = "connected"', [businessId]);
+    }
   }
 
-  const targetAccounts = accountId ? accounts.filter(a => a.id === Number(accountId)) : accounts;
+  if (!targetAccounts || targetAccounts.length === 0) {
+    throw new Error('No active WhatsApp accounts connected to synchronize.');
+  }
+
   let totalSynced = 0;
 
   for (const account of targetAccounts) {
-    const token = account.access_token_encrypted || process.env.META_ACCESS_TOKEN;
+    const token = decryptToken(account.access_token_encrypted) || account.access_token_encrypted || process.env.META_ACCESS_TOKEN;
     const client = new MetaCloudApiClient(token, account.phone_number_id, account.waba_id);
 
     try {
@@ -595,11 +1199,9 @@ export async function syncTemplates(businessId, accountId = null) {
  */
 export async function checkTemplateStatus(businessId, templateId) {
   const tpl = await getTemplate(businessId, templateId);
-  const accounts = await listAccounts(businessId);
-  const account = accounts.find(a => a.id === tpl.whatsapp_account_id) || accounts[0];
-
-  const token = account?.access_token_encrypted || process.env.META_ACCESS_TOKEN;
-  const client = new MetaCloudApiClient(token, account?.phone_number_id, account?.waba_id);
+  const authAccount = await getAccountWithCredentials(businessId, tpl.whatsapp_account_id);
+  const token = authAccount?.decryptedToken || process.env.META_ACCESS_TOKEN;
+  const client = new MetaCloudApiClient(token, authAccount?.phone_number_id, authAccount?.waba_id);
 
   try {
     const metaData = await client.getTemplateStatus(tpl.meta_template_id, tpl.name);
@@ -643,11 +1245,9 @@ export async function checkTemplateStatus(businessId, templateId) {
  */
 export async function deleteTemplate(businessId, templateId) {
   const tpl = await getTemplate(businessId, templateId);
-  const accounts = await listAccounts(businessId);
-  const account = accounts.find(a => a.id === tpl.whatsapp_account_id) || accounts[0];
-
-  const token = account?.access_token_encrypted || process.env.META_ACCESS_TOKEN;
-  const client = new MetaCloudApiClient(token, account?.phone_number_id, account?.waba_id);
+  const authAccount = await getAccountWithCredentials(businessId, tpl.whatsapp_account_id);
+  const token = authAccount?.decryptedToken || process.env.META_ACCESS_TOKEN;
+  const client = new MetaCloudApiClient(token, authAccount?.phone_number_id, authAccount?.waba_id);
 
   try {
     await client.deleteTemplate(tpl.name, tpl.meta_template_id);
@@ -675,5 +1275,7 @@ export default {
   createTemplate,
   syncTemplates,
   checkTemplateStatus,
-  deleteTemplate
+  deleteTemplate,
+  sendTestMessage,
+  testWebhookPing
 };

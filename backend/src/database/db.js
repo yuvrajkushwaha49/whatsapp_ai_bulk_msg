@@ -193,6 +193,10 @@ async function initFallbackStore() {
         }
       ];
 
+      if (!memoryStore.tenant_meta_integrations) {
+        memoryStore.tenant_meta_integrations = [];
+      }
+
       seedInboxData(memoryStore);
 
       fallbackInitialized = true;

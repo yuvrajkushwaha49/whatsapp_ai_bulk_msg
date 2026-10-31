@@ -24,6 +24,8 @@ import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
+import WhatsAppOAuthCallback from './pages/WhatsAppOAuthCallback';
+
 // Protected Route Guard
 function ProtectedRoute({ children, requireSuperAdmin = false }) {
   const { user, loading, isSuperAdmin } = useAuth();
@@ -50,7 +52,8 @@ function ProtectedRoute({ children, requireSuperAdmin = false }) {
 export default function App() {
   return (
     <Routes>
-      {/* Public Auth Routes */}
+      {/* Public Auth Routes & OAuth Callbacks */}
+      <Route path="/whatsapp/callback" element={<WhatsAppOAuthCallback />} />
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

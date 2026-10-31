@@ -8,10 +8,20 @@ const router = Router();
 
 router.use(authenticate, requireTenant);
 
-// WhatsApp Accounts
+// WhatsApp Accounts & Embedded Signup
+router.get('/accounts/connect/start', whatsappController.getConnectConfig);
+router.post('/accounts/connect/complete', requireRole(['owner', 'admin']), whatsappController.completeEmbeddedSignup);
 router.post('/connect', requireRole(['owner', 'admin']), whatsappController.connect);
 router.get('/accounts', whatsappController.listAccounts);
+router.get('/accounts/:id', whatsappController.getAccount);
+router.post('/accounts/:id/verify', requireRole(['owner', 'admin']), whatsappController.verifyAccount);
+router.post('/accounts/:id/reconnect', requireRole(['owner', 'admin']), whatsappController.verifyAccount);
+router.post('/accounts/:id/primary', requireRole(['owner', 'admin']), whatsappController.setPrimaryAccount);
+router.post('/accounts/:id/test-message', requireRole(['owner', 'admin', 'marketer']), whatsappController.sendTestMessage);
+router.delete('/accounts/:id', requireRole(['owner', 'admin']), whatsappController.disconnectAccount);
 router.post('/accounts/:accountId/sync-templates', requireRole(['owner', 'admin', 'marketer']), whatsappController.syncTemplates);
+router.get('/webhook/ping', whatsappController.testWebhookPing);
+router.post('/webhook/ping', whatsappController.testWebhookPing);
 
 // WhatsApp Templates Management
 router.get('/templates', whatsappController.listTemplates);

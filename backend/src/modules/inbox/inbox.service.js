@@ -1,46 +1,29 @@
 import { executeQuery, isUsingFallback, getMemoryStore, saveMemoryStore } from '../../database/db.js';
 import { MetaCloudApiClient } from '../whatsapp/metaClient.js';
+import { getAccountWithCredentials } from '../whatsapp/whatsapp.service.js';
 import logger from '../../utils/logger.js';
 import { emitToTenant, emitToConversation } from '../../socket.js';
 
 /**
- * Helper to get Meta API client for a business tenant
+ * Helper to get Meta API client for a business tenant with strict credential isolation
  */
-async function getClientForBusiness(businessId) {
-  let token = process.env.META_ACCESS_TOKEN || '';
-  let phoneId = process.env.META_PHONE_NUMBER_ID || '';
-  let wabaId = process.env.META_WABA_ID || '';
-
-  if (isUsingFallback()) {
-    const store = getMemoryStore();
-    const account = store.whatsapp_accounts?.find(a => a.business_id === Number(businessId));
-    if (account) {
-      if (account.phone_number_id) phoneId = account.phone_number_id;
-      if (account.waba_id) wabaId = account.waba_id;
-    }
-  } else {
-    try {
-      const rows = await executeQuery(
-        'SELECT phone_number_id, waba_id FROM whatsapp_accounts WHERE business_id = ? LIMIT 1',
-        [businessId]
-      );
-      if (rows && rows.length > 0) {
-        phoneId = rows[0].phone_number_id || phoneId;
-        wabaId = rows[0].waba_id || wabaId;
-      }
-    } catch (err) {
-      logger.warn('[InboxService] Error fetching business whatsapp account:', err.message);
-    }
+async function getClientForBusiness(businessId, accountId = null) {
+  const authAccount = await getAccountWithCredentials(businessId, accountId);
+  if (authAccount) {
+    return new MetaCloudApiClient(authAccount.decryptedToken, authAccount.phone_number_id, authAccount.waba_id);
   }
-
-  return new MetaCloudApiClient(token, phoneId, wabaId);
+  return new MetaCloudApiClient(
+    process.env.META_ACCESS_TOKEN || '',
+    process.env.META_PHONE_NUMBER_ID || '',
+    process.env.META_WABA_ID || ''
+  );
 }
 
 /**
  * 1. List conversations with search, filtering, and role-based access
  */
 export async function listConversations(businessId, user, options = {}) {
-  const { filter = 'all', search = '', page = 1, limit = 50 } = options;
+  const { filter = 'all', search = '', accountId, page = 1, limit = 50 } = options;
   const numBusinessId = Number(businessId);
   const now = new Date();
 
@@ -49,6 +32,11 @@ export async function listConversations(businessId, user, options = {}) {
     if (!store.whatsapp_conversations) store.whatsapp_conversations = [];
 
     let conversations = store.whatsapp_conversations.filter(c => c.business_id === numBusinessId);
+
+    // Multi-account filtering
+    if (accountId && accountId !== 'all') {
+      conversations = conversations.filter(c => c.whatsapp_account_id === Number(accountId));
+    }
 
     // Filter logic
     if (filter === 'unread') {
@@ -87,11 +75,17 @@ export async function listConversations(businessId, user, options = {}) {
     const items = conversations.map(c => {
       const contact = store.contacts?.find(ct => ct.id === c.contact_id);
       const assignedUser = store.users?.find(u => u.id === c.assigned_user_id);
+      const acc = store.whatsapp_accounts?.find(a => a.id === c.whatsapp_account_id);
       const windowExpiry = c.service_window_expires_at ? new Date(c.service_window_expires_at) : null;
       const isWindowOpen = windowExpiry ? now < windowExpiry : false;
 
       return {
         ...c,
+        whatsapp_account: acc ? {
+          id: acc.id,
+          display_name: acc.display_name,
+          phone_number: acc.phone_number
+        } : null,
         contact: contact ? {
           id: contact.id,
           name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || c.customer_phone,
@@ -139,13 +133,21 @@ export async function listConversations(businessId, user, options = {}) {
       ct.is_opted_in AS contact_opted_in,
       u.name AS assigned_user_name,
       u.email AS assigned_user_email,
-      u.role AS assigned_user_role
+      u.role AS assigned_user_role,
+      wa.display_name AS account_display_name,
+      wa.phone_number AS account_phone_number
     FROM whatsapp_conversations c
     LEFT JOIN contacts ct ON c.contact_id = ct.id
     LEFT JOIN users u ON c.assigned_user_id = u.id
+    LEFT JOIN whatsapp_accounts wa ON c.whatsapp_account_id = wa.id
     WHERE c.business_id = ?
   `;
   const params = [numBusinessId];
+
+  if (accountId && accountId !== 'all') {
+    query += ' AND c.whatsapp_account_id = ?';
+    params.push(Number(accountId));
+  }
 
   if (filter === 'unread') {
     query += ' AND c.unread_count > 0 AND c.status != "closed"';
@@ -191,6 +193,11 @@ export async function listConversations(businessId, user, options = {}) {
       id: r.id,
       business_id: r.business_id,
       whatsapp_account_id: r.whatsapp_account_id,
+      whatsapp_account: r.whatsapp_account_id ? {
+        id: r.whatsapp_account_id,
+        display_name: r.account_display_name,
+        phone_number: r.account_phone_number
+      } : null,
       contact_id: r.contact_id,
       customer_phone: r.customer_phone,
       assigned_user_id: r.assigned_user_id,
@@ -402,8 +409,8 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
     throw err;
   }
 
-  // Dispatch via Meta API Client
-  const client = await getClientForBusiness(numBusinessId);
+  // Dispatch via Meta API Client with Conversation-Specific WhatsApp Account
+  const client = await getClientForBusiness(numBusinessId, conversation.whatsapp_account_id);
   let metaResult;
   try {
     metaResult = await client.sendTextMessage({
@@ -573,8 +580,8 @@ export async function sendTemplateMessage(businessId, user, conversationId, temp
     });
   }
 
-  // Dispatch via Meta API Client
-  const client = await getClientForBusiness(numBusinessId);
+  // Dispatch via Meta API Client with Conversation-Specific WhatsApp Account
+  const client = await getClientForBusiness(numBusinessId, conversation.whatsapp_account_id);
   let metaResult;
   try {
     metaResult = await client.sendTemplateMessage({

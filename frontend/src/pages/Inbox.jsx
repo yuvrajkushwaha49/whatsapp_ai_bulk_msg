@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import inboxApi from '../services/inbox.service';
+import api from '../services/api';
 import { initSocket, getSocket } from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/inbox.css';
 
 export default function Inbox() {
   const { user } = useAuth();
+
+  // Multi-Account Selection State
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('all');
 
   // State
   const [conversations, setConversations] = useState([]);
@@ -46,9 +51,9 @@ export default function Inbox() {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // 1. Initial Load: Conversations, Stats, Team Members, Approved Templates
+  // 1. Initial Load: Accounts, Conversations, Stats, Team Members, Approved Templates
   useEffect(() => {
-    loadConversations();
+    loadAccounts();
     loadStats();
     loadTeamMembers();
     loadTemplates();
@@ -75,7 +80,7 @@ export default function Inbox() {
         socket.off('inbox:conversation_updated', handleSocketConversationUpdated);
       }
     };
-  }, [filter, searchQuery]);
+  }, [filter, searchQuery, selectedAccountId]);
 
   // Join conversation socket room on selection
   useEffect(() => {
@@ -105,12 +110,28 @@ export default function Inbox() {
   }, [messages]);
 
   // 2. Fetch Handlers
+  const loadAccounts = async () => {
+    try {
+      const res = await api.get('/whatsapp/accounts');
+      if (res.data?.success) {
+        setAccounts(res.data.data || []);
+      }
+    } catch (err) {
+      console.warn('[Inbox] Failed to load WhatsApp accounts:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadConversations();
+  }, [filter, searchQuery, selectedAccountId]);
+
   const loadConversations = async (showLoading = true) => {
     if (showLoading) setLoadingConversations(true);
     try {
       const res = await inboxApi.getConversations({
         filter,
-        search: searchQuery
+        search: searchQuery,
+        accountId: selectedAccountId
       });
       if (res.data?.success) {
         setConversations(res.data.data || []);
@@ -542,6 +563,28 @@ export default function Inbox() {
               )}
             </div>
 
+              {/* Multi-Account Selection Dropdown */}
+              {accounts.length > 0 && (
+                <div className="mt-2 pt-2 border-top">
+                  <div className="d-flex align-items-center gap-2">
+                    <i className="bi bi-phone-vibrate text-success small"></i>
+                    <select
+                      className="form-select form-select-sm border bg-white py-1 shadow-xs"
+                      value={selectedAccountId}
+                      onChange={(e) => setSelectedAccountId(e.target.value)}
+                      style={{ fontSize: '0.78rem' }}
+                    >
+                      <option value="all">All WhatsApp Numbers ({accounts.length})</option>
+                      {accounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.phone_number} {acc.is_primary ? '⭐ (Default)' : ''} — {acc.display_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
             {/* Search Input */}
             <div className="inbox-search-box">
               <i className="bi bi-search"></i>
@@ -618,6 +661,11 @@ export default function Inbox() {
                       </div>
                       <div className="conversation-preview-row">
                         <span className="conversation-snippet">
+                          {c.whatsapp_account && (
+                            <span className="badge bg-light text-secondary border me-1 py-0 px-1" style={{ fontSize: '0.62rem' }}>
+                              {c.whatsapp_account.phone_number}
+                            </span>
+                          )}
                           {c.last_message_text || 'No message preview'}
                         </span>
                         {c.unread_count > 0 && (
@@ -645,8 +693,16 @@ export default function Inbox() {
                     {(selectedConversation.contact?.name || selectedConversation.customer_phone).slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <div className="fw-bold fs-6 text-dark mb-0">
-                      {selectedConversation.contact?.name || selectedConversation.customer_phone}
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="fw-bold fs-6 text-dark mb-0">
+                        {selectedConversation.contact?.name || selectedConversation.customer_phone}
+                      </div>
+                      {selectedConversation.whatsapp_account && (
+                        <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-0" style={{ fontSize: '0.7rem' }}>
+                          <i className="bi bi-whatsapp me-1"></i>
+                          Via {selectedConversation.whatsapp_account.phone_number}
+                        </span>
+                      )}
                     </div>
                     <div className="small text-muted d-flex align-items-center gap-2" style={{ fontSize: '0.75rem' }}>
                       <span>{selectedConversation.customer_phone}</span>
