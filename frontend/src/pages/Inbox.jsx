@@ -332,9 +332,36 @@ export default function Inbox() {
   };
 
   // 5. Template Message Handler
+  const initTemplateVars = (tpl) => {
+    if (!tpl) return {};
+    const comps = Array.isArray(tpl.components)
+      ? tpl.components
+      : (typeof tpl.components === 'string' ? JSON.parse(tpl.components || '[]') : []);
+    const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+    const text = tpl.body_text || bodyComp?.text || '';
+    const placeholders = Array.from(new Set((text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, ''))));
+    if (placeholders.length === 0 && tpl.name === 'welcome_msg') {
+      placeholders.push('customer_name');
+    }
+    const initial = {};
+    const custName = selectedConversation?.contact?.first_name || 
+                     selectedConversation?.contact?.name || 
+                     selectedConversation?.customer_name || 
+                     'Customer';
+    placeholders.forEach(ph => {
+      if (ph === 'customer_name' || ph === '1') {
+        initial[ph] = custName;
+      } else {
+        initial[ph] = '';
+      }
+    });
+    return initial;
+  };
+
   const handleOpenTemplateModal = () => {
-    setSelectedTemplate(templates[0] || null);
-    setTemplateVariables({});
+    const defaultTpl = templates.find(t => t.name === 'welcome_msg') || templates[0] || null;
+    setSelectedTemplate(defaultTpl);
+    setTemplateVariables(initTemplateVars(defaultTpl));
     setShowTemplateModal(true);
   };
 
@@ -345,11 +372,20 @@ export default function Inbox() {
     setAlertMsg(null);
 
     try {
+      const varsToSend = { ...templateVariables };
+      const custName = selectedConversation?.contact?.first_name || 
+                       selectedConversation?.contact?.name || 
+                       selectedConversation?.customer_name || 
+                       'Customer';
+      if (!varsToSend.customer_name && selectedTemplate.name === 'welcome_msg') {
+        varsToSend.customer_name = custName;
+      }
+
       const payload = {
         templateId: selectedTemplate.id,
         templateName: selectedTemplate.name,
         language: selectedTemplate.language || 'en',
-        variableMappings: templateVariables
+        variableMappings: varsToSend
       };
 
       const res = await inboxApi.sendTemplateMessage(selectedConversation.id, payload);
@@ -1097,7 +1133,7 @@ export default function Inbox() {
                             className={`list-group-item list-group-item-action ${selectedTemplate?.id === t.id ? 'active' : ''}`}
                             onClick={() => {
                               setSelectedTemplate(t);
-                              setTemplateVariables({});
+                              setTemplateVariables(initTemplateVars(t));
                             }}
                           >
                             <div className="fw-bold small">{t.name}</div>
@@ -1126,31 +1162,48 @@ export default function Inbox() {
                         </div>
 
                         {/* Dynamic Variable Inputs */}
-                        <div className="bg-light p-2 rounded border">
-                          <div className="small fw-semibold mb-2">Dynamic Variables:</div>
-                          <div className="row g-2">
-                            <div className="col-6">
-                              <label className="form-label" style={{ fontSize: '0.72rem' }}>{'{{1}}'}</label>
-                              <input
-                                type="text"
-                                className="form-control form-control-sm"
-                                placeholder="Customer Name or Value"
-                                value={templateVariables['1'] || ''}
-                                onChange={(e) => setTemplateVariables({ ...templateVariables, '1': e.target.value })}
-                              />
+                        {(() => {
+                          const comps = Array.isArray(selectedTemplate.components)
+                            ? selectedTemplate.components
+                            : (typeof selectedTemplate.components === 'string' ? JSON.parse(selectedTemplate.components || '[]') : []);
+                          const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+                          const text = selectedTemplate.body_text || bodyComp?.text || '';
+                          const placeholders = Array.from(new Set((text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, ''))));
+
+                          if (placeholders.length === 0 && selectedTemplate.name === 'welcome_msg') {
+                            placeholders.push('customer_name');
+                          }
+
+                          if (placeholders.length === 0) {
+                            return (
+                              <div className="bg-light p-2 rounded border small text-muted">
+                                <i className="bi bi-info-circle me-1"></i> No dynamic variables required for this template.
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="bg-light p-2 rounded border">
+                              <div className="small fw-semibold mb-2">Dynamic Template Variables:</div>
+                              <div className="row g-2">
+                                {placeholders.map((ph) => (
+                                  <div key={ph} className="col-12 col-md-6">
+                                    <label className="form-label mb-1" style={{ fontSize: '0.74rem' }}>
+                                      <code>{`{{${ph}}}`}</code>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      placeholder={ph === 'customer_name' ? (selectedConversation?.contact?.first_name || 'Customer Name') : `Value for ${ph}`}
+                                      value={templateVariables[ph] !== undefined ? templateVariables[ph] : ''}
+                                      onChange={(e) => setTemplateVariables({ ...templateVariables, [ph]: e.target.value })}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                            <div className="col-6">
-                              <label className="form-label" style={{ fontSize: '0.72rem' }}>{'{{2}}'}</label>
-                              <input
-                                type="text"
-                                className="form-control form-control-sm"
-                                placeholder="Order / Offer / Value"
-                                value={templateVariables['2'] || ''}
-                                onChange={(e) => setTemplateVariables({ ...templateVariables, '2': e.target.value })}
-                              />
-                            </div>
-                          </div>
-                        </div>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div className="text-center py-5 text-muted small">

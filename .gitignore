@@ -6,3 +6,5 @@ coverage/
 uploads/
 *.log
 .DS_Store
+backend/.dev_store.json
+.dev_store.json

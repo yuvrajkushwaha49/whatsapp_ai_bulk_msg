@@ -565,15 +565,83 @@ export async function sendTemplateMessage(businessId, user, conversationId, temp
     targetLanguage = tpls[0].language || 'en';
   }
 
+  // Fetch template components & parameter format to build compliant payload
+  let tplObj = null;
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    tplObj = store.templates?.find(t => (templateId && t.id === Number(templateId)) || t.name === targetTemplateName);
+  } else {
+    const rows = await executeQuery('SELECT * FROM templates WHERE (id = ? OR name = ?) AND business_id = ? LIMIT 1', [templateId || 0, targetTemplateName, numBusinessId]);
+    tplObj = rows?.[0] || null;
+  }
+
+  const comps = Array.isArray(tplObj?.components)
+    ? tplObj.components
+    : (typeof tplObj?.components === 'string' ? JSON.parse(tplObj.components || '[]') : []);
+  const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+  const bodyText = bodyComp?.text || '';
+  const placeholders = Array.from(new Set((bodyText.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, ''))));
+
+  if (placeholders.length === 0 && targetTemplateName === 'welcome_msg') {
+    placeholders.push('customer_name');
+  }
+
+  const defaultCustName = conversation.contact?.first_name || 
+                          conversation.contact?.name || 
+                          conversation.customer_name || 
+                          'Customer';
+
   // Build Meta Components payload from variable mappings
   const metaComponents = [];
   if (components && components.length > 0) {
     metaComponents.push(...components);
+  } else if (placeholders.length > 0) {
+    const bodyParams = placeholders.map((ph, idx) => {
+      const val = variableMappings?.[ph] || 
+                  variableMappings?.[String(idx + 1)] || 
+                  variableMappings?.[`var_${idx + 1}`] || 
+                  defaultCustName;
+      const paramObj = {
+        type: 'text',
+        text: String(val || '')
+      };
+      if (tplObj?.parameter_format === 'NAMED' || isNaN(Number(ph)) || ph === 'customer_name') {
+        paramObj.parameter_name = ph;
+      }
+      return paramObj;
+    });
+
+    metaComponents.push({
+      type: 'body',
+      parameters: bodyParams
+    });
+  } else if (targetTemplateName === 'welcome_msg') {
+    // welcome_msg always requires customer_name named parameter
+    const custName = variableMappings?.customer_name || 
+                     variableMappings?.['1'] || 
+                     variableMappings?.var_1 || 
+                     defaultCustName;
+    metaComponents.push({
+      type: 'body',
+      parameters: [
+        {
+          type: 'text',
+          parameter_name: 'customer_name',
+          text: String(custName)
+        }
+      ]
+    });
   } else if (variableMappings && Object.keys(variableMappings).length > 0) {
-    const parameters = Object.keys(variableMappings).map(key => ({
-      type: 'text',
-      text: String(variableMappings[key] || '')
-    }));
+    const parameters = Object.keys(variableMappings).map(key => {
+      const p = {
+        type: 'text',
+        text: String(variableMappings[key] || '')
+      };
+      if (isNaN(Number(key))) {
+        p.parameter_name = key;
+      }
+      return p;
+    });
     metaComponents.push({
       type: 'body',
       parameters
