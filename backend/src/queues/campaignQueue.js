@@ -156,7 +156,14 @@ export async function executeCampaignDispatch(campaignId, businessId) {
     if (senderAccounts.length === 0 && account) senderAccounts = [account];
   } else {
     senderAccounts = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id IN (?)', [senderIds]);
-    if (senderAccounts.length === 0 && account) senderAccounts = [account];
+  }
+
+  // Guarantee that live custom templates (like welcome_msg) only use real registered numbers (not +1 555 sandbox numbers)
+  if (template?.name === 'welcome_msg') {
+    const liveSenders = senderAccounts.filter(a => !a.phone_number?.includes('555-199') && !a.phone_number?.startsWith('+1 555'));
+    if (liveSenders.length > 0) {
+      senderAccounts = liveSenders;
+    }
   }
 
   let sent = 0;
