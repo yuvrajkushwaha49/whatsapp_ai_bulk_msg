@@ -39,10 +39,13 @@ export default function WhatsAppAccounts() {
   const [pingingWebhook, setPingingWebhook] = useState(false);
 
   const openTestModal = (accId) => {
+    const chosenAcc = accounts.find(a => String(a.id) === String(accId)) || accounts[0];
+    const isSandbox = chosenAcc?.phone_number?.includes('555-199') || chosenAcc?.phone_number?.startsWith('+1 555');
     setTestModal(prev => ({
       ...prev,
       isOpen: true,
-      accountId: accId || accounts[0]?.id || '',
+      accountId: chosenAcc ? String(chosenAcc.id) : '',
+      templateName: isSandbox ? 'hello_world' : 'welcome_msg',
       result: null,
       error: null
     }));
@@ -851,7 +854,18 @@ export default function WhatsAppAccounts() {
                     <select
                       className="form-select form-select-sm"
                       value={testModal.accountId}
-                      onChange={(e) => setTestModal({ ...testModal, accountId: e.target.value })}
+                      onChange={(e) => {
+                        const nextId = e.target.value;
+                        const sel = accounts.find(a => String(a.id) === String(nextId));
+                        const isSand = sel?.phone_number?.includes('555-199') || sel?.phone_number?.startsWith('+1 555');
+                        setTestModal(prev => ({
+                          ...prev,
+                          accountId: nextId,
+                          templateName: isSand ? 'hello_world' : 'welcome_msg',
+                          error: null,
+                          result: null
+                        }));
+                      }}
                       required
                     >
                       {accounts.map(acc => (
@@ -906,23 +920,35 @@ export default function WhatsAppAccounts() {
                         </label>
                       </div>
 
-                      {testModal.messageType === 'template' && (
-                        <div className="ms-4 mt-2">
-                          <label className="form-label small fw-bold mb-1">Choose Approved Template</label>
-                          <select
-                            className="form-select form-select-sm"
-                            value={testModal.templateName}
-                            onChange={(e) => setTestModal({ ...testModal, templateName: e.target.value })}
-                          >
-                            <option value="welcome_msg">welcome_msg (Language: en, Approved for +91 numbers)</option>
-                            <option value="hello">hello (Language: en, Approved)</option>
-                            <option value="test">test (Language: en, Approved)</option>
-                            <option value="autumn_flash_sale_v1">autumn_flash_sale_v1 (Language: en_US, Approved)</option>
-                            <option value="account_update_v1">account_update_v1 (Language: en_US, Approved)</option>
-                            <option value="hello_world">hello_world (Language: en_US, Meta Sandbox Test numbers only)</option>
-                          </select>
-                        </div>
-                      )}
+                      {testModal.messageType === 'template' && (() => {
+                        const currentAcc = accounts.find(a => String(a.id) === String(testModal.accountId)) || accounts[0];
+                        const isCurrentSandbox = currentAcc?.phone_number?.includes('555-199') || currentAcc?.phone_number?.startsWith('+1 555');
+
+                        return (
+                          <div className="ms-4 mt-2">
+                            <label className="form-label small fw-bold mb-1">Choose Approved Template</label>
+                            <select
+                              className="form-select form-select-sm"
+                              value={testModal.templateName}
+                              onChange={(e) => setTestModal({ ...testModal, templateName: e.target.value })}
+                            >
+                              <option value="welcome_msg">welcome_msg (Language: en, Approved for +91 Indian Numbers) ★ Recommended</option>
+                              <option value="hello">hello (Language: en, Approved)</option>
+                              <option value="autumn_flash_sale_v1">autumn_flash_sale_v1 (Language: en_US, Approved)</option>
+                              {isCurrentSandbox && (
+                                <option value="hello_world">hello_world (Language: en_US, Meta Sandbox Test numbers only)</option>
+                              )}
+                            </select>
+
+                            {!isCurrentSandbox && (
+                              <div className="alert alert-info py-1 px-2 mt-2 mb-0 small" style={{ fontSize: '0.74rem' }}>
+                                <i className="bi bi-shield-check me-1 text-primary"></i>
+                                <strong>Live Indian Number Selected:</strong> Real registered numbers ({currentAcc?.phone_number || '+91 86014 67210'}) send approved WABA templates like <code>welcome_msg</code>. <em>(Sandbox-only templates like <code>hello_world</code> are restricted by Meta)</em>.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       <div className="form-check mt-2">
                         <input

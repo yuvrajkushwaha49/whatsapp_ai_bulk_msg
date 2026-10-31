@@ -128,13 +128,26 @@ async function runSeed() {
       }
     ]);
 
+    const welcomeMsgComponents = JSON.stringify([
+      {
+        type: 'HEADER',
+        format: 'TEXT',
+        text: 'Hello'
+      },
+      {
+        type: 'BODY',
+        text: 'Hello! {{customer_name}} Welcome to our official WhatsApp channel. Thank you for connecting with us.'
+      }
+    ]);
+
     await connection.query(`
-      INSERT INTO templates (id, business_id, whatsapp_account_id, meta_template_id, name, language, category, status, components)
+      INSERT INTO templates (id, business_id, whatsapp_account_id, meta_template_id, name, language, category, status, parameter_format, components)
       VALUES 
-      (1, 1, 1, 'meta_tpl_festive_promo_v1', 'festive_discount_sale_v1', 'en_US', 'MARKETING', 'APPROVED', ?),
-      (2, 1, 1, 'meta_tpl_cart_recovery_v1', 'cart_abandonment_recovery_v1', 'en_US', 'MARKETING', 'APPROVED', ?)
+      (1, 1, 1, 'meta_tpl_festive_promo_v1', 'festive_discount_sale_v1', 'en_US', 'MARKETING', 'APPROVED', 'POSITIONAL', ?),
+      (2, 1, 1, 'meta_tpl_cart_recovery_v1', 'cart_abandonment_recovery_v1', 'en_US', 'MARKETING', 'APPROVED', 'POSITIONAL', ?),
+      (3, 1, 1, '1447518427357464', 'welcome_msg', 'en', 'MARKETING', 'APPROVED', 'NAMED', ?)
       ON DUPLICATE KEY UPDATE status='APPROVED', components=VALUES(components);
-    `, [festivePromoComponents, cartRecoveryComponents]);
+    `, [festivePromoComponents, cartRecoveryComponents, welcomeMsgComponents]);
 
     // 9. Seed Sample Contacts with Consent
     console.log('🌱 Seeding Sample Opted-in Contacts...');

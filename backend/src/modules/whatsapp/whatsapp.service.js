@@ -308,7 +308,15 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
       textBody: textBody || 'Hello! This is a test message from CampaignFlow WhatsApp Cloud API.'
     });
   } else {
-    const targetName = templateName || 'welcome_msg';
+    const isSandboxSender = account.phone_number?.includes('555-199') || account.phone_number?.startsWith('+1 555');
+    let targetName = templateName || (isSandboxSender ? 'hello_world' : 'welcome_msg');
+
+    // Live phone numbers (+91) cannot send hello_world or dummy test templates via Meta Cloud API
+    if (!isSandboxSender && (targetName === 'hello_world' || targetName === 'test' || targetName === 'account_update_v1')) {
+      logger.info(`[TestMessenger] Live number ${account.phone_number} cannot send sandbox/unknown template '${targetName}'. Automatically routing to approved 'welcome_msg'.`);
+      targetName = 'welcome_msg';
+    }
+
     let targetLang = payload.languageCode || 'en';
     let targetComponents = Array.isArray(payload.components) ? payload.components : [];
 
@@ -335,7 +343,7 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
             const bodyParams = placeholders.map(ph => {
               const clean = ph.replace(/[{}]/g, '');
               const param = { type: 'text', text: 'Yuvraj' };
-              if (matchedTemplate.parameter_format === 'NAMED' || isNaN(Number(clean))) {
+              if (matchedTemplate.parameter_format === 'NAMED' || isNaN(Number(clean)) || clean === 'customer_name') {
                 param.parameter_name = clean;
               }
               return param;
@@ -358,12 +366,27 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
       targetLang = 'en_US';
     }
 
-    response = await client.sendTemplateMessage({
-      recipientPhone: cleanRecipient,
-      templateName: targetName,
-      languageCode: targetLang,
-      components: targetComponents
-    });
+    try {
+      response = await client.sendTemplateMessage({
+        recipientPhone: cleanRecipient,
+        templateName: targetName,
+        languageCode: targetLang,
+        components: targetComponents
+      });
+    } catch (sendErr) {
+      const errMsg = sendErr.message || '';
+      if (errMsg.includes('131058')) {
+        const customErr = new Error(`Meta Restriction: "hello_world" can only be sent from Meta Public Test Numbers (+1 555-199-9056). Real numbers (${account.phone_number}) must send approved business templates like "welcome_msg".`);
+        customErr.statusCode = 400;
+        throw customErr;
+      }
+      if (errMsg.includes('132001')) {
+        const customErr = new Error(`Template "${targetName}" (${targetLang}) does not exist in Meta WABA or has not been approved. Please use approved template "welcome_msg".`);
+        customErr.statusCode = 400;
+        throw customErr;
+      }
+      throw sendErr;
+    }
   }
 
   const messageId = response?.messages?.[0]?.id || `wamid.${Date.now()}`;
