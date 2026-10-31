@@ -175,19 +175,7 @@ async function initFallbackStore() {
           quality_rating: 'GREEN',
           messaging_limit_tier: 'STANDARD',
           status: 'connected',
-          access_token_encrypted: liveToken,
-          created_at: new Date()
-        },
-        {
-          id: 2,
-          business_id: 1,
-          waba_id: '28532933229644434',
-          phone_number_id: '1353284594528559',
-          phone_number: '+1 555-199-9056',
-          display_name: 'Meta Official Test Sender',
-          quality_rating: 'GREEN',
-          messaging_limit_tier: 'STANDARD',
-          status: 'connected',
+          is_primary: 1,
           access_token_encrypted: liveToken,
           created_at: new Date()
         }
@@ -237,13 +225,14 @@ async function initFallbackStore() {
       id: 1,
       business_id: 1,
       waba_id: '28532933229644434',
-      phone_number_id: '1353284594528559',
-      phone_number: '+1 555-199-9056',
-      display_name: 'Official Meta Test Number',
+      phone_number_id: '1341070215765610',
+      phone_number: '+91 86014 67210',
+      display_name: 'Yuvraj (Indian Number)',
       quality_rating: 'GREEN',
       messaging_limit_tier: 'STANDARD',
       status: 'connected',
-      access_token_encrypted: 'EAAQjnGtRDZCgBS8ceAh2ZB7D1XZCNamDCOPklashRFfw5zYY9IXOjwsxyAbavCQMmQpYyTqnEFRkwKtb2PvEz1iyCznqrKBZBaFXobumlJKeLlrZCsEFccOoaedBnZC3EXqgqjoTVnspYN1O4EBJoNyrvqbZB6UdKRkoeoZB8mnqrEGSF6p2wapJr84pJ0h32Y162FJYzGTL2pkITZCqzsuvIEgXgHX9VL4rRkudB7ghDzrjhIS0Hce7X3E989xQZBsMeI2XFNcCpHo1w9nZBJqckOha9Di03notllphC4Uvg4ZD',
+      is_primary: 1,
+      access_token_encrypted: 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD',
       created_at: new Date()
     }
   ];

@@ -158,13 +158,23 @@ export async function executeCampaignDispatch(campaignId, businessId) {
     senderAccounts = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id IN (?)', [senderIds]);
   }
 
-  // Guarantee that live custom templates (like welcome_msg) only use real registered numbers (not +1 555 sandbox numbers)
-  if (template?.name === 'welcome_msg') {
-    const liveSenders = senderAccounts.filter(a => !a.phone_number?.includes('555-199') && !a.phone_number?.startsWith('+1 555'));
-    if (liveSenders.length > 0) {
-      senderAccounts = liveSenders;
+  // Guarantee that campaigns always dispatch from real registered accounts (never sandbox +1 555-199-9056 / 1353284594528559)
+  const realSenders = senderAccounts.filter(a => !a.phone_number?.includes('555-199') && !a.phone_number?.startsWith('+1 555') && String(a.phone_number_id) !== '1353284594528559');
+  if (realSenders.length > 0) {
+    senderAccounts = realSenders;
+  } else {
+    // Look up the live Indian WhatsApp Account
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      const live = store.whatsapp_accounts?.find(a => !a.phone_number?.includes('555-199') && String(a.phone_number_id) !== '1353284594528559');
+      if (live) senderAccounts = [live];
+    } else {
+      const liveRows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE phone_number NOT LIKE "%555-199%" AND business_id = ? LIMIT 1', [businessId]);
+      if (liveRows?.[0]) senderAccounts = [liveRows[0]];
     }
   }
+
+  logger.info(`[CampaignWorker] Active sending account(s): ${senderAccounts.map(a => `${a.display_name} (${a.phone_number}, PhoneID: ${a.phone_number_id})`).join(', ')}`);
 
   let sent = 0;
   let skipped = 0;

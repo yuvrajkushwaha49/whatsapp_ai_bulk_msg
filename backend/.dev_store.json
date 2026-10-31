@@ -124,21 +124,9 @@
       "quality_rating": "GREEN",
       "messaging_limit_tier": "STANDARD",
       "status": "connected",
+      "is_primary": 1,
       "access_token_encrypted": "EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD",
-      "created_at": "2026-10-31T07:46:59.354Z"
-    },
-    {
-      "id": 2,
-      "business_id": 1,
-      "waba_id": "28532933229644434",
-      "phone_number_id": "1353284594528559",
-      "phone_number": "+1 555-199-9056",
-      "display_name": "Meta Official Test Sender",
-      "quality_rating": "GREEN",
-      "messaging_limit_tier": "STANDARD",
-      "status": "connected",
-      "access_token_encrypted": "EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD",
-      "created_at": "2026-10-31T07:46:59.354Z"
+      "created_at": "2026-10-31T07:57:43.058Z"
     }
   ],
   "contacts": [
@@ -230,7 +218,8 @@
         "whatsapp"
       ],
       "created_at": "2026-10-30T07:35:24.714Z",
-      "updated_at": "2026-10-30T07:35:24.714Z"
+      "updated_at": "2026-10-30T07:35:24.714Z",
+      "name": "Yuvraj Kushwaha"
     },
     {
       "id": 7,
@@ -261,6 +250,21 @@
       ],
       "created_at": "2026-10-30T12:41:49.324Z",
       "updated_at": "2026-10-30T12:41:49.324Z"
+    },
+    {
+      "id": 9,
+      "business_id": 1,
+      "first_name": "Test",
+      "last_name": "Recipient",
+      "name": "Test Recipient",
+      "phone": "+917985445887",
+      "status": "active",
+      "is_opted_in": 1,
+      "tags": [
+        "vip",
+        "festive-buyer"
+      ],
+      "created_at": "2026-10-31T07:57:23.331Z"
     }
   ],
   "contact_consents": [
@@ -373,6 +377,42 @@
       "business_id": 1,
       "contact_id": 5,
       "tag_id": 2
+    },
+    {
+      "id": 6,
+      "business_id": 1,
+      "contact_id": 6,
+      "tag_id": 1
+    },
+    {
+      "id": 7,
+      "business_id": 1,
+      "contact_id": 9,
+      "tag_id": 1
+    },
+    {
+      "id": 8,
+      "business_id": 1,
+      "contact_id": 6,
+      "tag_id": 2
+    },
+    {
+      "id": 9,
+      "business_id": 1,
+      "contact_id": 9,
+      "tag_id": 2
+    },
+    {
+      "id": 10,
+      "business_id": 1,
+      "contact_id": 6,
+      "tag_id": 3
+    },
+    {
+      "id": 11,
+      "business_id": 1,
+      "contact_id": 9,
+      "tag_id": 3
     }
   ],
   "import_jobs": [],
@@ -402,7 +442,7 @@
           "text": "WhatsApp Business Platform sample message"
         }
       ],
-      "created_at": "2026-10-31T07:46:59.093Z"
+      "created_at": "2026-10-31T07:57:42.793Z"
     },
     {
       "id": 2,
@@ -433,7 +473,7 @@
           ]
         }
       ],
-      "created_at": "2026-10-31T07:46:59.093Z"
+      "created_at": "2026-10-31T07:57:42.793Z"
     },
     {
       "id": 3,
@@ -450,7 +490,7 @@
           "text": "Welcome to Jasper’s Market, your local grocery store providing farm-fresh produce and high-quality goods!"
         }
       ],
-      "created_at": "2026-10-31T07:46:59.093Z"
+      "created_at": "2026-10-31T07:57:42.793Z"
     },
     {
       "id": 4,
@@ -486,7 +526,7 @@
           ]
         }
       ],
-      "created_at": "2026-10-31T07:46:59.093Z"
+      "created_at": "2026-10-31T07:57:42.793Z"
     },
     {
       "id": 5,
@@ -521,7 +561,7 @@
           ]
         }
       ],
-      "created_at": "2026-10-31T07:46:59.093Z"
+      "created_at": "2026-10-31T07:57:42.793Z"
     },
     {
       "id": 6,
@@ -544,7 +584,7 @@
           "text": "Hello! {{customer_name}} Welcome to our official WhatsApp channel. Thank you for connecting with us."
         }
       ],
-      "created_at": "2026-10-31T07:46:59.093Z"
+      "created_at": "2026-10-31T07:57:42.793Z"
     }
   ],
   "campaigns": [
