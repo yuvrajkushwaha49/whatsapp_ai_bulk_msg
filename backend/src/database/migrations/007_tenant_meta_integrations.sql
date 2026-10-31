@@ -1,7 +1,7 @@
 -- Migration 007: Tenant Meta Integrations & Guided Setup Wizard State
 CREATE TABLE IF NOT EXISTS tenant_meta_integrations (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  business_id INT NOT NULL UNIQUE,
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  business_id BIGINT UNSIGNED NOT NULL UNIQUE,
   integration_mode ENUM('platform_managed', 'client_owned') DEFAULT 'platform_managed',
   meta_app_id VARCHAR(64) NULL,
   encrypted_meta_app_secret TEXT NULL,

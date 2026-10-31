@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS import_jobs (
 CREATE TABLE IF NOT EXISTS import_rows (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   job_id BIGINT UNSIGNED NOT NULL,
-  row_number INT UNSIGNED NOT NULL,
+  `row_number` INT UNSIGNED NOT NULL,
   phone VARCHAR(32) NULL,
   raw_data JSON NULL,
   status ENUM('imported', 'failed', 'skipped') NOT NULL DEFAULT 'imported',

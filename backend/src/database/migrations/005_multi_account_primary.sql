@@ -4,7 +4,7 @@
 -- ==============================================================================
 
 ALTER TABLE whatsapp_accounts 
-  ADD COLUMN IF NOT EXISTS is_primary BOOLEAN NOT NULL DEFAULT FALSE AFTER status;
+  ADD COLUMN is_primary BOOLEAN NOT NULL DEFAULT FALSE AFTER status;
 
 -- Index for rapid primary account lookups per business tenant
-CREATE INDEX IF NOT EXISTS idx_whatsapp_primary ON whatsapp_accounts (business_id, is_primary);
+CREATE INDEX idx_whatsapp_primary ON whatsapp_accounts (business_id, is_primary);

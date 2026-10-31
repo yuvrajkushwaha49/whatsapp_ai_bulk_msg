@@ -57,7 +57,15 @@ async function runMigrations() {
         .filter(s => s.length > 0);
 
       for (const statement of statements) {
-        await connection.query(statement);
+        try {
+          await connection.query(statement);
+        } catch (stmtErr) {
+          if (stmtErr.errno === 1060 || stmtErr.errno === 1061) {
+            // Safe to ignore duplicate column or duplicate key error
+            continue;
+          }
+          throw stmtErr;
+        }
       }
 
       await connection.query('INSERT INTO schema_migrations (migration_name) VALUES (?)', [file]);

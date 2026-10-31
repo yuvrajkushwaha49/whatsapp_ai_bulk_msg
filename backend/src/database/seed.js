@@ -7,11 +7,11 @@ dotenv.config();
 async function runSeed() {
   console.log('🌱 [Seeder] Starting development data seeding...');
 
-  const host = process.env.DATABASE_HOST || 'localhost';
-  const port = parseInt(process.env.DATABASE_PORT || '3306', 10);
-  const user = process.env.DATABASE_USER || 'cf_user';
-  const password = process.env.DATABASE_PASSWORD || 'cf_password';
-  const database = process.env.DATABASE_NAME || 'campaignflow';
+  const host = process.env.DATABASE_HOST || process.env.DB_HOST || 'localhost';
+  const port = parseInt(process.env.DATABASE_PORT || process.env.DB_PORT || '3306', 10);
+  const user = process.env.DATABASE_USER || process.env.DB_USER || 'cf_user';
+  const password = process.env.DATABASE_PASSWORD || process.env.DB_PASSWORD || 'cf_password';
+  const database = process.env.DATABASE_NAME || process.env.DB_NAME || 'campaignflow';
 
   let connection;
   try {
@@ -68,11 +68,15 @@ async function runSeed() {
 
     // 6. Seed Connected WhatsApp Account
     console.log('🌱 Seeding WhatsApp Account...');
+    const liveToken = process.env.META_ACCESS_TOKEN || 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
+    const livePhoneId = process.env.META_PHONE_NUMBER_ID || '1341070215765610';
+    const liveWabaId = process.env.META_WABA_ID || '1618945099958602';
+
     await connection.query(`
-      INSERT INTO whatsapp_accounts (id, business_id, waba_id, phone_number_id, phone_number, display_name, quality_rating, messaging_limit_tier, status)
-      VALUES (1, 1, 'waba_1092837465', 'phone_id_992837465', '+919876543210', 'Acme Retail Offers', 'GREEN', 'TIER_10K', 'connected')
-      ON DUPLICATE KEY UPDATE display_name=VALUES(display_name), status=VALUES(status);
-    `);
+      INSERT INTO whatsapp_accounts (id, business_id, waba_id, phone_number_id, phone_number, display_name, quality_rating, messaging_limit_tier, status, is_primary, access_token_encrypted)
+      VALUES (1, 1, ?, ?, '+91 86014 67210', 'Yuvraj (Indian Number)', 'GREEN', 'STANDARD', 'connected', 1, ?)
+      ON DUPLICATE KEY UPDATE display_name=VALUES(display_name), status='connected', phone_number_id=VALUES(phone_number_id), waba_id=VALUES(waba_id), access_token_encrypted=VALUES(access_token_encrypted), is_primary=1;
+    `, [liveWabaId, livePhoneId, liveToken]);
 
     // 7. Seed Tags
     console.log('🌱 Seeding Tags...');
@@ -156,7 +160,8 @@ async function runSeed() {
       ['+919822233344', '91', 'Vikram Malhotra', 'vikram@example.com'],
       ['+919833344455', '91', 'Sunita Rao', 'sunita@example.com'],
       ['+919844455566', '91', 'Rohan Mehra', 'rohan@example.com'],
-      ['+919855566677', '91', 'Deepa Nair', 'deepa@example.com']
+      ['+919855566677', '91', 'Deepa Nair', 'deepa@example.com'],
+      ['+919565763089', '91', 'Yuvraj Kushwaha', 'yuvraj@example.com']
     ];
 
     for (let i = 0; i < sampleContacts.length; i++) {
@@ -208,7 +213,7 @@ async function runSeed() {
         INSERT INTO campaign_recipients (business_id, campaign_id, contact_id, phone, status, sent_at, delivered_at, read_at, provider_message_id)
         VALUES (1, 1, ?, ?, ?, NOW(), NOW(), ?, ?)
         ON DUPLICATE KEY UPDATE status=VALUES(status);
-      `, [contactId, phone, isRead ? 'read' : 'delivered', isRead ? 'NOW()' : null, providerMsgId]);
+      `, [contactId, phone, isRead ? 'read' : 'delivered', isRead ? new Date() : null, providerMsgId]);
 
       await connection.query(`
         INSERT INTO messages (business_id, campaign_id, contact_id, whatsapp_account_id, direction, provider_message_id, phone, message_type, status)
