@@ -8,7 +8,25 @@ import { emitToTenant, emitToConversation } from '../../socket.js';
  * Helper to get Meta API client for a business tenant with strict credential isolation
  */
 async function getClientForBusiness(businessId, accountId = null) {
-  const authAccount = await getAccountWithCredentials(businessId, accountId);
+  let authAccount = null;
+  if (accountId) {
+    try {
+      authAccount = await getAccountWithCredentials(businessId, accountId);
+    } catch (_) {
+      authAccount = null;
+    }
+  }
+
+  // Fallback to active primary connected account if specific account is missing, unverified, or has no valid token
+  if (!authAccount || !authAccount.decryptedToken || authAccount.status !== 'connected') {
+    try {
+      const fallbackAccount = await getAccountWithCredentials(businessId, null);
+      if (fallbackAccount && fallbackAccount.decryptedToken) {
+        authAccount = fallbackAccount;
+      }
+    } catch (_) {}
+  }
+
   if (authAccount && authAccount.decryptedToken) {
     return new MetaCloudApiClient(authAccount.decryptedToken, authAccount.phone_number_id, authAccount.waba_id);
   }

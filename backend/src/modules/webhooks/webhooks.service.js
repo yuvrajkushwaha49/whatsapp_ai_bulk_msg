@@ -474,10 +474,10 @@ export async function processWebhookPayload(payload) {
                 conversationId = convRows[0].id;
                 await executeQuery(
                   `UPDATE whatsapp_conversations 
-                   SET status = 'open', unread_count = unread_count + 1, last_message_text = ?, 
+                   SET whatsapp_account_id = COALESCE(?, whatsapp_account_id), status = 'open', unread_count = unread_count + 1, last_message_text = ?, 
                        last_message_at = NOW(), last_incoming_message_at = NOW(), service_window_expires_at = ?, updated_at = NOW()
                    WHERE id = ?`,
-                  [textBody, windowExpiresAt, conversationId]
+                  [matchedAccountId || null, textBody, windowExpiresAt, conversationId]
                 );
               }
 

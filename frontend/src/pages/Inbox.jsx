@@ -320,7 +320,7 @@ export default function Inbox() {
       const isExpired = err.response?.data?.code === 'SERVICE_WINDOW_EXPIRED';
       setAlertMsg({
         type: 'danger',
-        text: err.response?.data?.message || 'Failed to send message. Please try again.'
+        text: err.response?.data?.error?.message || err.response?.data?.message || 'Failed to send message. Please try again.'
       });
       if (isExpired) {
         setSelectedConversation(prev => ({ ...prev, is_window_open: false }));
@@ -411,7 +411,7 @@ export default function Inbox() {
       console.error('[Inbox] Template send error:', err);
       setAlertMsg({
         type: 'danger',
-        text: err.response?.data?.message || 'Failed to send template message.'
+        text: err.response?.data?.error?.message || err.response?.data?.message || 'Failed to send template message.'
       });
     } finally {
       setSendingTemplate(false);
@@ -448,7 +448,7 @@ export default function Inbox() {
       console.error('[Inbox] Media send error:', err);
       setAlertMsg({
         type: 'danger',
-        text: err.response?.data?.message || 'Failed to send media message.'
+        text: err.response?.data?.error?.message || err.response?.data?.message || 'Failed to send media message.'
       });
     } finally {
       setSendingMedia(false);
