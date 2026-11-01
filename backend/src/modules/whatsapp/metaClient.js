@@ -431,7 +431,11 @@ export class MetaCloudApiClient {
     } catch (error) {
       const errData = error.response?.data?.error || null;
       logger.error('[MetaClient] OAuth code exchange failed:', errData || error.message);
-      const err = new Error(errData?.message || 'Failed to exchange Meta authorization code for access token');
+      let errorMsg = errData?.message || 'Failed to exchange Meta authorization code for access token';
+      if (errorMsg.includes('client_secret') || errorMsg.includes('secret') || error.response?.status === 400) {
+        errorMsg += '. (Please ensure the real Meta App Secret is configured in Super Admin -> Platform Meta Integration)';
+      }
+      const err = new Error(errorMsg);
       err.statusCode = 400;
       throw err;
     }

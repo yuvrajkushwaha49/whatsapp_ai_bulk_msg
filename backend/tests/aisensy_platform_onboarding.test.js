@@ -8,10 +8,15 @@ import * as whatsappService from '../src/modules/whatsapp/whatsapp.service.js';
 import { encryptToken, decryptToken } from '../src/utils/crypto.js';
 
 describe('AiSensy-Style WhatsApp SaaS Onboarding & Platform Architecture Suite', () => {
+  let initialSecret = null;
+
   before(async () => {
     await checkConnection();
     if (!isUsingFallback()) {
       try {
+        const rows = await executeQuery('SELECT encrypted_meta_app_secret FROM platform_meta_configs WHERE id = 1');
+        if (rows?.[0]?.encrypted_meta_app_secret) initialSecret = rows[0].encrypted_meta_app_secret;
+
         await executeQuery(`
           INSERT INTO businesses (id, name, slug, timezone, status, created_at, updated_at)
           VALUES 
@@ -144,7 +149,10 @@ describe('AiSensy-Style WhatsApp SaaS Onboarding & Platform Architecture Suite',
   after(async () => {
     try {
       if (!isUsingFallback()) {
-        await executeQuery('UPDATE platform_meta_configs SET embedded_signup_config_id = NULL WHERE id = 1');
+        await executeQuery(
+          'UPDATE platform_meta_configs SET embedded_signup_config_id = NULL, encrypted_meta_app_secret = COALESCE(?, encrypted_meta_app_secret) WHERE id = 1',
+          [initialSecret]
+        );
       }
     } catch (_) {}
   });
