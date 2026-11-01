@@ -244,6 +244,23 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
+  const handleOpenMetaHostedOnboarding = async () => {
+    setError(null);
+    try {
+      const initRes = await api.post('/meta/embedded-signup/initiate', {
+        redirectOrigin: window.location.origin
+      });
+      const initData = initRes.data?.data;
+      const appId = initData?.appId || '1165054629187576';
+      const configId = initData?.configId || '1153688433853632';
+      const metaHostedUrl = initData?.metaHostedUrl || `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${appId}&config_id=${configId}&extras=%7B%22sessionInfoVersion%22%3A%223%22%7D`;
+      window.open(metaHostedUrl, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      const fallbackUrl = 'https://business.facebook.com/messaging/whatsapp/onboard/?app_id=1165054629187576&config_id=1153688433853632&extras=%7B%22sessionInfoVersion%22%3A%223%22%7D';
+      window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   /**
    * Developer Direct Token Import (Sandbox or Direct System Token)
    */
@@ -409,7 +426,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                     Click <strong>Continue with Facebook</strong> to log into your Facebook account, select your Meta Business Portfolio, and link your official WhatsApp number in under 60 seconds.
                   </p>
 
-                  <div className="d-flex flex-column align-items-center justify-content-center gap-2">
+                  <div className="d-flex flex-column align-items-center justify-content-center gap-3">
                     <button
                       type="button"
                       disabled={checkingReadiness || (readiness && !readiness.isReady)}
@@ -419,7 +436,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                         backgroundColor: '#1877F2',
                         borderColor: '#1877F2',
                         borderRadius: '10px',
-                        minWidth: '280px',
+                        minWidth: '290px',
                         fontSize: '1.05rem'
                       }}
                     >
@@ -431,12 +448,33 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                       ) : (
                         <>
                           <i className="bi bi-facebook fs-4"></i>
-                          <span>Continue with Facebook</span>
+                          <span>Continue with Facebook (Popup)</span>
                         </>
                       )}
                     </button>
-                    <small className="text-muted mt-1">
-                      No Meta Developer account or app creation required. We handle everything.
+
+                    <div className="d-flex align-items-center gap-2 w-100 my-1" style={{ maxWidth: '320px' }}>
+                      <hr className="flex-grow-1 my-0 text-muted" />
+                      <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem' }}>or use direct portal</span>
+                      <hr className="flex-grow-1 my-0 text-muted" />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenMetaHostedOnboarding}
+                      className="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2 px-4 py-2 fw-semibold"
+                      style={{
+                        borderRadius: '10px',
+                        minWidth: '290px',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      <i className="bi bi-box-arrow-up-right"></i>
+                      <span>Open Official Meta Onboarding Page ↗</span>
+                    </button>
+
+                    <small className="text-muted">
+                      Direct Meta-hosted link: No developer account needed. Recommended if popups are blocked or connecting external personal accounts.
                     </small>
                   </div>
                 </div>
