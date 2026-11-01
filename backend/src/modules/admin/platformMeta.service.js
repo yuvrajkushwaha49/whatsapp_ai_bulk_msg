@@ -26,11 +26,27 @@ export async function getPlatformMetaConfig() {
 
   // Fallback to environment variables if no DB record exists
   const appId = record?.meta_app_id || process.env.META_APP_ID || '1165054629187576';
-  const rawSecret = record?.encrypted_meta_app_secret
-    ? decryptToken(record.encrypted_meta_app_secret)
-    : (process.env.META_APP_SECRET || '');
+  const envSecret = process.env.META_APP_SECRET || '';
+  const isEnvValid = Boolean(
+    envSecret && 
+    !envSecret.includes('yahan_') && 
+    !envSecret.includes('paste_karein') && 
+    envSecret !== 'your_meta_app_secret' && 
+    envSecret.length >= 16
+  );
 
-  const hasSecret = Boolean(rawSecret && !rawSecret.includes('yahan_') && rawSecret !== 'your_meta_app_secret' && rawSecret.length >= 10);
+  let rawSecret = '';
+  if (record?.encrypted_meta_app_secret) {
+    const dbDecrypted = decryptToken(record.encrypted_meta_app_secret);
+    if (dbDecrypted && !dbDecrypted.startsWith('sec_test_')) {
+      rawSecret = dbDecrypted;
+    }
+  }
+  if (!rawSecret && isEnvValid) {
+    rawSecret = envSecret;
+  }
+
+  const hasSecret = Boolean(rawSecret && rawSecret.length >= 10);
   const configId = record?.embedded_signup_config_id || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
   const apiVersion = record?.graph_api_version || process.env.WHATSAPP_API_VERSION || DEFAULT_API_VERSION;
   const verifyToken = record?.webhook_verify_token || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'campaignflow_secure_webhook_token_2026';
@@ -286,21 +302,42 @@ export async function checkClientPlatformReadiness() {
  * Internal helper: Get decrypted platform secret for server-side operations
  */
 export async function getDecryptedPlatformSecret() {
+  const envSecret = process.env.META_APP_SECRET || '';
+  const isEnvValid = Boolean(
+    envSecret && 
+    !envSecret.includes('yahan_') && 
+    !envSecret.includes('paste_karein') && 
+    envSecret !== 'your_meta_app_secret' && 
+    envSecret.length >= 16
+  );
+
+  let dbSecret = null;
   if (isUsingFallback()) {
     const store = getMemoryStore();
     const rec = store.platform_meta_configs?.[0];
     if (rec?.encrypted_meta_app_secret) {
-      return decryptToken(rec.encrypted_meta_app_secret);
+      dbSecret = decryptToken(rec.encrypted_meta_app_secret);
     }
   } else {
     try {
       const [row] = await executeQuery('SELECT encrypted_meta_app_secret FROM platform_meta_configs LIMIT 1');
       if (row?.encrypted_meta_app_secret) {
-        return decryptToken(row.encrypted_meta_app_secret);
+        dbSecret = decryptToken(row.encrypted_meta_app_secret);
       }
     } catch (_) {}
   }
-  return process.env.META_APP_SECRET || '';
+
+  // If DB secret is valid and not a dummy test secret, use it
+  if (dbSecret && !dbSecret.startsWith('sec_test_') && !dbSecret.includes('placeholder')) {
+    return dbSecret;
+  }
+
+  // Otherwise, if .env has a real secret, use .env!
+  if (isEnvValid) {
+    return envSecret;
+  }
+
+  return dbSecret || '';
 }
 
 /**
