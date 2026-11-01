@@ -382,7 +382,7 @@ export class MetaCloudApiClient {
    * Exchange Meta Embedded Signup OAuth Code for Access Token
    * GET /oauth/access_token?client_id={APP_ID}&client_secret={APP_SECRET}&code={CODE}
    */
-  static async exchangeCodeForToken(code) {
+  static async exchangeCodeForToken(code, redirectUri = null) {
     const isMock = !code || code.startsWith('mock_') || code.startsWith('test_') || process.env.NODE_ENV === 'test';
     if (isMock) {
       logger.info('[MetaClient:Mock] Exchanged OAuth code for access token');
@@ -414,19 +414,21 @@ export class MetaCloudApiClient {
       appSecret.length < 16;
 
     if (!appId || isPlaceholderSecret) {
-      const err = new Error('META_APP_ID and META_APP_SECRET must be configured to exchange Meta OAuth code.');
+      const err = new Error('Meta App Secret is missing! Please paste your 32-character Meta App Secret in SuperAdmin Panel (Platform Meta Integration) or backend/.env file.');
       err.statusCode = 400;
       throw err;
     }
 
     try {
-      const response = await axios.get(`${META_BASE_URL}/oauth/access_token`, {
-        params: {
-          client_id: appId,
-          client_secret: appSecret,
-          code: code
-        }
-      });
+      const params = {
+        client_id: appId,
+        client_secret: appSecret,
+        code: code
+      };
+      if (redirectUri) {
+        params.redirect_uri = redirectUri;
+      }
+      const response = await axios.get(`${META_BASE_URL}/oauth/access_token`, { params });
       return response.data;
     } catch (error) {
       const errData = error.response?.data?.error || null;

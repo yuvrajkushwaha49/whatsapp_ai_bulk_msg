@@ -29,7 +29,7 @@ export async function getConnectConfig(businessId) {
  * 5. Encrypts token at rest and stores account against tenant
  */
 export async function completeEmbeddedSignup(businessId, payload = {}) {
-  const { code, state, accessToken: providedToken, token, wabaId, phoneNumberId, waba_id, phone_number_id, businessName } = payload;
+  const { code, state, accessToken: providedToken, token, wabaId, phoneNumberId, waba_id, phone_number_id, businessName, redirectUri, redirect_uri } = payload;
   const rawToken = providedToken || token;
 
   if (!code && !rawToken) {
@@ -41,20 +41,30 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
   const numBusinessId = Number(businessId);
   logger.info(`🚀 [EmbeddedSignup] Completing onboarding for Business #${numBusinessId}...`);
 
+  let effectiveRedirectUri = redirectUri || redirect_uri || null;
+
   // Validate OAuth CSRF State session if provided
   if (state) {
     try {
-      const { validateOnboardingSession } = await import('./metaSetup.service.js');
+      const { getOnboardingSession, validateOnboardingSession } = await import('./metaSetup.service.js');
+      const session = await getOnboardingSession(numBusinessId, state);
+      if (!effectiveRedirectUri && session?.redirect_origin) {
+        effectiveRedirectUri = `${session.redirect_origin}/whatsapp/callback`;
+      }
       await validateOnboardingSession(numBusinessId, state);
     } catch (stateErr) {
       logger.warn(`[EmbeddedSignup] State validation warning: ${stateErr.message}`);
     }
   }
 
+  if (!effectiveRedirectUri) {
+    effectiveRedirectUri = `${process.env.FRONTEND_URL || 'https://whatsapp.bhaktisong.fun'}/whatsapp/callback`;
+  }
+
   // 1. Resolve Meta Access Token (from OAuth code or direct token)
   let accessToken = rawToken;
   if (!accessToken) {
-    const tokenData = await MetaCloudApiClient.exchangeCodeForToken(code);
+    const tokenData = await MetaCloudApiClient.exchangeCodeForToken(code, effectiveRedirectUri);
     accessToken = tokenData.access_token;
   }
   const encryptedToken = encryptToken(accessToken);

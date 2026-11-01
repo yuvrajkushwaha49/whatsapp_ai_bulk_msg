@@ -353,6 +353,31 @@ export async function recordOnboardingSession(businessId, state, redirectOrigin,
 }
 
 /**
+ * Get Onboarding Session Details
+ */
+export async function getOnboardingSession(businessId, state) {
+  if (!state) return null;
+  const numBusinessId = Number(businessId);
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    return store.meta_onboarding_sessions?.find(
+      s => s.state_hash === state && s.tenant_id === numBusinessId && s.session_status === 'initiated'
+    ) || null;
+  } else {
+    try {
+      const rows = await executeQuery(
+        `SELECT id, redirect_origin, expires_at FROM meta_onboarding_sessions 
+         WHERE state_hash = ? AND tenant_id = ? AND session_status = 'initiated' LIMIT 1`,
+        [state, numBusinessId]
+      );
+      return rows?.[0] || null;
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/**
  * Validate Onboarding Session CSRF State
  */
 export async function validateOnboardingSession(businessId, state) {

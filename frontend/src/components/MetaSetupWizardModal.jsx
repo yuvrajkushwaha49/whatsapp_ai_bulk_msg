@@ -163,6 +163,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
             const callbackRes = await api.post('/meta/embedded-signup/callback', {
               code,
               state: returnedState || state,
+              redirectUri: `${window.location.origin}/whatsapp/callback`,
               wabaId: wabaId && /^\d+$/.test(String(wabaId)) ? wabaId : undefined,
               phoneNumberId: phoneNumberId && /^\d+$/.test(String(phoneNumberId)) ? phoneNumberId : undefined,
               businessName: businessName || undefined

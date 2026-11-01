@@ -53,7 +53,11 @@ export default function WhatsAppOAuthCallback() {
     // If opened directly in a new tab (not popup): Complete onboarding via backend API directly
     async function completeDirectly() {
       try {
-        const res = await api.post('/whatsapp/accounts/connect/complete', { code, state });
+        const res = await api.post('/whatsapp/accounts/connect/complete', {
+          code,
+          state,
+          redirectUri: `${window.location.origin}/whatsapp/callback`
+        });
         if (res.data?.success) {
           setStatus('success');
           setMessage('WhatsApp Business Account connected successfully! Redirecting...');
