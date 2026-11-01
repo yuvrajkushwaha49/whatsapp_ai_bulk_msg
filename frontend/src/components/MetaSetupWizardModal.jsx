@@ -30,6 +30,8 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
   const [waitingSeconds, setWaitingSeconds] = useState(0);
   const popupRef = useRef(null);
   const isConnectingRef = useRef(false);
+  const lastWabaRef = useRef(null);
+  const lastPhoneRef = useRef(null);
 
   // Developer Testing Accordion states
   const [showDevTools, setShowDevTools] = useState(false);
@@ -142,8 +144,23 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
         }
       }, 1000);
 
-      // 3. Listen for postMessage from /whatsapp/callback popup
+      // 3. Listen for postMessage from /whatsapp/callback popup & Meta Embedded Signup iframe
       const handlePopupMessage = async (event) => {
+        // Capture official Meta Embedded Signup sessionInfoListener events from facebook.com
+        if (event.origin && (event.origin.includes('facebook.com') || event.origin.includes('fb.com'))) {
+          try {
+            const parsed = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            if (parsed?.type === 'WA_EMBEDDED_SIGNUP') {
+              console.log('[MetaEmbeddedSignup:WA_EMBEDDED_SIGNUP]', parsed);
+              if (parsed.event === 'FINISH' && parsed.data) {
+                if (parsed.data.waba_id) lastWabaRef.current = String(parsed.data.waba_id);
+                if (parsed.data.phone_number_id) lastPhoneRef.current = String(parsed.data.phone_number_id);
+              }
+            }
+          } catch (_) {}
+          return;
+        }
+
         if (event.origin !== window.location.origin) return;
 
         if (event.data?.type === 'META_SIGNUP_AUTH_CODE' || event.data?.type === 'FB_OAUTH_CODE') {
@@ -151,6 +168,9 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
           clearInterval(timerInterval);
           window.removeEventListener('message', handlePopupMessage);
           const { code, state: returnedState, wabaId, phoneNumberId, businessName } = event.data;
+
+          const finalWabaId = wabaId || lastWabaRef.current || undefined;
+          const finalPhoneId = phoneNumberId || lastPhoneRef.current || undefined;
 
           setVerificationLogs(prev => prev.map(l => {
             if (l.id === 1 || l.id === 2) return { ...l, status: 'done' };
@@ -164,8 +184,8 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
               code,
               state: returnedState || state,
               redirectUri: `${window.location.origin}/whatsapp/callback`,
-              wabaId: wabaId && /^\d+$/.test(String(wabaId)) ? wabaId : undefined,
-              phoneNumberId: phoneNumberId && /^\d+$/.test(String(phoneNumberId)) ? phoneNumberId : undefined,
+              wabaId: finalWabaId && /^\d+$/.test(String(finalWabaId)) ? finalWabaId : undefined,
+              phoneNumberId: finalPhoneId && /^\d+$/.test(String(finalPhoneId)) ? finalPhoneId : undefined,
               businessName: businessName || undefined
             });
 
