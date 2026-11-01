@@ -532,9 +532,22 @@ export class MetaCloudApiClient {
    * Inspect access token via debug_token to extract granted WABAs from granular_scopes
    */
   static async getGranularTargetIds(accessToken) {
-    const appId = process.env.META_APP_ID;
-    const appSecret = process.env.META_APP_SECRET;
+    let appId = process.env.META_APP_ID;
+    let appSecret = process.env.META_APP_SECRET;
+
+    // Load credentials from database platform config if not configured in env
+    try {
+      const { getPlatformMetaConfig, getDecryptedPlatformSecret } = await import('../admin/platformMeta.service.js');
+      const platformConfig = await getPlatformMetaConfig();
+      if (platformConfig?.metaAppId) appId = platformConfig.metaAppId;
+      const dbSecret = await getDecryptedPlatformSecret();
+      if (dbSecret && !dbSecret.includes('yahan_') && dbSecret !== 'your_meta_app_secret') {
+        appSecret = dbSecret;
+      }
+    } catch (_) {}
+
     if (!appId || !appSecret || appSecret.includes('yahan_') || appSecret === 'your_meta_app_secret') {
+      logger.warn('[MetaClient] Cannot inspect debug_token: Meta App Secret not configured.');
       return [];
     }
 
@@ -547,7 +560,9 @@ export class MetaCloudApiClient {
       });
       const scopes = response.data?.data?.granular_scopes || [];
       const waScope = scopes.find(s => s.scope === 'whatsapp_business_management');
-      return waScope?.target_ids || [];
+      const targets = waScope?.target_ids || [];
+      logger.info(`[MetaClient] debug_token granular_scopes found ${targets.length} target WABAs`);
+      return targets;
     } catch (err) {
       logger.warn(`[MetaClient] Failed to query debug_token: ${err.message}`);
       return [];

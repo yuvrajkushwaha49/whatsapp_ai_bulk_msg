@@ -98,6 +98,30 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
     }
   }
 
+  // If still no WABA ID, check user's businesses for owned/client WABAs
+  if (!targetWabaId) {
+    try {
+      const bizRes = await fetch('https://graph.facebook.com/v21.0/me/businesses?fields=id,name,owned_whatsapp_business_accounts{id,name},client_whatsapp_business_accounts{id,name}', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const bizData = await bizRes.json();
+      if (bizData?.data?.length > 0) {
+        for (const biz of bizData.data) {
+          const owned = biz.owned_whatsapp_business_accounts?.data || [];
+          const clientWabas = biz.client_whatsapp_business_accounts?.data || [];
+          const allFound = [...owned, ...clientWabas];
+          if (allFound.length > 0) {
+            targetWabaId = allFound[0].id;
+            logger.info(`[EmbeddedSignup] Discovered WABA ID ${targetWabaId} from Meta business ${biz.name} (${biz.id})`);
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      logger.warn('[EmbeddedSignup] Business WABA query notice:', e.message);
+    }
+  }
+
   // If targetPhoneId is given but no WABA ID, query phone details to get WABA ID
   if (!targetWabaId && targetPhoneId) {
     try {
@@ -112,7 +136,7 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
   }
 
   if (!targetWabaId) {
-    const err = new Error('WhatsApp Business Account (WABA) ID is required. Please provide your WABA ID or reconnect.');
+    const err = new Error('WhatsApp Business Account (WABA) not found on this Facebook account. Please make sure your Facebook account has access to a WhatsApp Business Account in Meta Business Suite.');
     err.statusCode = 400;
     throw err;
   }

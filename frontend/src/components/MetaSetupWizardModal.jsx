@@ -181,7 +181,10 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
             }
           } catch (callbackErr) {
             console.error('Callback error:', callbackErr);
-            const msg = callbackErr.response?.data?.message || 'Failed to exchange authorization code with Meta Cloud API.';
+            console.error('Callback error response data:', callbackErr.response?.data);
+            const msg = callbackErr.response?.data?.error?.message || 
+                        callbackErr.response?.data?.message || 
+                        'Failed to exchange authorization code with Meta Cloud API.';
             setError(msg);
             setScreen('welcome');
           }
