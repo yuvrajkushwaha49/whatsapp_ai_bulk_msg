@@ -45,7 +45,7 @@ export function decryptToken(cipherText) {
 
   try {
     const [ivHex, authTagHex, encryptedHex] = cipherText.split(':');
-    if (!ivHex || !authTagHex || !encryptedHex) return cipherText;
+    if (!ivHex || !authTagHex || !encryptedHex) return null;
 
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
@@ -58,8 +58,8 @@ export function decryptToken(cipherText) {
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (err) {
-    // Fallback: If decryption fails, return as-is or null
-    return cipherText;
+    // Decryption failed (e.g. wrong key or corrupted ciphertext)
+    return null;
   }
 }
 

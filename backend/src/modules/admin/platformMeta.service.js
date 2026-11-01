@@ -302,13 +302,14 @@ export async function checkClientPlatformReadiness() {
  * Internal helper: Get decrypted platform secret for server-side operations
  */
 export async function getDecryptedPlatformSecret() {
-  const envSecret = process.env.META_APP_SECRET || '';
+  const envSecret = (process.env.META_APP_SECRET || '').trim();
   const isEnvValid = Boolean(
     envSecret && 
     !envSecret.includes('yahan_') && 
     !envSecret.includes('paste_karein') && 
     envSecret !== 'your_meta_app_secret' && 
-    envSecret.length >= 16
+    envSecret.length >= 16 &&
+    !envSecret.includes(':')
   );
 
   let dbSecret = null;
@@ -327,8 +328,10 @@ export async function getDecryptedPlatformSecret() {
     } catch (_) {}
   }
 
-  // If DB secret is valid and not a dummy test secret, use it
-  if (dbSecret && !dbSecret.startsWith('sec_test_') && !dbSecret.includes('placeholder')) {
+  if (dbSecret) dbSecret = String(dbSecret).trim();
+
+  // If DB secret is valid real secret (e.g. 32-hex characters), use it
+  if (dbSecret && !dbSecret.includes(':') && !dbSecret.startsWith('sec_test_') && !dbSecret.includes('placeholder') && dbSecret.length >= 16) {
     return dbSecret;
   }
 
@@ -337,7 +340,12 @@ export async function getDecryptedPlatformSecret() {
     return envSecret;
   }
 
-  return dbSecret || '';
+  // Allow sec_test_ ONLY in test environment
+  if (process.env.NODE_ENV === 'test' && dbSecret && dbSecret.startsWith('sec_test_')) {
+    return dbSecret;
+  }
+
+  return '';
 }
 
 /**

@@ -402,15 +402,18 @@ export class MetaCloudApiClient {
       const platformConfig = await getPlatformMetaConfig();
       if (platformConfig?.metaAppId) appId = platformConfig.metaAppId;
       const dbSecret = await getDecryptedPlatformSecret();
-      if (dbSecret && !dbSecret.includes('yahan_') && dbSecret !== 'your_meta_app_secret') {
-        appSecret = dbSecret;
+      if (dbSecret && !dbSecret.includes('yahan_') && dbSecret !== 'your_meta_app_secret' && !dbSecret.includes(':')) {
+        appSecret = String(dbSecret).trim();
       }
     } catch (_) {}
+
+    appSecret = (appSecret || '').trim();
 
     const isPlaceholderSecret = !appSecret || 
       appSecret === 'your_meta_app_secret' || 
       appSecret.includes('yahan_') || 
       appSecret.includes('paste_karein') ||
+      appSecret.includes(':') ||
       appSecret.length < 16;
 
     if (!appId || isPlaceholderSecret) {
