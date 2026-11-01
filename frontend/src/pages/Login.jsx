@@ -142,6 +142,12 @@ export default function Login() {
       <div className="text-center mt-4 text-muted small">
         Don't have a workspace? <Link to="/register" className="fw-semibold text-success text-decoration-none">Create business account</Link>
       </div>
+
+      <div className="text-center mt-3 text-muted small" style={{ fontSize: '0.78rem' }}>
+        <Link to="/privacy" className="text-muted text-decoration-none me-2">Privacy Policy</Link>
+        <span>•</span>
+        <Link to="/terms" className="text-muted text-decoration-none ms-2">Terms of Service</Link>
+      </div>
     </div>
   );
 }

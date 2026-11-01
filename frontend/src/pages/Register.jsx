@@ -135,6 +135,13 @@ export default function Register() {
       <div className="text-center mt-3 text-muted small">
         Already have a workspace? <Link to="/login" className="fw-semibold text-success text-decoration-none">Sign in</Link>
       </div>
+
+      <div className="text-center mt-3 text-muted small" style={{ fontSize: '0.78rem' }}>
+        By registering, you agree to our{' '}
+        <Link to="/terms" className="text-decoration-underline text-secondary">Terms of Service</Link>
+        {' '}and{' '}
+        <Link to="/privacy" className="text-decoration-underline text-secondary">Privacy Policy</Link>
+      </div>
     </div>
   );
 }
