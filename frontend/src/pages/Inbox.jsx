@@ -317,6 +317,7 @@ export default function Inbox() {
       }
     } catch (err) {
       console.error('[Inbox] Send error:', err);
+      console.error('[Inbox] Send error response data:', err.response?.data);
       const isExpired = err.response?.data?.code === 'SERVICE_WINDOW_EXPIRED';
       setAlertMsg({
         type: 'danger',

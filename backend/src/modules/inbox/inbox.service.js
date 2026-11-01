@@ -27,14 +27,15 @@ async function getClientForBusiness(businessId, accountId = null) {
     } catch (_) {}
   }
 
-  if (authAccount && authAccount.decryptedToken) {
-    return new MetaCloudApiClient(authAccount.decryptedToken, authAccount.phone_number_id, authAccount.waba_id);
-  }
-  return new MetaCloudApiClient(
-    '',
-    authAccount?.phone_number_id || '',
-    authAccount?.waba_id || ''
-  );
+  const client = (authAccount && authAccount.decryptedToken)
+    ? new MetaCloudApiClient(authAccount.decryptedToken, authAccount.phone_number_id, authAccount.waba_id)
+    : new MetaCloudApiClient(
+        '',
+        authAccount?.phone_number_id || '',
+        authAccount?.waba_id || ''
+      );
+
+  return { client, authAccount };
 }
 
 /**
@@ -428,7 +429,13 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
   }
 
   // Dispatch via Meta API Client with Conversation-Specific WhatsApp Account
-  const client = await getClientForBusiness(numBusinessId, conversation.whatsapp_account_id);
+  const { client, authAccount } = await getClientForBusiness(numBusinessId, conversation.whatsapp_account_id);
+  if (!client.accessToken && !client.isMock) {
+    const err = new Error('No active WhatsApp account with a valid access token was found for this business. Please reconnect or check WhatsApp Accounts.');
+    err.statusCode = 400;
+    throw err;
+  }
+
   let metaResult;
   try {
     metaResult = await client.sendTextMessage({
@@ -437,12 +444,57 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
     });
   } catch (apiErr) {
     logger.error(`[InboxService] Meta API sendTextMessage error: ${apiErr.message}`);
-    const err = new Error(apiErr.response?.data?.error?.message || apiErr.message || 'Failed to send message via Meta API');
-    err.statusCode = apiErr.response?.status || 500;
+    const metaErrMsg = apiErr.response?.data?.error?.error_user_msg || 
+                       apiErr.response?.data?.error?.message || 
+                       apiErr.message || 
+                       'Failed to send message via Meta API';
+    const err = new Error(metaErrMsg);
+    err.statusCode = apiErr.statusCode || apiErr.response?.status || 400;
     throw err;
   }
 
-  const metaMessageId = metaResult.meta_message_id || `wamid.out_${Date.now()}`;
+  const metaMessageId = metaResult?.meta_message_id || 
+                        (Array.isArray(metaResult?.messages) && metaResult?.messages[0]?.id) || 
+                        `wamid.out_${Date.now()}`;
+
+  // Ensure valid effective account ID and contact ID for relational integrity
+  let effectiveAccountId = authAccount?.id || conversation.whatsapp_account_id;
+  if (!effectiveAccountId && !isUsingFallback()) {
+    const accRows = await executeQuery(
+      'SELECT id FROM whatsapp_accounts WHERE business_id = ? ORDER BY is_primary DESC, created_at ASC LIMIT 1',
+      [numBusinessId]
+    );
+    if (accRows && accRows.length > 0) {
+      effectiveAccountId = accRows[0].id;
+    }
+  }
+
+  let effectiveContactId = conversation.contact_id;
+  if (!effectiveContactId && !isUsingFallback()) {
+    const contactRows = await executeQuery(
+      'SELECT id FROM contacts WHERE business_id = ? AND phone = ? LIMIT 1',
+      [numBusinessId, conversation.customer_phone]
+    );
+    if (contactRows && contactRows.length > 0) {
+      effectiveContactId = contactRows[0].id;
+    } else {
+      const newContact = await executeQuery(
+        'INSERT INTO contacts (business_id, phone, first_name, is_opted_in, status, created_at, updated_at) VALUES (?, ?, ?, 1, "active", NOW(), NOW())',
+        [numBusinessId, conversation.customer_phone, conversation.customer_phone]
+      );
+      effectiveContactId = newContact.insertId;
+    }
+  }
+
+  // Auto-bind conversation to effective account and contact
+  if (!isUsingFallback() && (conversation.whatsapp_account_id !== effectiveAccountId || conversation.contact_id !== effectiveContactId)) {
+    try {
+      await executeQuery(
+        'UPDATE whatsapp_conversations SET whatsapp_account_id = ?, contact_id = COALESCE(?, contact_id) WHERE id = ?',
+        [effectiveAccountId, effectiveContactId, numConvId]
+      );
+    } catch (_) {}
+  }
 
   let createdMessage;
 
@@ -452,8 +504,8 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
       id: (store.whatsapp_messages?.length || 0) + 1,
       business_id: numBusinessId,
       conversation_id: numConvId,
-      contact_id: conversation.contact_id,
-      whatsapp_account_id: conversation.whatsapp_account_id || 1,
+      contact_id: effectiveContactId,
+      whatsapp_account_id: effectiveAccountId || 1,
       meta_message_id: metaMessageId,
       direction: 'OUTBOUND',
       message_type: 'text',
@@ -475,6 +527,7 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
       conv.last_message_text = cleanText;
       conv.last_message_at = new Date();
       conv.updated_at = new Date();
+      if (effectiveAccountId) conv.whatsapp_account_id = effectiveAccountId;
     }
     saveMemoryStore();
   } else {
@@ -486,8 +539,8 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
       [
         numBusinessId,
         numConvId,
-        conversation.contact_id,
-        conversation.whatsapp_account_id || 1,
+        effectiveContactId,
+        effectiveAccountId,
         metaMessageId,
         cleanText,
         user.id
@@ -498,7 +551,8 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
       id: insertRes.insertId,
       business_id: numBusinessId,
       conversation_id: numConvId,
-      contact_id: conversation.contact_id,
+      contact_id: effectiveContactId,
+      whatsapp_account_id: effectiveAccountId,
       meta_message_id: metaMessageId,
       direction: 'OUTBOUND',
       message_type: 'text',
@@ -667,7 +721,12 @@ export async function sendTemplateMessage(businessId, user, conversationId, temp
   }
 
   // Dispatch via Meta API Client with Conversation-Specific WhatsApp Account
-  const client = await getClientForBusiness(numBusinessId, conversation.whatsapp_account_id);
+  const { client, authAccount } = await getClientForBusiness(numBusinessId, conversation.whatsapp_account_id);
+  if (!client.accessToken && !client.isMock) {
+    const err = new Error('No active WhatsApp account with a valid access token was found for this business. Please reconnect or check WhatsApp Accounts.');
+    err.statusCode = 400;
+    throw err;
+  }
   let metaResult;
   try {
     metaResult = await client.sendTemplateMessage({
@@ -678,8 +737,12 @@ export async function sendTemplateMessage(businessId, user, conversationId, temp
     });
   } catch (apiErr) {
     logger.error(`[InboxService] Meta API sendTemplateMessage error: ${apiErr.message}`);
-    const err = new Error(apiErr.response?.data?.error?.message || apiErr.message || 'Failed to send template via Meta API');
-    err.statusCode = apiErr.response?.status || 500;
+    const metaErrMsg = apiErr.response?.data?.error?.error_user_msg || 
+                       apiErr.response?.data?.error?.message || 
+                       apiErr.message || 
+                       'Failed to send template via Meta API';
+    const err = new Error(metaErrMsg);
+    err.statusCode = apiErr.statusCode || apiErr.response?.status || 400;
     throw err;
   }
 
@@ -801,14 +864,31 @@ export async function sendMediaMessage(businessId, user, conversationId, mediaPa
     throw err;
   }
 
-  const client = await getClientForBusiness(numBusinessId);
-  const metaResult = await client.sendMediaMessage({
-    recipientPhone: conversation.customer_phone,
-    mediaType,
-    mediaUrl,
-    caption,
-    filename
-  });
+  const { client, authAccount } = await getClientForBusiness(numBusinessId, conversation.whatsapp_account_id);
+  if (!client.accessToken && !client.isMock) {
+    const err = new Error('No active WhatsApp account with a valid access token was found for this business. Please reconnect or check WhatsApp Accounts.');
+    err.statusCode = 400;
+    throw err;
+  }
+  let metaResult;
+  try {
+    metaResult = await client.sendMediaMessage({
+      recipientPhone: conversation.customer_phone,
+      mediaType,
+      mediaUrl,
+      caption,
+      filename
+    });
+  } catch (apiErr) {
+    logger.error(`[InboxService] Meta API sendMediaMessage error: ${apiErr.message}`);
+    const metaErrMsg = apiErr.response?.data?.error?.error_user_msg || 
+                       apiErr.response?.data?.error?.message || 
+                       apiErr.message || 
+                       'Failed to send media via Meta API';
+    const err = new Error(metaErrMsg);
+    err.statusCode = apiErr.statusCode || apiErr.response?.status || 400;
+    throw err;
+  }
 
   const metaMessageId = metaResult.meta_message_id || `wamid.out_media_${Date.now()}`;
   const displayBody = caption || `[${mediaType} attached]`;
