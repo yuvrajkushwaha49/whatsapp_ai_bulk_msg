@@ -67,13 +67,37 @@ export default function SuperAdminDashboard() {
     try {
       setTogglingAccountId(accountId);
       const res = await api.patch(`/admin/whatsapp-accounts/${accountId}/admin-status`, {
-        adminStatus: newStatus
+        adminStatus: newStatus,
+        admin_status: newStatus
       });
       if (res.data?.success) {
         setFeedback({
           type: 'success',
           text: `WhatsApp number status changed to ${newStatus}. ${newStatus === 'ACTIVE' ? '🟢 It is now VISIBLE to the client.' : '🔴 It is now DEACTIVATED and hidden from the client.'}`
         });
+
+        // Instant local state update for immediate UI feedback
+        setSelectedClientDetail(prev => {
+          if (!prev) return null;
+          const updateAccs = (accs) => (accs || []).map(a => a.id === accountId ? { ...a, admin_status: newStatus } : a);
+          return {
+            ...prev,
+            whatsapp_accounts: updateAccs(prev.whatsapp_accounts),
+            accounts: updateAccs(prev.accounts)
+          };
+        });
+
+        setMatrixData(prev => {
+          if (!prev || !prev.businesses) return prev;
+          const updateAccs = (accs) => (accs || []).map(a => a.id === accountId ? { ...a, admin_status: newStatus } : a);
+          const updatedBusinesses = prev.businesses.map(b => ({
+            ...b,
+            whatsapp_accounts: updateAccs(b.whatsapp_accounts),
+            accounts: updateAccs(b.accounts)
+          }));
+          return { ...prev, businesses: updatedBusinesses };
+        });
+
         await fetchMatrixData();
         await fetchAdminData();
       }
@@ -91,7 +115,8 @@ export default function SuperAdminDashboard() {
     try {
       setReassigningAccountId(accountId);
       const res = await api.patch(`/admin/whatsapp-accounts/${accountId}/reassign`, {
-        targetBusinessId: targetBizId ? Number(targetBizId) : null
+        targetBusinessId: targetBizId ? Number(targetBizId) : null,
+        business_id: targetBizId ? Number(targetBizId) : null
       });
       if (res.data?.success) {
         setFeedback({

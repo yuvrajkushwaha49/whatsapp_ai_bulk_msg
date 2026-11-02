@@ -1,4 +1,5 @@
 import { executeQuery, isUsingFallback, getMemoryStore } from '../../database/db.js';
+import logger from '../../utils/logger.js';
 
 export async function getSuperAdminDashboard() {
   if (isUsingFallback()) {
@@ -181,9 +182,14 @@ let ensuredColumn = false;
 async function ensureAdminStatusColumn() {
   if (ensuredColumn || isUsingFallback()) return;
   try {
-    await executeQuery(`ALTER TABLE whatsapp_accounts ADD COLUMN admin_status VARCHAR(20) DEFAULT 'ACTIVE'`);
+    const cols = await executeQuery(`SHOW COLUMNS FROM whatsapp_accounts LIKE 'admin_status'`);
+    if (!cols || cols.length === 0) {
+      await executeQuery(`ALTER TABLE whatsapp_accounts ADD COLUMN admin_status VARCHAR(20) DEFAULT 'ACTIVE'`);
+      logger.info(`[AdminMatrix] Added 'admin_status' column to whatsapp_accounts table`);
+    }
     ensuredColumn = true;
-  } catch (_) {
+  } catch (err) {
+    logger.warn(`[ensureAdminStatusColumn] ${err.message}`);
     ensuredColumn = true;
   }
 }
@@ -322,7 +328,8 @@ export async function getNumberAllocationMatrix() {
 export async function updateWhatsAppAccountAdminStatus(accountId, adminStatus) {
   await ensureAdminStatusColumn();
   const numAccountId = Number(accountId);
-  const normalizedStatus = adminStatus === 'DEACTIVE' ? 'DEACTIVE' : 'ACTIVE';
+  const normalizedStatus = (String(adminStatus || '').trim().toUpperCase() === 'DEACTIVE') ? 'DEACTIVE' : 'ACTIVE';
+  logger.info(`⚡ [SuperAdmin] Setting WhatsApp Account #${numAccountId} admin_status = '${normalizedStatus}'`);
 
   if (isUsingFallback()) {
     const store = getMemoryStore();

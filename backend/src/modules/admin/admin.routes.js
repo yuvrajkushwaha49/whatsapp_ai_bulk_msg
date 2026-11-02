@@ -47,9 +47,9 @@ router.get('/number-allocation-matrix', async (req, res, next) => {
 
 router.patch('/whatsapp-accounts/:id/admin-status', async (req, res, next) => {
   try {
-    const { admin_status } = req.body;
-    const result = await adminService.updateWhatsAppAccountAdminStatus(req.params.id, admin_status);
-    res.json({ success: true, message: `WhatsApp account status updated to ${admin_status}`, data: result });
+    const adminStatus = req.body.adminStatus || req.body.admin_status || req.body.status;
+    const result = await adminService.updateWhatsAppAccountAdminStatus(req.params.id, adminStatus);
+    res.json({ success: true, message: `WhatsApp account status updated to ${result.admin_status}`, data: result });
   } catch (err) {
     next(err);
   }
@@ -57,8 +57,8 @@ router.patch('/whatsapp-accounts/:id/admin-status', async (req, res, next) => {
 
 router.patch('/whatsapp-accounts/:id/reassign', async (req, res, next) => {
   try {
-    const { business_id } = req.body;
-    const result = await adminService.reassignWhatsAppAccount(req.params.id, business_id);
+    const targetBusinessId = req.body.targetBusinessId !== undefined ? req.body.targetBusinessId : req.body.business_id;
+    const result = await adminService.reassignWhatsAppAccount(req.params.id, targetBusinessId);
     res.json({ success: true, message: 'WhatsApp account reassigned successfully', data: result });
   } catch (err) {
     next(err);
