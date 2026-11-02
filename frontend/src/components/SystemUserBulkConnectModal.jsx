@@ -113,15 +113,24 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                 setToken(data.accessToken);
               }
 
-              // Auto-select all numbers that are NOT yet connected
+              // Auto-select all numbers (prioritize new numbers, or all numbers if all already connected)
               const initialSelected = new Set();
+              let newCount = 0;
               (data.wabas || []).forEach(waba => {
                 (waba.phoneNumbers || []).forEach(phone => {
                   if (!phone.isAlreadyConnected) {
                     initialSelected.add(String(phone.id));
+                    newCount++;
                   }
                 });
               });
+              if (newCount === 0) {
+                (data.wabas || []).forEach(waba => {
+                  (waba.phoneNumbers || []).forEach(phone => {
+                    initialSelected.add(String(phone.id));
+                  });
+                });
+              }
               setSelectedIds(initialSelected);
               setStep(2);
             }
@@ -165,15 +174,24 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
         const data = res.data.data;
         setDiscoveryData(data);
 
-        // Auto-select all numbers that are NOT yet connected
+        // Auto-select all numbers (prioritize new numbers, or all numbers if all already connected)
         const initialSelected = new Set();
+        let newCount = 0;
         (data.wabas || []).forEach(waba => {
           (waba.phoneNumbers || []).forEach(phone => {
             if (!phone.isAlreadyConnected) {
               initialSelected.add(String(phone.id));
+              newCount++;
             }
           });
         });
+        if (newCount === 0) {
+          (data.wabas || []).forEach(waba => {
+            (waba.phoneNumbers || []).forEach(phone => {
+              initialSelected.add(String(phone.id));
+            });
+          });
+        }
         setSelectedIds(initialSelected);
         setStep(2);
       }
@@ -196,7 +214,18 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
     setSelectedIds(updated);
   };
 
-  // Select all new numbers
+  // Select all numbers (new and existing)
+  const handleSelectAll = () => {
+    const updated = new Set();
+    (discoveryData?.wabas || []).forEach(waba => {
+      (waba.phoneNumbers || []).forEach(phone => {
+        updated.add(String(phone.id));
+      });
+    });
+    setSelectedIds(updated);
+  };
+
+  // Select only new numbers
   const handleSelectAllNew = () => {
     const updated = new Set();
     (discoveryData?.wabas || []).forEach(waba => {
@@ -591,17 +620,24 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                   <div className="d-flex align-items-center gap-2">
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-primary"
+                      className="btn btn-sm btn-outline-primary fw-semibold"
+                      onClick={handleSelectAll}
+                    >
+                      <i className="bi bi-check-all me-1"></i> Select All
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-success"
                       onClick={handleSelectAllNew}
                     >
-                      <i className="bi bi-check-all me-1"></i> Select All New
+                      <i className="bi bi-plus-circle me-1"></i> Select New Only
                     </button>
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-secondary"
                       onClick={handleDeselectAll}
                     >
-                      Deselect All
+                      <i className="bi bi-x-circle me-1"></i> Deselect All
                     </button>
                   </div>
                   <div className="input-group input-group-sm" style={{ maxWidth: '280px' }}>
@@ -664,17 +700,17 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                                     return (
                                       <tr
                                         key={phone.id}
-                                        style={{ cursor: isAlready ? 'default' : 'pointer' }}
-                                        onClick={() => !isAlready && toggleSelectPhone(phone.id)}
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => toggleSelectPhone(phone.id)}
                                         className={isSelected ? 'table-primary table-opacity-10' : ''}
                                       >
                                         <td className="text-center" onClick={(e) => e.stopPropagation()}>
                                           <input
                                             type="checkbox"
                                             className="form-check-input"
-                                            checked={isSelected || isAlready}
-                                            disabled={isAlready}
+                                            checked={isSelected}
                                             onChange={() => toggleSelectPhone(phone.id)}
+                                            style={{ cursor: 'pointer', width: '18px', height: '18px' }}
                                           />
                                         </td>
                                         <td>
