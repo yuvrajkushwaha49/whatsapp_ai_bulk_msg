@@ -549,9 +549,18 @@ export async function processWebhookPayload(payload) {
       }
 
       // 3. Process Template Status Updates from Meta
-      if (change.field === 'message_template_status_update' || value.event) {
-        const templateId = String(value.message_template_id || value.id || '');
-        const templateName = value.message_template_name || value.element_name || value.name;
+      const isTemplateUpdate = change.field === 'message_template_status_update' || 
+        Boolean(value.message_template_id || value.message_template_name);
+
+      if (isTemplateUpdate) {
+        const templateId = value.message_template_id ? String(value.message_template_id) : (value.id ? String(value.id) : null);
+        const templateName = value.message_template_name || value.element_name || value.name || null;
+
+        // Skip non-template events or updates with neither template ID nor name
+        if (!templateId && !templateName) {
+          continue;
+        }
+
         const rawEvent = String(value.event || value.status || '').toUpperCase();
         const reason = value.reason || value.rejection_reason || null;
 
@@ -561,7 +570,7 @@ export async function processWebhookPayload(payload) {
         else if (rawEvent.includes('PAUS')) normalizedStatus = 'PAUSED';
         else if (rawEvent.includes('DISAB')) normalizedStatus = 'DISABLED';
 
-        logger.info(`[Webhook] Template status update received: "${templateName}" (${templateId}) -> ${normalizedStatus} [Reason: ${reason || 'None'}]`);
+        logger.info(`[Webhook] Template status update received: "${templateName || 'Unknown'}" (${templateId || 'N/A'}) -> ${normalizedStatus} [Reason: ${reason || 'None'}]`);
 
         if (isUsingFallback()) {
           const store = getMemoryStore();
@@ -579,7 +588,8 @@ export async function processWebhookPayload(payload) {
           await executeQuery(
             `UPDATE templates 
              SET status = ?, rejection_reason = ?, last_synced_at = NOW(), updated_at = NOW()
-             WHERE meta_template_id = ? OR name = ?`,
+             WHERE (meta_template_id IS NOT NULL AND meta_template_id = ?) 
+                OR (name IS NOT NULL AND name = ?)`,
             [normalizedStatus, reason, templateId, templateName]
           );
         }

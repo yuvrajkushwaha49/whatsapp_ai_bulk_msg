@@ -714,21 +714,26 @@ export function getPool() {
  * Universal raw parameterized SQL executor with automatic fallback support
  */
 export async function executeQuery(sql, params = []) {
+  // Convert any undefined values in params to null to prevent MySQL2 bind errors
+  const safeParams = Array.isArray(params)
+    ? params.map(val => (val === undefined ? null : val))
+    : params;
+
   if (useFallback) {
     await initFallbackStore();
-    return executeFallbackQuery(sql, params);
+    return executeFallbackQuery(sql, safeParams);
   }
 
   try {
     const p = getPool();
-    const [rows] = await p.execute(sql, params);
+    const [rows] = await p.execute(sql, safeParams);
     return rows;
   } catch (err) {
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
       useFallback = true;
       await initFallbackStore();
       console.warn(`⚠️ [Database] MySQL connection dropped (${err.code}). Switching to Development Mock Adapter.`);
-      return executeFallbackQuery(sql, params);
+      return executeFallbackQuery(sql, safeParams);
     }
     throw err;
   }
