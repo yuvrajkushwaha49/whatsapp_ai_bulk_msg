@@ -674,6 +674,160 @@ export class MetaCloudApiClient {
       };
     }
   }
+
+  /**
+   * Discover all WABAs and Phone Numbers across all accessible businesses for a System User Token
+   */
+  static async discoverAllWabasAndNumbers(accessToken) {
+    const isMock = !accessToken || 
+      accessToken.startsWith('placeholder') || 
+      accessToken.startsWith('mock_') || 
+      accessToken.startsWith('EAAMockToken_') || 
+      process.env.NODE_ENV === 'test';
+
+    if (isMock) {
+      return {
+        user: { id: 'sys_user_1001', name: 'Meta System User (Auto-Discovered)' },
+        wabas: [
+          {
+            id: '1618945099958602',
+            name: 'CampaignFlow Enterprise WABA 1',
+            currency: 'INR',
+            timezone_id: 'Asia/Kolkata',
+            phoneNumbers: [
+              {
+                id: '1341070215765610',
+                display_phone_number: '+91 86014 67210',
+                verified_name: 'CampaignFlow Sales',
+                quality_rating: 'GREEN',
+                code_verification_status: 'VERIFIED',
+                messaging_limit_tier: 'TIER_10K'
+              },
+              {
+                id: '1341070215765611',
+                display_phone_number: '+91 95657 63089',
+                verified_name: 'CampaignFlow Support',
+                quality_rating: 'GREEN',
+                code_verification_status: 'VERIFIED',
+                messaging_limit_tier: 'TIER_10K'
+              }
+            ]
+          },
+          {
+            id: '1618945099958603',
+            name: 'CampaignFlow Marketing WABA 2',
+            currency: 'INR',
+            timezone_id: 'Asia/Kolkata',
+            phoneNumbers: [
+              {
+                id: '1341070215765612',
+                display_phone_number: '+91 98111 22233',
+                verified_name: 'CampaignFlow Marketing',
+                quality_rating: 'GREEN',
+                code_verification_status: 'VERIFIED',
+                messaging_limit_tier: 'TIER_10K'
+              }
+            ]
+          }
+        ]
+      };
+    }
+
+    try {
+      let userInfo = { id: null, name: 'System User' };
+      try {
+        const meRes = await axios.get(`${META_BASE_URL}/me?fields=id,name`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        userInfo = meRes.data;
+      } catch (_) {}
+
+      const wabaMap = new Map();
+
+      // 1. Query /me/businesses (owned & client WABAs)
+      try {
+        const bizRes = await axios.get(`${META_BASE_URL}/me/businesses?fields=id,name`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const businesses = bizRes.data?.data || [];
+        for (const biz of businesses) {
+          try {
+            const ownedRes = await axios.get(`${META_BASE_URL}/${biz.id}/owned_whatsapp_business_accounts?fields=id,name,currency,timezone_id`, {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            for (const w of (ownedRes.data?.data || [])) {
+              wabaMap.set(String(w.id), { ...w, businessName: biz.name });
+            }
+          } catch (_) {}
+
+          try {
+            const clientRes = await axios.get(`${META_BASE_URL}/${biz.id}/client_whatsapp_business_accounts?fields=id,name,currency,timezone_id`, {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            for (const w of (clientRes.data?.data || [])) {
+              wabaMap.set(String(w.id), { ...w, businessName: biz.name });
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      // 2. Query /me/client_whatsapp_business_accounts
+      try {
+        const directClientRes = await axios.get(`${META_BASE_URL}/me/client_whatsapp_business_accounts?fields=id,name,currency,timezone_id`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        for (const w of (directClientRes.data?.data || [])) {
+          if (!wabaMap.has(String(w.id))) {
+            wabaMap.set(String(w.id), w);
+          }
+        }
+      } catch (_) {}
+
+      // 3. Inspect debug_token target_ids
+      try {
+        const targetIds = await MetaCloudApiClient.getGranularTargetIds(accessToken);
+        for (const tid of targetIds) {
+          if (!wabaMap.has(String(tid))) {
+            try {
+              const singleRes = await axios.get(`${META_BASE_URL}/${tid}?fields=id,name,currency,timezone_id`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+              });
+              if (singleRes.data?.id) {
+                wabaMap.set(String(singleRes.data.id), singleRes.data);
+              }
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+
+      // 4. For every discovered WABA, fetch its phone numbers
+      const resultWabas = [];
+      for (const [wabaId, wabaData] of wabaMap.entries()) {
+        let phoneNumbers = [];
+        try {
+          const phonesRes = await axios.get(
+            `${META_BASE_URL}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,code_verification_status,messaging_limit_tier`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          phoneNumbers = phonesRes.data?.data || [];
+        } catch (err) {
+          logger.warn(`[MetaClient] Failed to fetch phone numbers for WABA ${wabaId}: ${err.message}`);
+        }
+        resultWabas.push({
+          ...wabaData,
+          phoneNumbers
+        });
+      }
+
+      return {
+        user: userInfo,
+        wabas: resultWabas
+      };
+    } catch (err) {
+      logger.error('[MetaClient] discoverAllWabasAndNumbers error:', err);
+      throw new Error(err.response?.data?.error?.message || err.message);
+    }
+  }
 }
 
 export default {

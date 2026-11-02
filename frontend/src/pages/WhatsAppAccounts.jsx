@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import WhatsAppConnectButton from '../components/WhatsAppConnectButton';
 import MetaSetupWizardModal from '../components/MetaSetupWizardModal';
+import SystemUserBulkConnectModal from '../components/SystemUserBulkConnectModal';
 
 export default function WhatsAppAccounts() {
   const [accounts, setAccounts] = useState([]);
@@ -12,6 +13,7 @@ export default function WhatsAppAccounts() {
   const [settingPrimaryId, setSettingPrimaryId] = useState(null);
   const [showManualModal, setShowManualModal] = useState(false);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showSystemUserModal, setShowSystemUserModal] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', text: '' });
   const [disconnectModal, setDisconnectModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
@@ -314,6 +316,16 @@ export default function WhatsAppAccounts() {
               <span>⚡ Auto-Connect {detectedMeta.displayName}</span>
             </button>
           )}
+          {/* Tareeqa 1: System User 1-Click Multi-App Discovery CTA */}
+          <button
+            type="button"
+            onClick={() => setShowSystemUserModal(true)}
+            className="btn btn-outline-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
+            title="Scan & Bulk Connect all WhatsApp numbers across multiple Meta Apps using System User"
+          >
+            <i className="bi bi-diagram-3-fill fs-5"></i>
+            <span>⚡ 1-Click Multi-App Scan</span>
+          </button>
           {/* Guided Meta Setup Wizard CTA */}
           <button
             type="button"
@@ -1227,6 +1239,17 @@ export default function WhatsAppAccounts() {
         isOpen={showSetupWizard}
         onClose={() => setShowSetupWizard(false)}
         onSuccess={handleOnboardingSuccess}
+      />
+
+      {/* Tareeqa 1: System User Bulk Connect Modal */}
+      <SystemUserBulkConnectModal
+        isOpen={showSystemUserModal}
+        onClose={() => setShowSystemUserModal(false)}
+        onSuccess={() => {
+          fetchAccounts();
+          checkDetectedMeta();
+        }}
+        detectedToken={detectedMeta?.accessToken}
       />
     </div>
   );

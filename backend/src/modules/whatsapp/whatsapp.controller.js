@@ -213,6 +213,32 @@ export async function autoConnectMetaAccount(req, res, next) {
   }
 }
 
+export async function discoverSystemUserAccounts(req, res, next) {
+  try {
+    const result = await whatsappService.discoverSystemUserAccounts(req.businessId, req.body);
+    res.json({
+      success: true,
+      message: `Discovered ${result.totalPhoneNumbers} WhatsApp numbers across ${result.totalWabas} WABAs in Meta Business Manager.`,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function bulkConnectSystemUserAccounts(req, res, next) {
+  try {
+    const result = await whatsappService.bulkConnectSystemUserAccounts(req.businessId, req.body);
+    res.status(201).json({
+      success: true,
+      message: `Successfully connected ${result.connectedCount} of ${result.totalRequested} selected WhatsApp numbers!`,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   connect,
   listAccounts,
@@ -225,5 +251,7 @@ export default {
   sendTestMessage,
   testWebhookPing,
   detectMetaAccount,
-  autoConnectMetaAccount
+  autoConnectMetaAccount,
+  discoverSystemUserAccounts,
+  bulkConnectSystemUserAccounts
 };

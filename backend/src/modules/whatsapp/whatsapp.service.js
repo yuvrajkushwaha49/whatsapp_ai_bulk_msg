@@ -1803,6 +1803,161 @@ export async function autoConnectMetaAccount(businessId, payload = {}) {
   return sanitizeAccount(savedAccount);
 }
 
+/**
+ * Discover all WABAs and Phone Numbers across all apps for a System User Token
+ */
+export async function discoverSystemUserAccounts(businessId, payload = {}) {
+  const numBusinessId = Number(businessId);
+  const token = payload.accessToken || payload.token;
+
+  if (!token) {
+    const err = new Error('Permanent System User Access Token is required to scan Meta Business Manager.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  logger.info(`🔍 [SystemUserDiscover] Discovering all Meta WABAs & Numbers for Business #${numBusinessId}...`);
+  const discovery = await MetaCloudApiClient.discoverAllWabasAndNumbers(token);
+
+  // Fetch current existing accounts for this tenant to flag already connected numbers
+  let existingAccounts = [];
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    existingAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === numBusinessId);
+  } else {
+    existingAccounts = await executeQuery(
+      'SELECT id, waba_id, phone_number_id, phone_number, display_name, status, is_primary FROM whatsapp_accounts WHERE business_id = ?',
+      [numBusinessId]
+    );
+  }
+
+  const existingPhoneMap = new Map();
+  for (const acc of existingAccounts) {
+    existingPhoneMap.set(String(acc.phone_number_id), acc);
+  }
+
+  let totalPhoneNumbers = 0;
+  const annotatedWabas = (discovery.wabas || []).map(waba => {
+    const phones = (waba.phoneNumbers || []).map(phone => {
+      totalPhoneNumbers++;
+      const existing = existingPhoneMap.get(String(phone.id));
+      return {
+        id: phone.id,
+        displayPhoneNumber: phone.display_phone_number || (phone.id ? `+${phone.id}` : 'Unregistered'),
+        verifiedName: phone.verified_name || phone.display_phone_number || 'WhatsApp Business',
+        qualityRating: phone.quality_rating || 'GREEN',
+        codeVerificationStatus: phone.code_verification_status || 'VERIFIED',
+        messagingLimitTier: phone.messaging_limit_tier || 'TIER_10K',
+        wabaId: waba.id,
+        wabaName: waba.name,
+        isAlreadyConnected: Boolean(existing),
+        connectedAccountId: existing ? existing.id : null,
+        isPrimary: existing ? Boolean(existing.is_primary) : false
+      };
+    });
+
+    return {
+      id: waba.id,
+      name: waba.name,
+      businessName: waba.businessName || waba.name,
+      currency: waba.currency || 'USD',
+      timezoneId: waba.timezone_id || 'UTC',
+      phoneNumbers: phones
+    };
+  });
+
+  return {
+    success: true,
+    user: discovery.user,
+    totalWabas: annotatedWabas.length,
+    totalPhoneNumbers,
+    wabas: annotatedWabas
+  };
+}
+
+/**
+ * Bulk Import / Connect Selected WABAs & Phone Numbers
+ */
+export async function bulkConnectSystemUserAccounts(businessId, payload = {}) {
+  const numBusinessId = Number(businessId);
+  const token = payload.accessToken || payload.token;
+  const selectedPhones = Array.isArray(payload.selectedPhoneNumbers) ? payload.selectedPhoneNumbers : [];
+
+  if (!token) {
+    const err = new Error('Access Token is required to complete bulk connect.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (selectedPhones.length === 0) {
+    const err = new Error('Please select at least one WhatsApp phone number to connect.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  logger.info(`⚡ [BulkConnect] Connecting ${selectedPhones.length} WhatsApp numbers for Business #${numBusinessId}...`);
+
+  const results = [];
+  for (const item of selectedPhones) {
+    const phoneId = item.phoneNumberId || item.id;
+    const wabaId = item.wabaId;
+    const displayName = item.displayName || item.verifiedName || 'Official WhatsApp Account';
+    const phoneNumber = item.phoneNumber || item.displayPhoneNumber || `+${phoneId}`;
+
+    if (!phoneId) continue;
+
+    try {
+      const client = new MetaCloudApiClient(token, phoneId, wabaId);
+
+      // Best effort webhook subscribe and phone register
+      if (wabaId) {
+        try {
+          await client.subscribeWabaWebhook(wabaId);
+        } catch (_) {}
+      }
+      try {
+        await client.registerPhoneNumber(phoneId);
+      } catch (_) {}
+
+      // Connect into database using autoConnectMetaAccount logic
+      const saved = await autoConnectMetaAccount(numBusinessId, {
+        accessToken: token,
+        phoneNumberId: phoneId,
+        wabaId,
+        displayName,
+        phoneNumber
+      });
+
+      results.push({
+        success: true,
+        phoneNumberId: phoneId,
+        wabaId,
+        phoneNumber,
+        displayName,
+        account: saved
+      });
+    } catch (err) {
+      logger.error(`[BulkConnect] Failed to connect phone number ${phoneId}:`, err);
+      results.push({
+        success: false,
+        phoneNumberId: phoneId,
+        wabaId,
+        error: err.message
+      });
+    }
+  }
+
+  const successfulCount = results.filter(r => r.success).length;
+  logger.info(`✅ [BulkConnect] Successfully connected ${successfulCount}/${selectedPhones.length} numbers for Business #${numBusinessId}`);
+
+  return {
+    success: true,
+    totalRequested: selectedPhones.length,
+    connectedCount: successfulCount,
+    results
+  };
+}
+
 export default {
   connectAccount,
   listAccounts,
@@ -1816,6 +1971,8 @@ export default {
   testWebhookPing,
   detectMetaAccount,
   autoConnectMetaAccount,
+  discoverSystemUserAccounts,
+  bulkConnectSystemUserAccounts,
   disconnectAccount,
   deleteAccount
 };
