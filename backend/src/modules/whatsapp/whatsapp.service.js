@@ -1904,56 +1904,61 @@ export async function bulkConnectSystemUserAccounts(businessId, payload = {}) {
     throw err;
   }
 
-  logger.info(`⚡ [BulkConnect] Connecting ${selectedPhones.length} WhatsApp numbers for Business #${numBusinessId}...`);
+  logger.info(`⚡ [BulkConnect] Connecting ${selectedPhones.length} WhatsApp numbers concurrently for Business #${numBusinessId}...`);
 
-  const results = [];
-  for (const item of selectedPhones) {
-    const phoneId = item.phoneNumberId || item.id;
-    const wabaId = item.wabaId;
-    const displayName = item.displayName || item.verifiedName || 'Official WhatsApp Account';
-    const phoneNumber = item.phoneNumber || item.displayPhoneNumber || `+${phoneId}`;
-
-    if (!phoneId) continue;
-
+  // 1. Subscribe unique WABA webhooks once in parallel (avoids redundant Meta calls)
+  const uniqueWabaIds = [...new Set(selectedPhones.map(p => p.wabaId).filter(Boolean))];
+  await Promise.allSettled(uniqueWabaIds.map(async (wabaId) => {
     try {
-      const client = new MetaCloudApiClient(token, phoneId, wabaId);
+      const client = new MetaCloudApiClient(token, null, wabaId);
+      await client.subscribeWabaWebhook(wabaId);
+    } catch (_) {}
+  }));
 
-      // Best effort webhook subscribe and phone register
-      if (wabaId) {
-        try {
-          await client.subscribeWabaWebhook(wabaId);
-        } catch (_) {}
-      }
+  // 2. Connect phone numbers concurrently (in chunks of 4)
+  const results = [];
+  const chunkSize = 4;
+  for (let i = 0; i < selectedPhones.length; i += chunkSize) {
+    const chunk = selectedPhones.slice(i, i + chunkSize);
+    const chunkResults = await Promise.all(chunk.map(async (item) => {
+      const phoneId = item.phoneNumberId || item.id;
+      const wabaId = item.wabaId;
+      const displayName = item.displayName || item.verifiedName || 'Official WhatsApp Account';
+      const phoneNumber = item.phoneNumber || item.displayPhoneNumber || `+${phoneId}`;
+
+      if (!phoneId) return null;
+
       try {
-        await client.registerPhoneNumber(phoneId);
-      } catch (_) {}
+        const saved = await autoConnectMetaAccount(numBusinessId, {
+          accessToken: token,
+          phoneNumberId: phoneId,
+          wabaId,
+          displayName,
+          phoneNumber
+        });
 
-      // Connect into database using autoConnectMetaAccount logic
-      const saved = await autoConnectMetaAccount(numBusinessId, {
-        accessToken: token,
-        phoneNumberId: phoneId,
-        wabaId,
-        displayName,
-        phoneNumber
-      });
+        return {
+          success: true,
+          phoneNumberId: phoneId,
+          wabaId,
+          phoneNumber,
+          displayName,
+          account: saved
+        };
+      } catch (err) {
+        logger.error(`[BulkConnect] Failed to connect phone number ${phoneId}:`, err);
+        return {
+          success: false,
+          phoneNumberId: phoneId,
+          wabaId,
+          error: err.message
+        };
+      }
+    }));
 
-      results.push({
-        success: true,
-        phoneNumberId: phoneId,
-        wabaId,
-        phoneNumber,
-        displayName,
-        account: saved
-      });
-    } catch (err) {
-      logger.error(`[BulkConnect] Failed to connect phone number ${phoneId}:`, err);
-      results.push({
-        success: false,
-        phoneNumberId: phoneId,
-        wabaId,
-        error: err.message
-      });
-    }
+    chunkResults.forEach(r => {
+      if (r) results.push(r);
+    });
   }
 
   const successfulCount = results.filter(r => r.success).length;

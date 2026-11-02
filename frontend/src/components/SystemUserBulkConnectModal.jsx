@@ -24,6 +24,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkResult, setBulkResult] = useState(null);
   const [searchFilter, setSearchFilter] = useState('');
+  const [connectProgress, setConnectProgress] = useState({ current: 0, total: 0 });
 
   // Guide accordion
   const [showGuide, setShowGuide] = useState(false);
@@ -38,6 +39,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
       setScanError(null);
       setConnectError(null);
       setBulkResult(null);
+      setConnectProgress({ current: 0, total: 0 });
       if (detectedToken) {
         setToken(detectedToken);
       }
@@ -243,7 +245,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
     setSelectedIds(new Set());
   };
 
-  // Handle Bulk Connect
+  // Handle Bulk Connect (with client-side resilient chunking to prevent 504 Gateway Timeout)
   const handleBulkConnect = async () => {
     if (selectedIds.size === 0) {
       setConnectError('Please select at least one WhatsApp phone number to connect.');
@@ -269,18 +271,49 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
       });
     });
 
-    try {
-      const res = await api.post('/whatsapp/system-user/bulk-connect', {
-        accessToken: token.trim(),
-        selectedPhoneNumbers: selectedPayload
-      });
+    const total = selectedPayload.length;
+    setConnectProgress({ current: 0, total });
 
-      if (res.data?.success) {
-        setBulkResult(res.data.data);
+    // Client-side batching (3 numbers per request) to prevent any 504 Gateway Timeout
+    const batchSize = 3;
+    const allResults = [];
+    let totalConnected = 0;
+
+    try {
+      for (let i = 0; i < selectedPayload.length; i += batchSize) {
+        const batch = selectedPayload.slice(i, i + batchSize);
+        setConnectProgress({ current: i, total });
+
+        try {
+          const res = await api.post('/whatsapp/system-user/bulk-connect', {
+            accessToken: token.trim(),
+            selectedPhoneNumbers: batch
+          });
+          if (res.data?.success) {
+            totalConnected += (res.data.data?.connectedCount || 0);
+            (res.data.data?.results || []).forEach(r => allResults.push(r));
+          }
+        } catch (batchErr) {
+          batch.forEach(item => {
+            allResults.push({
+              success: false,
+              phoneNumberId: item.phoneNumberId,
+              displayName: item.displayName,
+              error: batchErr.response?.data?.message || batchErr.message || 'Connection timeout or error'
+            });
+          });
+        }
+
+        setConnectProgress({ current: Math.min(i + batch.length, total), total });
       }
+
+      setBulkResult({
+        totalRequested: total,
+        connectedCount: totalConnected,
+        results: allResults
+      });
     } catch (err) {
-      const msg = err.response?.data?.message || err.response?.data?.error?.message || err.message || 'Bulk connection encountered an error.';
-      setConnectError(msg);
+      setConnectError(err.response?.data?.message || err.message || 'Bulk connection encountered an error.');
     } finally {
       setConnecting(false);
     }
@@ -772,10 +805,26 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                     <div className="spinner-border text-primary mb-3" style={{ width: '3.5rem', height: '3.5rem' }} role="status">
                       <span className="visually-hidden">Loading...</span>
                     </div>
-                    <h5 className="fw-bold mb-1">Connecting Selected WhatsApp Numbers...</h5>
-                    <p className="text-muted small">
+                    <h5 className="fw-bold mb-2">Connecting Selected WhatsApp Numbers...</h5>
+                    <p className="text-muted small mb-4">
                       Subscribing webhooks, registering phone numbers, and syncing templates with Meta Cloud API.
                     </p>
+
+                    {connectProgress.total > 0 && (
+                      <div className="mx-auto" style={{ maxWidth: '420px' }}>
+                        <div className="d-flex justify-content-between small text-muted mb-1">
+                          <span>Connection Progress</span>
+                          <span className="fw-bold text-primary">{connectProgress.current} of {connectProgress.total} Numbers Processed</span>
+                        </div>
+                        <div className="progress" style={{ height: '10px', borderRadius: '6px' }}>
+                          <div
+                            className="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                            role="progressbar"
+                            style={{ width: `${Math.round((connectProgress.current / connectProgress.total) * 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : bulkResult ? (
                   <div>
