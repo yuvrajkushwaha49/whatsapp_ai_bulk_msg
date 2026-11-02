@@ -113,8 +113,33 @@ export async function previewAudience(businessId, { tagIds = [], contactIds = []
   };
 }
 
-export async function preflightCheck(businessId, { whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [] }) {
+export async function preflightCheck(businessId, { campaignId, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [] } = {}) {
   const issues = [];
+
+  if (campaignId) {
+    let camp;
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      camp = store.campaigns.find(c => c.id === Number(campaignId) && c.business_id === Number(businessId));
+    } else {
+      const cRows = await executeQuery('SELECT * FROM campaigns WHERE id = ? AND business_id = ?', [campaignId, businessId]);
+      camp = cRows[0];
+    }
+    if (camp) {
+      if (!whatsappAccountId && whatsappAccountIds.length === 0) {
+        whatsappAccountId = camp.whatsapp_account_id;
+        const rawMappings = typeof camp.variable_mappings === 'string'
+          ? JSON.parse(camp.variable_mappings || '{}')
+          : (camp.variable_mappings || {});
+        if (Array.isArray(rawMappings.sender_account_ids) && rawMappings.sender_account_ids.length > 0) {
+          whatsappAccountIds = rawMappings.sender_account_ids;
+        }
+      }
+      if (!templateId) {
+        templateId = camp.template_id;
+      }
+    }
+  }
 
   const accountIdsList = Array.isArray(whatsappAccountIds) && whatsappAccountIds.length > 0
     ? whatsappAccountIds.map(Number)
@@ -169,15 +194,28 @@ export async function preflightCheck(businessId, { whatsappAccountId, whatsappAc
   }
 
   // 3. Audience Count
-  const audience = await previewAudience(businessId, { tagIds, contactIds });
-  if (audience.estimatedCount === 0) {
+  let audienceCount = 0;
+  if (campaignId) {
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      audienceCount = store.campaign_recipients.filter(cr => cr.campaign_id === Number(campaignId)).length;
+    } else {
+      const recRows = await executeQuery('SELECT COUNT(*) as count FROM campaign_recipients WHERE campaign_id = ?', [campaignId]);
+      audienceCount = recRows[0]?.count || 0;
+    }
+  } else {
+    const audience = await previewAudience(businessId, { tagIds, contactIds });
+    audienceCount = audience.estimatedCount;
+  }
+
+  if (audienceCount === 0) {
     issues.push('No eligible opted-in contacts found matching selected audience filters.');
   }
 
   return {
     canProceed: issues.length === 0,
     issues,
-    audienceCount: audience.estimatedCount,
+    audienceCount,
     estimatedCost: 'Rate card estimates apply based on Meta promotional rates per country.'
   };
 }
@@ -218,16 +256,17 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
     store.campaigns.push(campaign);
 
     // Populate recipients
-    let eligibleContacts = store.contacts.filter(c => c.business_id === Number(businessId) && c.is_opted_in && c.status === 'active');
+    let eligibleContacts = (store.contacts || []).filter(c => c.business_id === Number(businessId) && (c.status === 'active' || !c.status) && (c.is_opted_in === null || c.is_opted_in === undefined || c.is_opted_in === true || c.is_opted_in === 1));
     if (Array.isArray(contactIds) && contactIds.length > 0) {
       const cIdNums = contactIds.map(Number);
       eligibleContacts = eligibleContacts.filter(c => cIdNums.includes(c.id));
-    } else if (tagIds.length > 0) {
-      const matchContactIds = store.contact_tags.filter(ct => tagIds.includes(ct.tag_id)).map(ct => ct.contact_id);
+    } else if (Array.isArray(tagIds) && tagIds.length > 0) {
+      const tIdNums = tagIds.map(Number);
+      const matchContactIds = (store.contact_tags || []).filter(ct => tIdNums.includes(ct.tag_id)).map(ct => ct.contact_id);
       eligibleContacts = eligibleContacts.filter(c => matchContactIds.includes(c.id));
     }
 
-    eligibleContacts.forEach((c, idx) => {
+    eligibleContacts.forEach((c) => {
       store.campaign_recipients.push({
         id: store.campaign_recipients.length + 1,
         business_id: Number(businessId),
@@ -239,6 +278,7 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
       });
     });
 
+    campaign.total_recipients = eligibleContacts.length;
     return campaign;
   }
 
@@ -249,23 +289,29 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
   );
   const campaignId = result.insertId;
 
-  // Insert campaign recipients
+  // Insert campaign recipients with expanded parameter placeholders
   let contactSelectSql = `
     SELECT c.id, c.phone 
     FROM contacts c 
-    WHERE c.business_id = ? AND c.is_opted_in = TRUE AND c.status = 'active'
+    WHERE c.business_id = ? 
+      AND (c.status = 'active' OR c.status IS NULL)
+      AND (c.is_opted_in IS NULL OR c.is_opted_in = TRUE OR c.is_opted_in = 1)
   `;
   const params = [businessId];
 
   if (Array.isArray(contactIds) && contactIds.length > 0) {
-    contactSelectSql += ` AND c.id IN (?)`;
-    params.push(contactIds.map(Number));
-  } else if (tagIds.length > 0) {
-    contactSelectSql += ` AND EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.contact_id = c.id AND ct.tag_id IN (?))`;
-    params.push(tagIds);
+    const cPlaceholders = contactIds.map(() => '?').join(',');
+    contactSelectSql += ` AND c.id IN (${cPlaceholders})`;
+    params.push(...contactIds.map(Number));
+  } else if (Array.isArray(tagIds) && tagIds.length > 0) {
+    const tPlaceholders = tagIds.map(() => '?').join(',');
+    contactSelectSql += ` AND EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.contact_id = c.id AND ct.tag_id IN (${tPlaceholders}))`;
+    params.push(...tagIds.map(Number));
   }
 
   const contacts = await executeQuery(contactSelectSql, params);
+
+  logger.info(`[CreateCampaign] Found ${contacts.length} recipients for Campaign #${campaignId}`);
 
   for (const c of contacts) {
     await executeQuery(
@@ -274,6 +320,12 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
       [businessId, campaignId, c.id, c.phone]
     );
   }
+
+  // Update total_recipients to exact count of inserted recipients
+  await executeQuery(
+    `UPDATE campaigns SET total_recipients = ? WHERE id = ?`,
+    [contacts.length, campaignId]
+  );
 
   return { id: campaignId, name, total_recipients: contacts.length, status: 'draft' };
 }

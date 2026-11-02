@@ -148,14 +148,23 @@ export async function executeCampaignDispatch(campaignId, businessId) {
   const rawMappings = typeof campaign.variable_mappings === 'string' 
     ? JSON.parse(campaign.variable_mappings || '{}') 
     : (campaign.variable_mappings || {});
-  const senderIds = rawMappings.sender_account_ids || [campaign.whatsapp_account_id];
+  const senderIds = rawMappings.sender_account_ids || (campaign.whatsapp_account_id ? [campaign.whatsapp_account_id] : []);
 
   if (isUsingFallback()) {
     const store = getMemoryStore();
     senderAccounts = store.whatsapp_accounts.filter(a => senderIds.includes(a.id));
     if (senderAccounts.length === 0 && account) senderAccounts = [account];
   } else {
-    senderAccounts = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id IN (?)', [senderIds]);
+    if (Array.isArray(senderIds) && senderIds.length > 0) {
+      const sPlaceholders = senderIds.map(() => '?').join(',');
+      senderAccounts = await executeQuery(
+        `SELECT * FROM whatsapp_accounts WHERE id IN (${sPlaceholders})`,
+        senderIds.map(Number)
+      );
+    }
+    if (senderAccounts.length === 0 && account) {
+      senderAccounts = [account];
+    }
   }
 
   // Guarantee that campaigns always dispatch from real registered accounts (never sandbox +1 555-199-9056 / 1353284594528559)
@@ -223,12 +232,12 @@ export async function executeCampaignDispatch(campaignId, businessId) {
     if (isUsingFallback()) {
       const store = getMemoryStore();
       const contact = store.contacts.find(c => c.id === rec.contact_id);
-      if (!contact || !contact.is_opted_in || contact.status !== 'active') {
+      if (contact && (contact.is_opted_in === 0 || contact.is_opted_in === false || contact.status === 'inactive' || contact.status === 'unsubscribed' || contact.status === 'blocked')) {
         isOptedIn = false;
       }
     } else {
       const cCheck = await executeQuery('SELECT is_opted_in, status FROM contacts WHERE id = ?', [rec.contact_id]);
-      if (!cCheck[0] || !cCheck[0].is_opted_in || cCheck[0].status !== 'active') {
+      if (cCheck[0] && (cCheck[0].is_opted_in === 0 || cCheck[0].is_opted_in === false || cCheck[0].status === 'inactive' || cCheck[0].status === 'unsubscribed' || cCheck[0].status === 'blocked')) {
         isOptedIn = false;
       }
     }
