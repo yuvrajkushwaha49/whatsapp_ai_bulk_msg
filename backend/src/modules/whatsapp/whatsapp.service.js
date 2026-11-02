@@ -1,6 +1,7 @@
 import { executeQuery, isUsingFallback, getMemoryStore, saveMemoryStore } from '../../database/db.js';
 import { MetaCloudApiClient } from './metaClient.js';
 import { encryptToken, decryptToken } from '../../utils/crypto.js';
+import { ensureAllowedNumbersColumn } from '../admin/admin.service.js';
 import logger from '../../utils/logger.js';
 
 /**
@@ -1828,7 +1829,7 @@ export async function autoConnectMetaAccount(businessId, payload = {}) {
 /**
  * Discover all WABAs and Phone Numbers across all apps for a System User Token or Facebook Login OAuth Code
  */
-export async function discoverSystemUserAccounts(businessId, payload = {}) {
+export async function discoverSystemUserAccounts(businessId, payload = {}, requestingUser = {}) {
   const numBusinessId = Number(businessId);
   let token = payload.accessToken || payload.token;
   const { code, redirectUri, redirect_uri } = payload;
@@ -1847,29 +1848,122 @@ export async function discoverSystemUserAccounts(businessId, payload = {}) {
   }
 
   logger.info(`🔍 [SystemUserDiscover] Discovering all Meta WABAs & Numbers for Business #${numBusinessId}...`);
+  // 1. Fetch ALL WABAs and all phone numbers directly from Meta
   const discovery = await MetaCloudApiClient.discoverAllWabasAndNumbers(token);
 
-  // Fetch current existing accounts for this tenant to flag already connected numbers
-  let existingAccounts = [];
+  await ensureAllowedNumbersColumn();
+
+  const isSuperAdmin = requestingUser?.role === 'superadmin';
+
+  // 2. Fetch existing accounts to check active/deactive status and detect cross-tenant conflicts
+  let tenantAccounts = [];
+  let otherAccounts = [];
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    existingAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === numBusinessId);
+    tenantAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === numBusinessId);
+    otherAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id && a.business_id !== numBusinessId);
   } else {
-    existingAccounts = await executeQuery(
-      'SELECT id, waba_id, phone_number_id, phone_number, display_name, status, is_primary FROM whatsapp_accounts WHERE business_id = ?',
-      [numBusinessId]
+    const allAccounts = await executeQuery(
+      'SELECT id, business_id, waba_id, phone_number_id, phone_number, display_name, status, is_primary, COALESCE(admin_status, "ACTIVE") as admin_status FROM whatsapp_accounts'
     );
+    tenantAccounts = (allAccounts || []).filter(a => a.business_id === numBusinessId);
+    otherAccounts = (allAccounts || []).filter(a => a.business_id && a.business_id !== numBusinessId);
+  }
+
+  // 3. Fetch SuperAdmin pre-approved allowed_phone_numbers for this business
+  let allowedList = [];
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const biz = (store.businesses || []).find(b => b.id === numBusinessId);
+    if (biz?.allowed_phone_numbers) {
+      try {
+        allowedList = typeof biz.allowed_phone_numbers === 'string' ? JSON.parse(biz.allowed_phone_numbers) : biz.allowed_phone_numbers;
+      } catch (_) {
+        allowedList = String(biz.allowed_phone_numbers).split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+  } else {
+    const bizRows = await executeQuery('SELECT allowed_phone_numbers FROM businesses WHERE id = ?', [numBusinessId]);
+    const rawAllowed = bizRows?.[0]?.allowed_phone_numbers;
+    if (rawAllowed) {
+      try {
+        allowedList = typeof rawAllowed === 'string' ? JSON.parse(rawAllowed) : rawAllowed;
+      } catch (_) {
+        allowedList = String(rawAllowed).split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
   }
 
   const existingPhoneMap = new Map();
-  for (const acc of existingAccounts) {
+  for (const acc of tenantAccounts) {
     existingPhoneMap.set(String(acc.phone_number_id), acc);
   }
 
-  let totalPhoneNumbers = 0;
+  const normalizeDigits = (p) => String(p || '').replace(/\D/g, '');
+
+  // Verification helper: Determine if a Meta discovered phone number is approved/allocated for this client
+  const isNumberAllowedForTenant = (candidateId, candidatePhone) => {
+    // SuperAdmin has full discovery privileges
+    if (isSuperAdmin) return true;
+
+    const candDigits = normalizeDigits(candidatePhone);
+    const candId = String(candidateId || '');
+
+    // Rule A: Strictly block numbers already connected to ANOTHER tenant
+    const belongsToOther = otherAccounts.some(oa => {
+      if (String(oa.phone_number_id) === candId) return true;
+      const otherDigits = normalizeDigits(oa.phone_number);
+      return otherDigits && candDigits && (otherDigits === candDigits || (otherDigits.length >= 10 && candDigits.length >= 10 && otherDigits.slice(-10) === candDigits.slice(-10)));
+    });
+    if (belongsToOther) return false;
+
+    // Rule B: Check existing account for this tenant
+    const myExisting = tenantAccounts.find(ma => {
+      if (String(ma.phone_number_id) === candId) return true;
+      const myDigits = normalizeDigits(ma.phone_number);
+      return myDigits && candDigits && (myDigits === candDigits || (myDigits.length >= 10 && candDigits.length >= 10 && myDigits.slice(-10) === candDigits.slice(-10)));
+    });
+
+    // If SuperAdmin explicitly DEACTIVATED this account for this tenant in Matrix, hide/block it!
+    if (myExisting && myExisting.admin_status === 'DEACTIVE') {
+      return false;
+    }
+
+    // If account already exists and is active, it is allowed!
+    if (myExisting && myExisting.admin_status !== 'DEACTIVE') {
+      return true;
+    }
+
+    // Rule C: Check SuperAdmin Pre-Approved allowed_phone_numbers list
+    if (Array.isArray(allowedList) && allowedList.length > 0) {
+      if (allowedList.includes('*')) return true;
+      return allowedList.some(item => {
+        const itemStr = String(item || '').trim();
+        if (itemStr === candId) return true;
+        const itemDigits = normalizeDigits(itemStr);
+        if (itemDigits && candDigits) {
+          if (itemDigits === candDigits) return true;
+          if (itemDigits.length >= 10 && candDigits.length >= 10 && itemDigits.slice(-10) === candDigits.slice(-10)) return true;
+        }
+        return false;
+      });
+    }
+
+    // By default, if not in allowed list and not an active account, hide from tenant
+    return false;
+  };
+
+  let totalDiscoveredFromMeta = 0;
   const annotatedWabas = (discovery.wabas || []).map(waba => {
-    const phones = (waba.phoneNumbers || []).map(phone => {
-      totalPhoneNumbers++;
+    const rawPhones = waba.phoneNumbers || [];
+    totalDiscoveredFromMeta += rawPhones.length;
+
+    // Filter numbers according to SuperAdmin Allocation Matrix for clients
+    const filteredPhones = isSuperAdmin
+      ? rawPhones
+      : rawPhones.filter(phone => isNumberAllowedForTenant(phone.id, phone.display_phone_number));
+
+    const phones = filteredPhones.map(phone => {
       const existing = existingPhoneMap.get(String(phone.id));
       return {
         id: phone.id,
@@ -1882,7 +1976,8 @@ export async function discoverSystemUserAccounts(businessId, payload = {}) {
         wabaName: waba.name,
         isAlreadyConnected: Boolean(existing),
         connectedAccountId: existing ? existing.id : null,
-        isPrimary: existing ? Boolean(existing.is_primary) : false
+        isPrimary: existing ? Boolean(existing.is_primary) : false,
+        isAllowedBySuperAdmin: true
       };
     });
 
@@ -1896,23 +1991,36 @@ export async function discoverSystemUserAccounts(businessId, payload = {}) {
     };
   });
 
+  // For clients, only keep WABAs that have at least 1 visible allowed number
+  const visibleWabas = isSuperAdmin
+    ? annotatedWabas
+    : annotatedWabas.filter(w => w.phoneNumbers.length > 0);
+
+  const totalPhoneNumbers = visibleWabas.reduce((sum, w) => sum + (w.phoneNumbers?.length || 0), 0);
+
+  logger.info(`🔍 [SystemUserDiscover] Result for Business #${numBusinessId}: ${totalPhoneNumbers} allowed numbers (Total in Meta: ${totalDiscoveredFromMeta})`);
+
   return {
     success: true,
     user: discovery.user,
     accessToken: token,
-    totalWabas: annotatedWabas.length,
+    totalWabas: visibleWabas.length,
     totalPhoneNumbers,
-    wabas: annotatedWabas
+    totalDiscoveredFromMeta,
+    isFilteredBySuperAdmin: !isSuperAdmin,
+    allowedPhoneNumbers: isSuperAdmin ? [] : allowedList,
+    wabas: visibleWabas
   };
 }
 
 /**
  * Bulk Import / Connect Selected WABAs & Phone Numbers
  */
-export async function bulkConnectSystemUserAccounts(businessId, payload = {}) {
+export async function bulkConnectSystemUserAccounts(businessId, payload = {}, requestingUser = {}) {
   const numBusinessId = Number(businessId);
   const token = payload.accessToken || payload.token;
   const selectedPhones = Array.isArray(payload.selectedPhoneNumbers) ? payload.selectedPhoneNumbers : [];
+  const isSuperAdmin = requestingUser?.role === 'superadmin';
 
   if (!token) {
     const err = new Error('Access Token is required to complete bulk connect.');
@@ -1924,6 +2032,85 @@ export async function bulkConnectSystemUserAccounts(businessId, payload = {}) {
     const err = new Error('Please select at least one WhatsApp phone number to connect.');
     err.statusCode = 400;
     throw err;
+  }
+
+  // Security gate: non-superadmin clients cannot connect disallowed numbers
+  if (!isSuperAdmin) {
+    await ensureAllowedNumbersColumn();
+
+    let allowedList = [];
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      const biz = (store.businesses || []).find(b => b.id === numBusinessId);
+      if (biz?.allowed_phone_numbers) {
+        try { allowedList = JSON.parse(biz.allowed_phone_numbers); } catch (_) { allowedList = String(biz.allowed_phone_numbers).split(',').map(s => s.trim()).filter(Boolean); }
+      }
+    } else {
+      const bizRows = await executeQuery('SELECT allowed_phone_numbers FROM businesses WHERE id = ?', [numBusinessId]);
+      const rawAllowed = bizRows?.[0]?.allowed_phone_numbers;
+      if (rawAllowed) {
+        try { allowedList = JSON.parse(rawAllowed); } catch (_) { allowedList = String(rawAllowed).split(',').map(s => s.trim()).filter(Boolean); }
+      }
+    }
+
+    let tenantAccounts = [];
+    let otherAccounts = [];
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      tenantAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === numBusinessId);
+      otherAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id && a.business_id !== numBusinessId);
+    } else {
+      const allAccounts = await executeQuery(
+        'SELECT id, business_id, waba_id, phone_number_id, phone_number, COALESCE(admin_status, "ACTIVE") as admin_status FROM whatsapp_accounts'
+      );
+      tenantAccounts = (allAccounts || []).filter(a => a.business_id === numBusinessId);
+      otherAccounts = (allAccounts || []).filter(a => a.business_id && a.business_id !== numBusinessId);
+    }
+
+    const normalizeDigits = (p) => String(p || '').replace(/\D/g, '');
+
+    const isAllowed = (candId, candPhone) => {
+      const candDigits = normalizeDigits(candPhone);
+      const idStr = String(candId || '');
+
+      const belongsToOther = otherAccounts.some(oa => {
+        if (String(oa.phone_number_id) === idStr) return true;
+        const oDigits = normalizeDigits(oa.phone_number);
+        return oDigits && candDigits && (oDigits === candDigits || (oDigits.length >= 10 && candDigits.length >= 10 && oDigits.slice(-10) === candDigits.slice(-10)));
+      });
+      if (belongsToOther) return false;
+
+      const myExisting = tenantAccounts.find(ma => {
+        if (String(ma.phone_number_id) === idStr) return true;
+        const mDigits = normalizeDigits(ma.phone_number);
+        return mDigits && candDigits && (mDigits === candDigits || (mDigits.length >= 10 && candDigits.length >= 10 && mDigits.slice(-10) === candDigits.slice(-10)));
+      });
+      if (myExisting && myExisting.admin_status === 'DEACTIVE') return false;
+      if (myExisting && myExisting.admin_status !== 'DEACTIVE') return true;
+
+      if (Array.isArray(allowedList) && allowedList.length > 0) {
+        if (allowedList.includes('*')) return true;
+        return allowedList.some(item => {
+          const itemStr = String(item || '').trim();
+          if (itemStr === idStr) return true;
+          const iDigits = normalizeDigits(itemStr);
+          if (iDigits && candDigits) {
+            if (iDigits === candDigits) return true;
+            if (iDigits.length >= 10 && candDigits.length >= 10 && iDigits.slice(-10) === candDigits.slice(-10)) return true;
+          }
+          return false;
+        });
+      }
+      return false;
+    };
+
+    const disallowed = selectedPhones.filter(p => !isAllowed(p.phoneNumberId || p.id, p.phoneNumber || p.displayPhoneNumber));
+    if (disallowed.length > 0) {
+      const rejectedPhone = disallowed[0].phoneNumber || disallowed[0].displayPhoneNumber || disallowed[0].phoneNumberId || disallowed[0].id;
+      const err = new Error(`WhatsApp number ${rejectedPhone} is not approved or allocated for your business by SuperAdmin.`);
+      err.statusCode = 403;
+      throw err;
+    }
   }
 
   logger.info(`⚡ [BulkConnect] Connecting ${selectedPhones.length} WhatsApp numbers concurrently for Business #${numBusinessId}...`);

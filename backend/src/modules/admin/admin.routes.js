@@ -74,6 +74,16 @@ router.patch('/businesses/:id/status', async (req, res, next) => {
   }
 });
 
+router.patch('/businesses/:id/allowed-numbers', async (req, res, next) => {
+  try {
+    const allowedNumbers = req.body.allowedNumbers !== undefined ? req.body.allowedNumbers : (req.body.allowed_phone_numbers !== undefined ? req.body.allowed_phone_numbers : req.body.allowedPhoneNumbers);
+    const result = await adminService.updateBusinessAllowedNumbers(req.params.id, allowedNumbers);
+    res.json({ success: true, message: 'Allowed WhatsApp numbers updated successfully', data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ==============================================================================
 // Super Admin Platform Meta Integration Management
 // ==============================================================================

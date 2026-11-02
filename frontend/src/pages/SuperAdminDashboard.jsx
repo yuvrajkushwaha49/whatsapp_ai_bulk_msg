@@ -37,6 +37,8 @@ export default function SuperAdminDashboard() {
   const [reassigningAccountId, setReassigningAccountId] = useState(null);
   const [targetBusinessMap, setTargetBusinessMap] = useState({});
   const [poolAllotBusinessId, setPoolAllotBusinessId] = useState({});
+  const [newAllowedNumberInput, setNewAllowedNumberInput] = useState('');
+  const [savingAllowedNumbers, setSavingAllowedNumbers] = useState(false);
 
   useEffect(() => {
     fetchAdminData();
@@ -138,6 +140,63 @@ export default function SuperAdminDashboard() {
       });
     } finally {
       setReassigningAccountId(null);
+    }
+  };
+
+  const handleAddAllowedNumber = async (bizId) => {
+    if (!newAllowedNumberInput.trim()) return;
+    const cleanNum = newAllowedNumberInput.trim();
+    const currentList = selectedClientDetail?.allowed_phone_numbers || [];
+    if (currentList.includes(cleanNum)) {
+      setFeedback({ type: 'warning', text: 'This number is already in the approved allowed list.' });
+      return;
+    }
+    const updatedList = [...currentList, cleanNum];
+    await saveAllowedNumbersList(bizId, updatedList);
+    setNewAllowedNumberInput('');
+  };
+
+  const handleRemoveAllowedNumber = async (bizId, numToRemove) => {
+    const currentList = selectedClientDetail?.allowed_phone_numbers || [];
+    const updatedList = currentList.filter(n => n !== numToRemove);
+    await saveAllowedNumbersList(bizId, updatedList);
+  };
+
+  const handleToggleAllowAllNumbers = async (bizId) => {
+    const currentList = selectedClientDetail?.allowed_phone_numbers || [];
+    const isAllowAll = currentList.includes('*');
+    const updatedList = isAllowAll ? currentList.filter(n => n !== '*') : ['*'];
+    await saveAllowedNumbersList(bizId, updatedList);
+  };
+
+  const saveAllowedNumbersList = async (bizId, list) => {
+    try {
+      setSavingAllowedNumbers(true);
+      const res = await api.patch(`/admin/businesses/${bizId}/allowed-numbers`, {
+        allowedNumbers: list
+      });
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: `Allowed WhatsApp numbers updated for ${selectedClientDetail?.owner_name || selectedClientDetail?.name}!`
+        });
+        setSelectedClientDetail(prev => prev ? { ...prev, allowed_phone_numbers: list } : null);
+        setMatrixData(prev => {
+          if (!prev?.businesses) return prev;
+          return {
+            ...prev,
+            businesses: prev.businesses.map(b => b.id === bizId ? { ...b, allowed_phone_numbers: list } : b)
+          };
+        });
+        await fetchMatrixData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || 'Failed to update allowed numbers'
+      });
+    } finally {
+      setSavingAllowedNumbers(false);
     }
   };
 
@@ -1087,6 +1146,14 @@ export default function SuperAdminDashboard() {
                                   </span>
                                 )}
                               </div>
+                              {biz.allowed_phone_numbers?.length > 0 && (
+                                <div className="mt-1">
+                                  <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style={{ fontSize: '0.72rem' }}>
+                                    <i className="bi bi-shield-check me-1"></i>
+                                    {biz.allowed_phone_numbers.includes('*') ? 'All Discovered Allowed (*)' : `${biz.allowed_phone_numbers.length} Discovery Approved`}
+                                  </span>
+                                </div>
+                              )}
                             </td>
 
                             <td className="text-end">
@@ -1238,8 +1305,112 @@ export default function SuperAdminDashboard() {
                     <div className="fw-bold mb-1">SuperAdmin Visibility & Approval Rules:</div>
                     <div className="small text-muted">
                       • 🟢 <strong>ACTIVE Numbers:</strong> Fully approved, visible, and selectable inside <strong>{selectedClientDetail.owner_name || selectedClientDetail.name}'s</strong> dashboard, inbox, and campaign launcher.<br />
-                      • 🔴 <strong>DEACTIVE Numbers:</strong> Instantly blocked and completely hidden from this client. Even if connected via Multi-App scan, clients will NEVER see deactivated numbers.
+                      • 🔴 <strong>DEACTIVE Numbers:</strong> Instantly blocked and completely hidden from this client. Even if connected via Multi-App scan, clients will NEVER see deactivated numbers.<br />
+                      • 🎯 <strong>1-Click Multi-App Discovery:</strong> Meta se sare numbers fetch honge, par client ko Step 2 me sirf wahi numbers show honge jo aapne yahan Pre-Approve kiye hain!
                     </div>
+                  </div>
+                </div>
+
+                {/* Pre-Approved / Allowed Numbers for 1-Click Discovery */}
+                <div className="card border rounded-3 p-3 mb-4 shadow-sm" style={{ backgroundColor: '#fbfcfd' }}>
+                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-2">
+                    <div>
+                      <h6 className="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                        <i className="bi bi-shield-lock-fill text-success"></i>
+                        <span>Pre-Approved Numbers for 1-Click Discovery</span>
+                        <span className="badge bg-secondary-subtle text-secondary small fw-normal">
+                          {selectedClientDetail.allowed_phone_numbers?.includes('*') ? 'All Discovered Allowed (*)' : `${selectedClientDetail.allowed_phone_numbers?.length || 0} Allowed`}
+                        </span>
+                      </h6>
+                      <div className="small text-muted">
+                        When this client scans Meta, only numbers matching these approved numbers will appear in their "Select Numbers" list.
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${selectedClientDetail.allowed_phone_numbers?.includes('*') ? 'btn-success' : 'btn-outline-secondary'}`}
+                        onClick={() => handleToggleAllowAllNumbers(selectedClientDetail.id)}
+                        disabled={savingAllowedNumbers}
+                        title="Toggle whether all discovered numbers are allowed or only specific numbers"
+                      >
+                        <i className="bi bi-asterisk me-1"></i>
+                        {selectedClientDetail.allowed_phone_numbers?.includes('*') ? 'All Numbers Allowed (*)' : 'Allow All Numbers'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Badges of current allowed numbers */}
+                  <div className="d-flex flex-wrap gap-2 align-items-center mb-3 pt-1">
+                    {(!selectedClientDetail.allowed_phone_numbers || selectedClientDetail.allowed_phone_numbers.length === 0) ? (
+                      <span className="small text-muted fst-italic">
+                        <i className="bi bi-info-circle me-1"></i>
+                        No specific pre-approved numbers set. (Only active already-allotted accounts below will be allowed).
+                      </span>
+                    ) : (
+                      selectedClientDetail.allowed_phone_numbers.map((num, idx) => (
+                        <span
+                          key={idx}
+                          className={`badge border px-3 py-2 d-flex align-items-center gap-2 font-monospace fs-6 ${
+                            num === '*'
+                              ? 'bg-success-subtle text-success border-success-subtle'
+                              : 'bg-primary-subtle text-primary border-primary-subtle'
+                          }`}
+                        >
+                          <i className="bi bi-whatsapp"></i>
+                          <span>{num === '*' ? 'ALL META NUMBERS (*)' : num}</span>
+                          <button
+                            type="button"
+                            className="btn-close btn-close-xs ms-1"
+                            style={{ fontSize: '0.65rem' }}
+                            onClick={() => handleRemoveAllowedNumber(selectedClientDetail.id, num)}
+                            disabled={savingAllowedNumbers}
+                            title="Remove from allowed list"
+                          ></button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Input to add a new allowed number */}
+                  <div className="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+                    <div className="input-group input-group-sm" style={{ maxWidth: '380px' }}>
+                      <span className="input-group-text bg-white">
+                        <i className="bi bi-telephone-plus text-primary"></i>
+                      </span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. +91 86014 67210 or 8601467210"
+                        value={newAllowedNumberInput}
+                        onChange={(e) => setNewAllowedNumberInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddAllowedNumber(selectedClientDetail.id);
+                          }
+                        }}
+                        disabled={savingAllowedNumbers}
+                      />
+                      <button
+                        className="btn btn-primary fw-semibold"
+                        type="button"
+                        onClick={() => handleAddAllowedNumber(selectedClientDetail.id)}
+                        disabled={savingAllowedNumbers || !newAllowedNumberInput.trim()}
+                      >
+                        {savingAllowedNumbers ? (
+                          <span className="spinner-border spinner-border-sm"></span>
+                        ) : (
+                          <>
+                            <i className="bi bi-plus-lg me-1"></i>
+                            Approve
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <span className="small text-muted" style={{ fontSize: '0.75rem' }}>
+                      Tip: Enter with or without country code (+91). Exact or last-10-digits will match.
+                    </span>
                   </div>
                 </div>
 

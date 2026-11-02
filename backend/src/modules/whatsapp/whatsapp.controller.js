@@ -215,7 +215,7 @@ export async function autoConnectMetaAccount(req, res, next) {
 
 export async function discoverSystemUserAccounts(req, res, next) {
   try {
-    const result = await whatsappService.discoverSystemUserAccounts(req.businessId, req.body);
+    const result = await whatsappService.discoverSystemUserAccounts(req.businessId, req.body, req.user);
     res.json({
       success: true,
       message: `Discovered ${result.totalPhoneNumbers} WhatsApp numbers across ${result.totalWabas} WABAs in Meta Business Manager.`,
@@ -228,7 +228,7 @@ export async function discoverSystemUserAccounts(req, res, next) {
 
 export async function bulkConnectSystemUserAccounts(req, res, next) {
   try {
-    const result = await whatsappService.bulkConnectSystemUserAccounts(req.businessId, req.body);
+    const result = await whatsappService.bulkConnectSystemUserAccounts(req.businessId, req.body, req.user);
     res.status(201).json({
       success: true,
       message: `Successfully connected ${result.connectedCount} of ${result.totalRequested} selected WhatsApp numbers!`,

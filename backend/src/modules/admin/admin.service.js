@@ -194,11 +194,55 @@ async function ensureAdminStatusColumn() {
   }
 }
 
+let ensuredAllowedNumbersColumn = false;
+export async function ensureAllowedNumbersColumn() {
+  if (ensuredAllowedNumbersColumn || isUsingFallback()) return;
+  try {
+    const cols = await executeQuery(`SHOW COLUMNS FROM businesses LIKE 'allowed_phone_numbers'`);
+    if (!cols || cols.length === 0) {
+      await executeQuery(`ALTER TABLE businesses ADD COLUMN allowed_phone_numbers TEXT NULL`);
+      logger.info(`[AdminMatrix] Added 'allowed_phone_numbers' column to businesses table`);
+    }
+    ensuredAllowedNumbersColumn = true;
+  } catch (err) {
+    logger.warn(`[ensureAllowedNumbersColumn] ${err.message}`);
+    ensuredAllowedNumbersColumn = true;
+  }
+}
+
+/**
+ * Super Admin: Update Allowed WhatsApp Numbers for a Client Business
+ */
+export async function updateBusinessAllowedNumbers(businessId, allowedNumbers) {
+  await ensureAllowedNumbersColumn();
+
+  let formatted = null;
+  if (Array.isArray(allowedNumbers)) {
+    formatted = JSON.stringify(allowedNumbers.map(n => String(n).trim()).filter(Boolean));
+  } else if (typeof allowedNumbers === 'string') {
+    const arr = allowedNumbers.split(',').map(n => n.trim()).filter(Boolean);
+    formatted = JSON.stringify(arr);
+  }
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const b = (store.businesses || []).find(item => item.id === Number(businessId));
+    if (b) {
+      b.allowed_phone_numbers = formatted;
+    }
+    return { id: Number(businessId), allowed_phone_numbers: formatted };
+  }
+
+  await executeQuery('UPDATE businesses SET allowed_phone_numbers = ? WHERE id = ?', [formatted, businessId]);
+  return { id: Number(businessId), allowed_phone_numbers: formatted };
+}
+
 /**
  * Super Admin: Get Number Allocation & Approval Matrix (Users + Allotted Numbers)
  */
 export async function getNumberAllocationMatrix() {
   await ensureAdminStatusColumn();
+  await ensureAllowedNumbersColumn();
 
   if (isUsingFallback()) {
     const store = getMemoryStore();
@@ -212,6 +256,13 @@ export async function getNumberAllocationMatrix() {
           admin_status: a.admin_status || 'ACTIVE'
         }));
 
+      let parsedAllowed = [];
+      try {
+        parsedAllowed = b.allowed_phone_numbers ? (typeof b.allowed_phone_numbers === 'string' ? JSON.parse(b.allowed_phone_numbers) : b.allowed_phone_numbers) : [];
+      } catch (_) {
+        parsedAllowed = String(b.allowed_phone_numbers || '').split(',').map(s => s.trim()).filter(Boolean);
+      }
+
       return {
         id: b.id,
         name: b.name,
@@ -220,6 +271,7 @@ export async function getNumberAllocationMatrix() {
         owner_email: owner?.email || 'N/A',
         owner_role: owner?.role || 'owner',
         status: b.status || 'active',
+        allowed_phone_numbers: parsedAllowed,
         accounts_count: accounts.length,
         active_accounts_count: accounts.filter(a => a.admin_status === 'ACTIVE').length,
         accounts,
@@ -243,7 +295,7 @@ export async function getNumberAllocationMatrix() {
   // Real MySQL implementation (100% immune to sql_mode=only_full_group_by)
   // 1. Fetch all businesses
   const businesses = await executeQuery(`
-    SELECT b.id, b.name, b.slug, b.status
+    SELECT b.id, b.name, b.slug, b.status, b.allowed_phone_numbers
     FROM businesses b
     ORDER BY b.id ASC
   `);
@@ -277,11 +329,19 @@ export async function getNumberAllocationMatrix() {
   const businessMap = new Map();
   businesses.forEach(b => {
     const owner = ownerMap.get(b.id);
+    let parsedAllowed = [];
+    try {
+      parsedAllowed = b.allowed_phone_numbers ? (typeof b.allowed_phone_numbers === 'string' ? JSON.parse(b.allowed_phone_numbers) : b.allowed_phone_numbers) : [];
+    } catch (_) {
+      parsedAllowed = String(b.allowed_phone_numbers || '').split(',').map(s => s.trim()).filter(Boolean);
+    }
+
     businessMap.set(b.id, {
       id: b.id,
       name: b.name,
       slug: b.slug,
       status: b.status,
+      allowed_phone_numbers: parsedAllowed,
       owner_name: owner?.name || 'N/A',
       owner_email: owner?.email || 'N/A',
       owner_role: owner?.role || 'owner',
@@ -387,5 +447,6 @@ export default {
   updateBusinessStatus,
   getNumberAllocationMatrix,
   updateWhatsAppAccountAdminStatus,
-  reassignWhatsAppAccount
+  reassignWhatsAppAccount,
+  updateBusinessAllowedNumbers
 };

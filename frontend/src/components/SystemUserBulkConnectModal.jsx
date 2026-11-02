@@ -611,6 +611,33 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                   </div>
                 )}
 
+                {discoveryData.isFilteredBySuperAdmin && (
+                  <div className="alert alert-info py-2 px-3 rounded-3 mb-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 border-0 shadow-sm" style={{ backgroundColor: 'rgba(13, 110, 253, 0.08)' }}>
+                    <div className="d-flex align-items-center gap-2 small">
+                      <i className="bi bi-shield-check text-primary fs-5"></i>
+                      <span>
+                        <strong>SuperAdmin Matrix Filter Active:</strong> Showing only WhatsApp numbers allocated and approved for your business ({discoveryData.totalPhoneNumbers} allowed of {discoveryData.totalDiscoveredFromMeta || discoveryData.totalPhoneNumbers} numbers in Meta Business Manager).
+                      </span>
+                    </div>
+                    <span className="badge bg-primary text-white text-nowrap">SuperAdmin Approved</span>
+                  </div>
+                )}
+
+                {discoveryData.totalPhoneNumbers === 0 && (
+                  <div className="alert alert-warning rounded-3 p-4 text-center my-3 border shadow-sm">
+                    <i className="bi bi-shield-lock-fill text-warning fs-1 d-block mb-2"></i>
+                    <h6 className="fw-bold mb-1">No WhatsApp Numbers Allocated by SuperAdmin</h6>
+                    <p className="text-muted small mb-3">
+                      {discoveryData.totalDiscoveredFromMeta > 0
+                        ? `Meta Business Manager contains ${discoveryData.totalDiscoveredFromMeta} numbers, but SuperAdmin has not allotted or approved any number for your account yet.`
+                        : 'No WhatsApp numbers were discovered in your Meta Business portfolio.'}
+                    </p>
+                    <div className="small text-muted">
+                      Please contact your platform SuperAdmin to approve and allocate your WhatsApp numbers in the <strong>SuperAdmin Number Allocation Matrix</strong>.
+                    </div>
+                  </div>
+                )}
+
                 {/* Summary Strip */}
                 <div className="row g-3 mb-4">
                   <div className="col-md-4">
