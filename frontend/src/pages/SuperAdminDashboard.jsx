@@ -936,6 +936,10 @@ export default function SuperAdminDashboard() {
                     {(matrixData.businesses || []).reduce((acc, b) => acc + (b.whatsapp_accounts?.length || 0), 0)}
                   </div>
                   <div className="small text-success">Assigned across all clients</div>
+                  <div className="small text-primary fw-semibold mt-1" style={{ fontSize: '0.72rem' }}>
+                    <i className="bi bi-lightning-charge-fill text-warning me-1"></i>
+                    {(matrixData.businesses || []).reduce((acc, b) => acc + (b.allowed_phone_numbers?.length || 0), 0)} Discovery Pre-Approved
+                  </div>
                 </div>
               </div>
             </div>
@@ -1016,8 +1020,8 @@ export default function SuperAdminDashboard() {
               <table className="table cf-table align-middle">
                 <thead>
                   <tr>
-                    <th style={{ width: '26%' }}>Client & Business</th>
-                    <th style={{ width: '42%' }}>Allotted WhatsApp Numbers</th>
+                    <th style={{ width: '25%' }}>Client & Business</th>
+                    <th style={{ width: '43%' }}>Allotted & 1-Click Discovery Approved Numbers</th>
                     <th style={{ width: '16%' }}>Allocation Status</th>
                     <th style={{ width: '16%' }} className="text-end">Action</th>
                   </tr>
@@ -1049,12 +1053,18 @@ export default function SuperAdminDashboard() {
                           (wa.account_name || '').toLowerCase().includes(q) ||
                           (wa.verified_name || '').toLowerCase().includes(q)
                         );
-                        return matchesOwner || matchesEmail || matchesBiz || matchesPhone;
+                        const matchesAllowed = (b.allowed_phone_numbers || []).some(num =>
+                          String(num).toLowerCase().includes(q)
+                        );
+                        return matchesOwner || matchesEmail || matchesBiz || matchesPhone || matchesAllowed;
                       })
                       .map(biz => {
                         const totalAccounts = biz.whatsapp_accounts?.length || 0;
                         const activeAccounts = (biz.whatsapp_accounts || []).filter(a => a.admin_status !== 'DEACTIVE').length;
                         const deactiveAccounts = totalAccounts - activeAccounts;
+                        const allowedList = Array.isArray(biz.allowed_phone_numbers) ? biz.allowed_phone_numbers : [];
+                        const allowsAll = allowedList.includes('*');
+                        const specificAllowed = allowedList.filter(n => n !== '*');
 
                         return (
                           <tr key={biz.id}>
@@ -1090,44 +1100,143 @@ export default function SuperAdminDashboard() {
                             </td>
 
                             <td>
-                              {totalAccounts === 0 ? (
+                              {totalAccounts === 0 && allowedList.length === 0 ? (
                                 <span className="badge bg-light text-muted border py-2 px-3 fst-italic">
-                                  <i className="bi bi-info-circle me-1"></i> No WhatsApp numbers allotted yet
+                                  <i className="bi bi-info-circle me-1"></i> No WhatsApp numbers allotted or pre-approved yet
                                 </span>
                               ) : (
-                                <div className="d-flex flex-wrap gap-2">
-                                  {biz.whatsapp_accounts.map(acc => {
-                                    const isDeactive = acc.admin_status === 'DEACTIVE';
-                                    return (
-                                      <div
-                                        key={acc.id}
-                                        className={`p-2 rounded-2 border d-inline-flex align-items-center gap-2 shadow-sm ${
-                                          isDeactive
-                                            ? 'bg-danger-subtle border-danger text-danger'
-                                            : 'bg-success-subtle border-success text-success'
-                                        }`}
-                                        style={{ fontSize: '0.82rem' }}
-                                      >
-                                        <i className={`bi ${isDeactive ? 'bi-eye-slash-fill text-danger' : 'bi-whatsapp text-success'}`}></i>
-                                        <div>
-                                          <div className="fw-bold lh-1">
-                                            {acc.display_phone_number || acc.account_name || 'Unset phone'}
-                                          </div>
-                                          <div className="small opacity-75" style={{ fontSize: '0.72rem' }}>
-                                            {acc.verified_name || acc.account_name || 'WhatsApp'}
-                                          </div>
-                                        </div>
-                                        <span
-                                          className={`badge ms-1 ${
-                                            isDeactive ? 'bg-danger text-white' : 'bg-success text-white'
-                                          }`}
-                                          style={{ fontSize: '0.65rem' }}
-                                        >
-                                          {isDeactive ? 'DEACTIVE' : 'ACTIVE'}
+                                <div className="d-flex flex-column gap-2">
+                                  {/* Section 1: Connected WhatsApp Numbers */}
+                                  {totalAccounts > 0 && (
+                                    <div>
+                                      <div className="d-flex align-items-center justify-content-between mb-1">
+                                        <span className="small text-muted fw-semibold text-uppercase" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>
+                                          <i className="bi bi-link-45deg text-success fw-bold me-1"></i>
+                                          Connected Numbers ({totalAccounts})
                                         </span>
                                       </div>
-                                    );
-                                  })}
+                                      <div className="d-flex flex-wrap gap-2">
+                                        {biz.whatsapp_accounts.map(acc => {
+                                          const isDeactive = acc.admin_status === 'DEACTIVE';
+                                          const cleanAccNum = (acc.display_phone_number || '').replace(/\D/g, '').slice(-10);
+                                          const isPreApproved = allowsAll || specificAllowed.some(num => {
+                                            const cleanAllowed = String(num).replace(/\D/g, '').slice(-10);
+                                            return cleanAllowed && cleanAccNum && cleanAccNum === cleanAllowed;
+                                          });
+
+                                          return (
+                                            <div
+                                              key={acc.id}
+                                              className={`p-2 rounded-2 border d-inline-flex align-items-center gap-2 shadow-sm ${
+                                                isDeactive
+                                                  ? 'bg-danger-subtle border-danger text-danger'
+                                                  : 'bg-success-subtle border-success text-success'
+                                              }`}
+                                              style={{ fontSize: '0.82rem' }}
+                                            >
+                                              <i className={`bi ${isDeactive ? 'bi-eye-slash-fill text-danger' : 'bi-whatsapp text-success'}`}></i>
+                                              <div>
+                                                <div className="fw-bold lh-1 text-dark">
+                                                  {acc.display_phone_number || acc.account_name || 'Unset phone'}
+                                                </div>
+                                                <div className="small opacity-75" style={{ fontSize: '0.70rem' }}>
+                                                  {acc.verified_name || acc.account_name || 'WhatsApp'}
+                                                </div>
+                                              </div>
+                                              <div className="d-flex flex-column gap-1 ms-1 align-items-end">
+                                                <span
+                                                  className={`badge ${
+                                                    isDeactive ? 'bg-danger text-white' : 'bg-success text-white'
+                                                  }`}
+                                                  style={{ fontSize: '0.65rem' }}
+                                                >
+                                                  {isDeactive ? 'DEACTIVE' : 'ACTIVE'}
+                                                </span>
+                                                {isPreApproved && (
+                                                  <span className="badge bg-primary-subtle text-primary border border-primary-subtle" style={{ fontSize: '0.60rem' }} title="Pre-Approved for 1-Click Discovery">
+                                                    ⚡ Discovery OK
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Section 2: Pre-Approved for 1-Click Multi-App Discovery */}
+                                  {allowedList.length > 0 && (
+                                    <div className={totalAccounts > 0 ? 'pt-2 border-top' : ''}>
+                                      <div className="d-flex align-items-center justify-content-between mb-1">
+                                        <span className="small text-primary fw-semibold text-uppercase" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>
+                                          <i className="bi bi-shield-check me-1"></i>
+                                          Pre-Approved for 1-Click Discovery ({allowsAll ? 'All (*)' : allowedList.length})
+                                        </span>
+                                      </div>
+                                      <div className="d-flex flex-wrap gap-2">
+                                        {allowsAll && (
+                                          <div
+                                            className="p-2 rounded-2 border d-inline-flex align-items-center gap-2 shadow-sm"
+                                            style={{ backgroundColor: '#f5f3ff', borderColor: '#a78bfa', color: '#4c1d95', fontSize: '0.80rem' }}
+                                          >
+                                            <i className="bi bi-patch-check-fill text-primary fs-6"></i>
+                                            <div>
+                                              <div className="fw-bold lh-1">All Numbers Pre-Approved</div>
+                                              <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
+                                                Wildcard (*) &bull; Client can import any discovered number
+                                              </div>
+                                            </div>
+                                            <span className="badge bg-primary text-white ms-1" style={{ fontSize: '0.65rem' }}>
+                                              WILDCARD (*)
+                                            </span>
+                                          </div>
+                                        )}
+                                        {specificAllowed.map((num, idx) => {
+                                          const cleanAllowed = String(num).replace(/\D/g, '').slice(-10);
+                                          const matchingAcc = (biz.whatsapp_accounts || []).find(acc => {
+                                            const cleanAcc = String(acc.display_phone_number || '').replace(/\D/g, '').slice(-10);
+                                            return cleanAllowed && cleanAcc && cleanAcc === cleanAllowed;
+                                          });
+                                          const isAlreadyConnected = !!matchingAcc;
+
+                                          return (
+                                            <div
+                                              key={idx}
+                                              className="p-2 rounded-2 border d-inline-flex align-items-center gap-2 shadow-sm"
+                                              style={{
+                                                backgroundColor: isAlreadyConnected ? '#eef2ff' : '#faf5ff',
+                                                borderColor: isAlreadyConnected ? '#818cf8' : '#d8b4fe',
+                                                color: '#1e1b4b',
+                                                fontSize: '0.82rem'
+                                              }}
+                                              title={isAlreadyConnected ? 'Pre-Approved number is already linked and connected' : 'Pre-Approved number is awaiting 1-Click Multi-App Discovery import by client'}
+                                            >
+                                              <i className={`bi ${isAlreadyConnected ? 'bi-shield-fill-check text-primary' : 'bi-lightning-charge-fill text-warning'}`}></i>
+                                              <div>
+                                                <div className="fw-bold lh-1 font-monospace" style={{ color: '#3730a3' }}>
+                                                  {num}
+                                                </div>
+                                                <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
+                                                  1-Click Pre-Approved
+                                                </div>
+                                              </div>
+                                              <span
+                                                className={`badge ms-1 ${
+                                                  isAlreadyConnected
+                                                    ? 'bg-primary text-white'
+                                                    : 'bg-warning-subtle text-warning-emphasis border border-warning'
+                                                }`}
+                                                style={{ fontSize: '0.65rem' }}
+                                              >
+                                                {isAlreadyConnected ? '🟢 Connected' : '⏳ Awaiting Scan'}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </td>
@@ -1456,9 +1565,17 @@ export default function SuperAdminDashboard() {
                           return (
                             <tr key={acc.id} className={isDeactive ? 'table-danger-subtle' : ''}>
                               <td>
-                                <div className="fw-bold text-dark d-flex align-items-center gap-2">
+                                <div className="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap">
                                   <i className={`bi ${isDeactive ? 'bi-slash-circle text-danger' : 'bi-whatsapp text-success'}`}></i>
                                   <span>{acc.display_phone_number || acc.account_name}</span>
+                                  {((selectedClientDetail.allowed_phone_numbers || []).includes('*') ||
+                                    (selectedClientDetail.allowed_phone_numbers || []).some(n =>
+                                      String(n).replace(/\D/g, '').slice(-10) === String(acc.display_phone_number || '').replace(/\D/g, '').slice(-10)
+                                    )) && (
+                                    <span className="badge bg-primary-subtle text-primary border border-primary-subtle" style={{ fontSize: '0.68rem' }} title="Pre-Approved for 1-Click Multi-App Discovery">
+                                      <i className="bi bi-shield-check me-1"></i> 1-Click Approved
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="small text-muted">{acc.verified_name || acc.account_name}</div>
                               </td>
