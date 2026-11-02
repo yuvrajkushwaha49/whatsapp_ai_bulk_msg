@@ -1804,14 +1804,22 @@ export async function autoConnectMetaAccount(businessId, payload = {}) {
 }
 
 /**
- * Discover all WABAs and Phone Numbers across all apps for a System User Token
+ * Discover all WABAs and Phone Numbers across all apps for a System User Token or Facebook Login OAuth Code
  */
 export async function discoverSystemUserAccounts(businessId, payload = {}) {
   const numBusinessId = Number(businessId);
-  const token = payload.accessToken || payload.token;
+  let token = payload.accessToken || payload.token;
+  const { code, redirectUri, redirect_uri } = payload;
+
+  if (!token && code) {
+    const effectiveRedirectUri = redirectUri || redirect_uri || `${process.env.FRONTEND_URL || 'https://whatsapp.bhaktisong.fun'}/whatsapp/callback`;
+    logger.info(`🔄 [Discover] Exchanging Facebook Login OAuth code for Access Token...`);
+    const tokenData = await MetaCloudApiClient.exchangeCodeForToken(code, effectiveRedirectUri);
+    token = tokenData.access_token;
+  }
 
   if (!token) {
-    const err = new Error('Permanent System User Access Token is required to scan Meta Business Manager.');
+    const err = new Error('Permanent System User Access Token or Facebook Login authorization code is required to scan Meta Business Manager.');
     err.statusCode = 400;
     throw err;
   }
@@ -1869,6 +1877,7 @@ export async function discoverSystemUserAccounts(businessId, payload = {}) {
   return {
     success: true,
     user: discovery.user,
+    accessToken: token,
     totalWabas: annotatedWabas.length,
     totalPhoneNumbers,
     wabas: annotatedWabas

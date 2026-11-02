@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 
 /**
  * SystemUserBulkConnectModal
- * Tareeqa 1: Meta Business Manager System User Discovery & 1-Click Multi-App Number Connect
- * Allows businesses with multiple Meta Apps & WABAs to discover all numbers at once and connect them.
+ * Multi-App & Multi-Number Discovery & Bulk Connect
+ * 
+ * Supports two seamless paths:
+ * 1. Tareeqa 2 (Recommended): "Log in with Facebook" (0% Token - No copy-paste, 1-click popup OAuth)
+ * 2. Tareeqa 1: "Permanent System User Token" (Direct paste for custom/manual tokens)
  */
 export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess, detectedToken }) {
-  const [step, setStep] = useState(1); // 1: Input Token & Scan, 2: Select Numbers, 3: Connecting / Results
+  const [step, setStep] = useState(1); // 1: Connect / Scan, 2: Select Numbers, 3: Connecting / Results
+  const [activeTab, setActiveTab] = useState('facebook'); // 'facebook' | 'token'
   const [token, setToken] = useState(detectedToken || '');
   const [showToken, setShowToken] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -24,9 +28,13 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
   // Guide accordion
   const [showGuide, setShowGuide] = useState(false);
 
+  // Popup reference
+  const popupRef = useRef(null);
+
   useEffect(() => {
     if (isOpen) {
       setStep(1);
+      setActiveTab('facebook');
       setScanError(null);
       setConnectError(null);
       setBulkResult(null);
@@ -36,10 +44,112 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
     }
   }, [isOpen, detectedToken]);
 
+  // Cleanup listener on unmount
+  useEffect(() => {
+    return () => {
+      if (popupRef.current && !popupRef.current.closed) {
+        popupRef.current.close();
+      }
+    };
+  }, []);
+
   if (!isOpen) return null;
 
-  // Handle Scanning All WABAs & Numbers
-  const handleScan = async (e) => {
+  /**
+   * Tareeqa 2: Log in with Facebook (0% Token copy-paste)
+   */
+  const handleFacebookLoginScan = async () => {
+    setScanning(true);
+    setScanError(null);
+
+    try {
+      // 1. Get Platform Meta App ID
+      let appId = '1165054629187576';
+      try {
+        const readinessRes = await api.get('/meta/setup/client-readiness');
+        if (readinessRes.data?.data?.platformApp?.appId) {
+          appId = readinessRes.data.data.platformApp.appId;
+        }
+      } catch (_) {}
+
+      const redirectUri = `${window.location.origin}/whatsapp/callback`;
+      const scopes = 'whatsapp_business_management,whatsapp_business_messaging,business_management';
+      const state = `multi_scan_${Date.now()}`;
+
+      const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&response_type=code&state=${encodeURIComponent(state)}`;
+
+      // 2. Open official Meta popup
+      const width = 640;
+      const height = 720;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2.5;
+
+      const popup = window.open(
+        oauthUrl,
+        'MetaMultiAppDiscoveryPopup',
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,status=1`
+      );
+      popupRef.current = popup;
+
+      // 3. Listen for postMessage from /whatsapp/callback
+      const handlePopupMessage = async (event) => {
+        if (event.origin !== window.location.origin) return;
+
+        if (event.data?.type === 'FB_OAUTH_CODE' || event.data?.type === 'META_SIGNUP_AUTH_CODE') {
+          window.removeEventListener('message', handlePopupMessage);
+          const { code } = event.data;
+
+          try {
+            // Exchange code on backend & discover all WABAs and phone numbers
+            const res = await api.post('/whatsapp/system-user/discover', {
+              code,
+              redirectUri
+            });
+
+            if (res.data?.success) {
+              const data = res.data.data;
+              setDiscoveryData(data);
+              if (data.accessToken) {
+                setToken(data.accessToken);
+              }
+
+              // Auto-select all numbers that are NOT yet connected
+              const initialSelected = new Set();
+              (data.wabas || []).forEach(waba => {
+                (waba.phoneNumbers || []).forEach(phone => {
+                  if (!phone.isAlreadyConnected) {
+                    initialSelected.add(String(phone.id));
+                  }
+                });
+              });
+              setSelectedIds(initialSelected);
+              setStep(2);
+            }
+          } catch (discoverErr) {
+            const msg = discoverErr.response?.data?.message || discoverErr.response?.data?.error?.message || discoverErr.message || 'Failed to scan Meta Business accounts.';
+            setScanError(msg);
+          } finally {
+            setScanning(false);
+          }
+        } else if (event.data?.type === 'FB_OAUTH_ERROR') {
+          window.removeEventListener('message', handlePopupMessage);
+          setScanError(`Facebook Login cancelled or failed: ${event.data.error}`);
+          setScanning(false);
+        }
+      };
+
+      window.addEventListener('message', handlePopupMessage);
+
+    } catch (err) {
+      setScanError(err.message || 'Failed to initialize Facebook Login popup.');
+      setScanning(false);
+    }
+  };
+
+  /**
+   * Tareeqa 1: Permanent System User Token Scan
+   */
+  const handleTokenScan = async (e) => {
     if (e) e.preventDefault();
     if (!token.trim()) {
       setScanError('Please enter a valid Meta System User Permanent Access Token.');
@@ -184,19 +294,19 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
             <div className="d-flex align-items-center gap-3">
               <div
                 className="rounded-3 d-flex align-items-center justify-content-center shadow-sm"
-                style={{ width: '44px', height: '44px', backgroundColor: '#25D366', color: '#fff', fontSize: '1.4rem' }}
+                style={{ width: '44px', height: '44px', backgroundColor: '#1877F2', color: '#fff', fontSize: '1.4rem' }}
               >
                 <i className="bi bi-diagram-3-fill"></i>
               </div>
               <div>
                 <h5 className="modal-title fw-bold mb-0 text-white d-flex align-items-center gap-2">
-                  <span>Meta System User Multi-App Sync</span>
-                  <span className="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 fs-xs fw-normal px-2 py-1">
-                    Tareeqa 1: 1-Click Discovery
+                  <span>1-Click Multi-App Number Discovery</span>
+                  <span className="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 fs-xs fw-normal px-2 py-1">
+                    Meta Business Portfolio
                   </span>
                 </h5>
                 <p className="text-secondary mb-0 small" style={{ color: '#94a3b8' }}>
-                  Scan and connect all WhatsApp numbers across multiple Meta Apps & WABAs in your Business Manager
+                  Discover and connect all WhatsApp numbers across multiple Meta Apps & WABAs in your Business Portfolio
                 </p>
               </div>
             </div>
@@ -213,7 +323,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
             <div className="d-flex align-items-center justify-content-between small">
               <div className={`d-flex align-items-center gap-2 ${step >= 1 ? 'fw-bold text-primary' : 'text-muted'}`}>
                 <span className={`badge rounded-pill ${step >= 1 ? 'bg-primary' : 'bg-secondary'}`}>1</span>
-                <span>Scan Portfolio</span>
+                <span>Discover Numbers</span>
               </div>
               <i className="bi bi-chevron-right text-muted"></i>
               <div className={`d-flex align-items-center gap-2 ${step >= 2 ? 'fw-bold text-primary' : 'text-muted'}`}>
@@ -231,22 +341,9 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
           {/* Modal Body */}
           <div className="modal-body p-4">
             
-            {/* STEP 1: TOKEN INPUT & SCAN */}
+            {/* STEP 1: DISCOVER (Facebook Login vs System User Token) */}
             {step === 1 && (
               <div>
-                <div className="alert alert-info border-info border-opacity-25 bg-info bg-opacity-10 rounded-3 mb-4">
-                  <div className="d-flex gap-2">
-                    <i className="bi bi-info-circle-fill text-info fs-5 mt-1"></i>
-                    <div>
-                      <strong className="d-block mb-1">How Tareeqa 1 works:</strong>
-                      <span className="small text-muted">
-                        Meta Business Manager ke <strong>System User</strong> ke paas aapke sabhi Meta Apps aur WABAs ka central access hota hai. 
-                        Yahan permanent token daalte hi software aapke portfolio ke sabhi numbers ko <strong>1-Click</strong> me dhoond lega!
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
                 {scanError && (
                   <div className="alert alert-danger rounded-3 mb-4 d-flex align-items-center gap-2">
                     <i className="bi bi-exclamation-triangle-fill fs-5"></i>
@@ -254,106 +351,189 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                   </div>
                 )}
 
-                <form onSubmit={handleScan}>
-                  <div className="mb-3">
-                    <label className="form-label fw-bold d-flex justify-content-between align-items-center">
-                      <span>Meta Permanent System User Access Token</span>
-                      {detectedToken && (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-link p-0 text-decoration-none"
-                          onClick={() => setToken(detectedToken)}
-                        >
-                          Use Server Detected Token
-                        </button>
-                      )}
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light text-muted">
-                        <i className="bi bi-key-fill"></i>
-                      </span>
-                      <input
-                        type={showToken ? 'text' : 'password'}
-                        className="form-control font-monospace"
-                        placeholder="EAAG... (Permanent System User Token)"
-                        value={token}
-                        onChange={(e) => setToken(e.target.value)}
-                        disabled={scanning}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={() => setShowToken(!showToken)}
-                        tabIndex="-1"
-                      >
-                        <i className={`bi ${showToken ? 'bi-eye-slash-fill' : 'bi-eye-fill'}`}></i>
-                      </button>
-                    </div>
-                    <div className="form-text">
-                      Must have permissions: <code>whatsapp_business_messaging</code> and <code>whatsapp_business_management</code>.
-                    </div>
-                  </div>
-
-                  <div className="d-flex justify-content-between align-items-center pt-2">
+                {/* Tabs to Choose Method */}
+                <ul className="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-3 border">
+                  <li className="nav-item">
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => setShowGuide(!showGuide)}
+                      className={`nav-link py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 ${activeTab === 'facebook' ? 'active shadow-sm' : ''}`}
+                      onClick={() => { setActiveTab('facebook'); setScanError(null); }}
+                      style={activeTab === 'facebook' ? { backgroundColor: '#1877F2' } : {}}
                     >
-                      <i className="bi bi-question-circle me-1"></i>
-                      {showGuide ? 'Hide Instructions' : 'How to get System User Token? (Help)'}
+                      <i className="bi bi-facebook fs-5"></i>
+                      <span>Tareeqa 2: Log in with Facebook (0% Token - No Copy-Paste)</span>
+                      <span className="badge bg-warning text-dark ms-1">Recommended</span>
                     </button>
-
+                  </li>
+                  <li className="nav-item">
                     <button
-                      type="submit"
-                      disabled={scanning || !token.trim()}
-                      className="btn btn-success px-4 py-2 fw-semibold d-flex align-items-center gap-2 shadow-sm"
+                      type="button"
+                      className={`nav-link py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 ${activeTab === 'token' ? 'active shadow-sm' : ''}`}
+                      onClick={() => { setActiveTab('token'); setScanError(null); }}
                     >
-                      {scanning ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm" role="status"></span>
-                          <span>Scanning Business Manager...</span>
-                        </>
-                      ) : (
-                        <>
-                          <i className="bi bi-search"></i>
-                          <span>Scan All Apps & Numbers</span>
-                        </>
-                      )}
+                      <i className="bi bi-key-fill"></i>
+                      <span>Tareeqa 1: System User Permanent Token</span>
                     </button>
-                  </div>
-                </form>
+                  </li>
+                </ul>
 
-                {/* Guide Accordion */}
-                {showGuide && (
-                  <div className="mt-4 p-3 bg-light rounded-3 border">
-                    <h6 className="fw-bold mb-2">
-                      <i className="bi bi-book-half me-1 text-primary"></i>
-                      System User Token Kaise Banayein (30 Seconds Step-by-Step):
-                    </h6>
-                    <ol className="small mb-0 ps-3">
-                      <li className="mb-1">
-                        Meta Business Settings me jayein: 
-                        <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noreferrer" className="ms-1 fw-semibold text-decoration-none">
-                          business.facebook.com/settings/system-users <i className="bi bi-box-arrow-up-right"></i>
-                        </a>
-                      </li>
-                      <li className="mb-1"><strong>Add System User</strong> par click karein aur Role <strong>Admin</strong> chunein.</li>
-                      <li className="mb-1">
-                        <strong>Assign Assets</strong> par click karein:
-                        <ul className="mt-1 ps-3">
-                          <li><strong>WhatsApp Accounts</strong> select karein aur apne sabhi WABAs / Apps ko select karke <strong>Full Control (Manage WhatsApp Account)</strong> ON karein.</li>
-                        </ul>
-                      </li>
-                      <li className="mb-1">
-                        <strong>Generate New Token</strong> par click karein:
-                        <ul className="mt-1 ps-3">
-                          <li>Token Expiration: <strong>Never (Permanent)</strong> chunein.</li>
-                          <li>Permissions tick karein: <code>whatsapp_business_messaging</code> aur <code>whatsapp_business_management</code>.</li>
-                        </ul>
-                      </li>
-                      <li>Token copy karke yahan upar paste karein aur <strong>"Scan All Apps & Numbers"</strong> dabayein!</li>
-                    </ol>
+                {/* TAB 1: FACEBOOK LOGIN (ZERO TOKEN) */}
+                {activeTab === 'facebook' && (
+                  <div className="text-center py-4 px-2">
+                    <div className="rounded-circle d-inline-flex p-4 bg-primary bg-opacity-10 text-primary mb-3 shadow-xs">
+                      <i className="bi bi-facebook" style={{ fontSize: '3rem', color: '#1877F2' }}></i>
+                    </div>
+
+                    <h4 className="fw-bold mb-2">1-Click Meta Business Portfolio Scan</h4>
+                    <p className="text-muted mx-auto mb-4" style={{ maxWidth: '580px' }}>
+                      Koi bhi token copy-paste karne ki zaroorat nahi hai. Niche diye gaye button par click karein, official Facebook popup me login karein, aur aapke sabhi Apps aur WABAs ke saare WhatsApp numbers automatic screen par aa jayenge!
+                    </p>
+
+                    <div className="d-flex justify-content-center mb-4">
+                      <button
+                        type="button"
+                        disabled={scanning}
+                        onClick={handleFacebookLoginScan}
+                        className="btn btn-primary btn-lg px-5 py-3 fw-bold shadow d-flex align-items-center gap-3 rounded-3"
+                        style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', fontSize: '1.15rem' }}
+                      >
+                        {scanning ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Opening Facebook Login & Scanning...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-facebook fs-4"></i>
+                            <span>Continue with Facebook to Scan All Numbers</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="d-flex justify-content-center align-items-center gap-4 text-muted small">
+                      <div className="d-flex align-items-center gap-1">
+                        <i className="bi bi-shield-lock-fill text-success"></i>
+                        <span>Zero Token Copy-Paste</span>
+                      </div>
+                      <div className="d-flex align-items-center gap-1">
+                        <i className="bi bi-check-circle-fill text-success"></i>
+                        <span>All Meta Apps Scanned</span>
+                      </div>
+                      <div className="d-flex align-items-center gap-1">
+                        <i className="bi bi-lightning-charge-fill text-warning"></i>
+                        <span>100% Automated</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: SYSTEM USER TOKEN (TAREEQA 1) */}
+                {activeTab === 'token' && (
+                  <div>
+                    <div className="alert alert-info border-info border-opacity-25 bg-info bg-opacity-10 rounded-3 mb-4">
+                      <div className="d-flex gap-2">
+                        <i className="bi bi-info-circle-fill text-info fs-5 mt-1"></i>
+                        <div>
+                          <strong className="d-block mb-1">System User Permanent Token:</strong>
+                          <span className="small text-muted">
+                            Agar aapke paas Meta Business Manager ka Permanent System User Token hai, toh yahan paste karein. Yeh token kabhi expire nahi hota aur sabhi Apps ke numbers ko scan karta hai.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleTokenScan}>
+                      <div className="mb-3">
+                        <label className="form-label fw-bold d-flex justify-content-between align-items-center">
+                          <span>Meta Permanent System User Access Token</span>
+                          {detectedToken && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0 text-decoration-none"
+                              onClick={() => setToken(detectedToken)}
+                            >
+                              Use Server Config Token
+                            </button>
+                          )}
+                        </label>
+                        <div className="input-group">
+                          <span className="input-group-text bg-light text-muted">
+                            <i className="bi bi-key-fill"></i>
+                          </span>
+                          <input
+                            type={showToken ? 'text' : 'password'}
+                            className="form-control font-monospace"
+                            placeholder="EAAG... (Permanent System User Token)"
+                            value={token}
+                            onChange={(e) => setToken(e.target.value)}
+                            disabled={scanning}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            onClick={() => setShowToken(!showToken)}
+                            tabIndex="-1"
+                          >
+                            <i className={`bi ${showToken ? 'bi-eye-slash-fill' : 'bi-eye-fill'}`}></i>
+                          </button>
+                        </div>
+                        <div className="form-text">
+                          Required scopes: <code>whatsapp_business_messaging</code> and <code>whatsapp_business_management</code>.
+                        </div>
+                      </div>
+
+                      <div className="d-flex justify-content-between align-items-center pt-2">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => setShowGuide(!showGuide)}
+                        >
+                          <i className="bi bi-question-circle me-1"></i>
+                          {showGuide ? 'Hide Instructions' : 'How to get System User Token? (Help)'}
+                        </button>
+
+                        <button
+                          type="submit"
+                          disabled={scanning || !token.trim()}
+                          className="btn btn-success px-4 py-2 fw-semibold d-flex align-items-center gap-2 shadow-sm"
+                        >
+                          {scanning ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm" role="status"></span>
+                              <span>Scanning Business Manager...</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="bi bi-search"></i>
+                              <span>Scan With This Token</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+
+                    {/* Guide Accordion */}
+                    {showGuide && (
+                      <div className="mt-4 p-3 bg-light rounded-3 border">
+                        <h6 className="fw-bold mb-2">
+                          <i className="bi bi-book-half me-1 text-primary"></i>
+                          System User Token Kaise Banayein:
+                        </h6>
+                        <ol className="small mb-0 ps-3">
+                          <li className="mb-1">
+                            Meta Business Settings me jayein: 
+                            <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noreferrer" className="ms-1 fw-semibold text-decoration-none">
+                              business.facebook.com/settings/system-users <i className="bi bi-box-arrow-up-right"></i>
+                            </a>
+                          </li>
+                          <li className="mb-1"><strong>Add System User</strong> par click karein aur Role <strong>Admin</strong> chunein.</li>
+                          <li className="mb-1"><strong>Assign Assets</strong> me WhatsApp Accounts ko <strong>Full Control</strong> dein.</li>
+                          <li className="mb-1"><strong>Generate New Token</strong> me Never Expiration aur permissions select karein.</li>
+                          <li>Token copy karke yahan upar paste karein aur Scan karein!</li>
+                        </ol>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -646,7 +826,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                   className="btn btn-outline-secondary"
                   onClick={() => setStep(1)}
                 >
-                  <i className="bi bi-arrow-left me-1"></i> Change Token
+                  <i className="bi bi-arrow-left me-1"></i> Rescan Accounts
                 </button>
                 <div className="d-flex align-items-center gap-2">
                   <span className="text-muted small me-2">
