@@ -162,6 +162,7 @@ export async function listAllWhatsAppAccounts() {
       wa.status,
       wa.connection_status,
       wa.is_primary,
+      COALESCE(wa.admin_status, 'ACTIVE') as admin_status,
       wa.last_verified_at,
       wa.webhook_subscribed_at,
       wa.created_at
@@ -176,9 +177,193 @@ export async function listAllWhatsAppAccounts() {
   }));
 }
 
+let ensuredColumn = false;
+async function ensureAdminStatusColumn() {
+  if (ensuredColumn || isUsingFallback()) return;
+  try {
+    await executeQuery(`ALTER TABLE whatsapp_accounts ADD COLUMN admin_status VARCHAR(20) DEFAULT 'ACTIVE'`);
+    ensuredColumn = true;
+  } catch (_) {
+    ensuredColumn = true;
+  }
+}
+
+/**
+ * Super Admin: Get Number Allocation & Approval Matrix (Users + Allotted Numbers)
+ */
+export async function getNumberAllocationMatrix() {
+  await ensureAdminStatusColumn();
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const businesses = (store.businesses || []).map(b => {
+      const owner = (store.users || []).find(u => u.business_id === b.id && (u.role === 'owner' || u.role === 'admin')) || 
+                    (store.users || []).find(u => u.business_id === b.id) || null;
+      const accounts = (store.whatsapp_accounts || [])
+        .filter(a => a.business_id === b.id)
+        .map(a => ({
+          ...a,
+          admin_status: a.admin_status || 'ACTIVE'
+        }));
+
+      return {
+        id: b.id,
+        name: b.name,
+        slug: b.slug,
+        owner_name: owner?.name || 'N/A',
+        owner_email: owner?.email || 'N/A',
+        owner_role: owner?.role || 'owner',
+        status: b.status || 'active',
+        accounts_count: accounts.length,
+        active_accounts_count: accounts.filter(a => a.admin_status === 'ACTIVE').length,
+        accounts
+      };
+    });
+
+    const unassignedAccounts = (store.whatsapp_accounts || [])
+      .filter(a => !a.business_id)
+      .map(a => ({
+        ...a,
+        admin_status: a.admin_status || 'ACTIVE'
+      }));
+
+    return { businesses, unassignedAccounts };
+  }
+
+  // Real MySQL implementation
+  const businesses = await executeQuery(`
+    SELECT 
+      b.id,
+      b.name,
+      b.slug,
+      b.status,
+      COALESCE(u.name, 'N/A') as owner_name,
+      COALESCE(u.email, 'N/A') as owner_email,
+      COALESCE(u.role, 'owner') as owner_role
+    FROM businesses b
+    LEFT JOIN users u ON b.id = u.business_id AND u.role IN ('owner', 'admin')
+    GROUP BY b.id
+    ORDER BY b.id ASC
+  `);
+
+  const allAccounts = await executeQuery(`
+    SELECT 
+      wa.id,
+      wa.business_id,
+      b.name as business_name,
+      wa.meta_business_id,
+      wa.waba_id,
+      wa.phone_number_id,
+      wa.phone_number,
+      wa.display_name,
+      wa.verified_name,
+      wa.quality_rating,
+      wa.messaging_limit_tier,
+      wa.status,
+      wa.connection_status,
+      wa.is_primary,
+      COALESCE(wa.admin_status, 'ACTIVE') as admin_status,
+      wa.last_verified_at,
+      wa.created_at
+    FROM whatsapp_accounts wa
+    LEFT JOIN businesses b ON wa.business_id = b.id
+    ORDER BY wa.created_at DESC
+  `);
+
+  const businessMap = new Map();
+  businesses.forEach(b => {
+    businessMap.set(b.id, {
+      ...b,
+      accounts_count: 0,
+      active_accounts_count: 0,
+      accounts: []
+    });
+  });
+
+  const unassignedAccounts = [];
+
+  allAccounts.forEach(acc => {
+    if (acc.business_id && businessMap.has(acc.business_id)) {
+      const b = businessMap.get(acc.business_id);
+      b.accounts.push(acc);
+      b.accounts_count++;
+      if (acc.admin_status === 'ACTIVE') {
+        b.active_accounts_count++;
+      }
+    } else {
+      unassignedAccounts.push(acc);
+    }
+  });
+
+  return {
+    businesses: Array.from(businessMap.values()),
+    unassignedAccounts
+  };
+}
+
+/**
+ * Super Admin: Update Number Active / Deactive Status
+ */
+export async function updateWhatsAppAccountAdminStatus(accountId, adminStatus) {
+  await ensureAdminStatusColumn();
+  const numAccountId = Number(accountId);
+  const normalizedStatus = adminStatus === 'DEACTIVE' ? 'DEACTIVE' : 'ACTIVE';
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const acc = (store.whatsapp_accounts || []).find(a => a.id === numAccountId);
+    if (!acc) {
+      const err = new Error('WhatsApp Account not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    acc.admin_status = normalizedStatus;
+    saveMemoryStore();
+    return { id: numAccountId, admin_status: normalizedStatus };
+  }
+
+  await executeQuery(
+    `UPDATE whatsapp_accounts SET admin_status = ? WHERE id = ?`,
+    [normalizedStatus, numAccountId]
+  );
+
+  return { id: numAccountId, admin_status: normalizedStatus };
+}
+
+/**
+ * Super Admin: Reassign WhatsApp Account to a Different Business / Client
+ */
+export async function reassignWhatsAppAccount(accountId, targetBusinessId) {
+  const numAccountId = Number(accountId);
+  const numBusinessId = targetBusinessId ? Number(targetBusinessId) : null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const acc = (store.whatsapp_accounts || []).find(a => a.id === numAccountId);
+    if (!acc) {
+      const err = new Error('WhatsApp Account not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    acc.business_id = numBusinessId;
+    saveMemoryStore();
+    return { id: numAccountId, business_id: numBusinessId };
+  }
+
+  await executeQuery(
+    `UPDATE whatsapp_accounts SET business_id = ?, is_primary = FALSE WHERE id = ?`,
+    [numBusinessId, numAccountId]
+  );
+
+  return { id: numAccountId, business_id: numBusinessId };
+}
+
 export default {
   getSuperAdminDashboard,
   listAllBusinesses,
   listAllWhatsAppAccounts,
-  updateBusinessStatus
+  updateBusinessStatus,
+  getNumberAllocationMatrix,
+  updateWhatsAppAccountAdminStatus,
+  reassignWhatsAppAccount
 };

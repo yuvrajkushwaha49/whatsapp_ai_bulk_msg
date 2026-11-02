@@ -35,6 +35,36 @@ router.get('/whatsapp-accounts', async (req, res, next) => {
   }
 });
 
+// Number Allocation & Approval Matrix (Users + Numbers)
+router.get('/number-allocation-matrix', async (req, res, next) => {
+  try {
+    const data = await adminService.getNumberAllocationMatrix();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/whatsapp-accounts/:id/admin-status', async (req, res, next) => {
+  try {
+    const { admin_status } = req.body;
+    const result = await adminService.updateWhatsAppAccountAdminStatus(req.params.id, admin_status);
+    res.json({ success: true, message: `WhatsApp account status updated to ${admin_status}`, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/whatsapp-accounts/:id/reassign', async (req, res, next) => {
+  try {
+    const { business_id } = req.body;
+    const result = await adminService.reassignWhatsAppAccount(req.params.id, business_id);
+    res.json({ success: true, message: 'WhatsApp account reassigned successfully', data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch('/businesses/:id/status', async (req, res, next) => {
   try {
     const result = await adminService.updateBusinessStatus(req.params.id, req.body.status);

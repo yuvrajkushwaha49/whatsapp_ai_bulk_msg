@@ -873,15 +873,16 @@ export async function listAccounts(businessId) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
     return (store.whatsapp_accounts || [])
-      .filter(a => a.business_id === Number(businessId))
+      .filter(a => a.business_id === Number(businessId) && a.admin_status !== 'DEACTIVE')
       .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
       .map(sanitizeAccount);
   }
   const rows = await executeQuery(
     `SELECT id, business_id, meta_business_id, waba_id, phone_number_id, phone_number, display_name, verified_name, 
-            quality_rating, messaging_limit_tier, status, connection_status, is_primary, last_verified_at, webhook_subscribed_at, created_at 
+            quality_rating, messaging_limit_tier, status, connection_status, is_primary, last_verified_at, webhook_subscribed_at, created_at,
+            COALESCE(admin_status, 'ACTIVE') as admin_status
      FROM whatsapp_accounts 
-     WHERE business_id = ? 
+     WHERE business_id = ? AND (admin_status IS NULL OR admin_status != 'DEACTIVE')
      ORDER BY is_primary DESC, created_at DESC`,
     [businessId]
   );

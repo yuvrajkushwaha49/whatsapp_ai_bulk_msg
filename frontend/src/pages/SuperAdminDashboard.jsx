@@ -28,11 +28,93 @@ export default function SuperAdminDashboard() {
   const [monitoring, setMonitoring] = useState(null);
   const [loadingMonitoring, setLoadingMonitoring] = useState(false);
 
+  // Number Allocation & Approval Matrix state
+  const [matrixData, setMatrixData] = useState({ businesses: [], unassignedAccounts: [] });
+  const [loadingMatrix, setLoadingMatrix] = useState(false);
+  const [matrixSearch, setMatrixSearch] = useState('');
+  const [selectedClientDetail, setSelectedClientDetail] = useState(null);
+  const [togglingAccountId, setTogglingAccountId] = useState(null);
+  const [reassigningAccountId, setReassigningAccountId] = useState(null);
+  const [targetBusinessMap, setTargetBusinessMap] = useState({});
+  const [poolAllotBusinessId, setPoolAllotBusinessId] = useState({});
+
   useEffect(() => {
     fetchAdminData();
     fetchPlatformMetaConfig();
     fetchMonitoring();
+    fetchMatrixData();
   }, []);
+
+  const fetchMatrixData = async () => {
+    try {
+      setLoadingMatrix(true);
+      const res = await api.get('/admin/number-allocation-matrix');
+      if (res.data?.success) {
+        setMatrixData(res.data.data);
+        setSelectedClientDetail(prev => {
+          if (!prev) return null;
+          return res.data.data.businesses.find(b => b.id === prev.id) || prev;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load Number Allocation Matrix', err);
+    } finally {
+      setLoadingMatrix(false);
+    }
+  };
+
+  const handleToggleAdminStatus = async (accountId, newStatus) => {
+    try {
+      setTogglingAccountId(accountId);
+      const res = await api.patch(`/admin/whatsapp-accounts/${accountId}/admin-status`, {
+        adminStatus: newStatus
+      });
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: `WhatsApp number status changed to ${newStatus}. ${newStatus === 'ACTIVE' ? '🟢 It is now VISIBLE to the client.' : '🔴 It is now DEACTIVATED and hidden from the client.'}`
+        });
+        await fetchMatrixData();
+        await fetchAdminData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || 'Failed to update WhatsApp number status'
+      });
+    } finally {
+      setTogglingAccountId(null);
+    }
+  };
+
+  const handleReassignAccount = async (accountId, targetBizId) => {
+    try {
+      setReassigningAccountId(accountId);
+      const res = await api.patch(`/admin/whatsapp-accounts/${accountId}/reassign`, {
+        targetBusinessId: targetBizId ? Number(targetBizId) : null
+      });
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: res.data.message || 'WhatsApp number successfully reassigned!'
+        });
+        setTargetBusinessMap(prev => {
+          const next = { ...prev };
+          delete next[accountId];
+          return next;
+        });
+        await fetchMatrixData();
+        await fetchAdminData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || 'Failed to reassign WhatsApp account'
+      });
+    } finally {
+      setReassigningAccountId(null);
+    }
+  };
 
   const fetchAdminData = async () => {
     try {
@@ -152,7 +234,7 @@ export default function SuperAdminDashboard() {
         </div>
         <div className="d-flex align-items-center gap-2">
           <button
-            onClick={() => { fetchAdminData(); fetchPlatformMetaConfig(); fetchMonitoring(); }}
+            onClick={() => { fetchAdminData(); fetchPlatformMetaConfig(); fetchMonitoring(); fetchMatrixData(); }}
             className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
           >
             <i className="bi bi-arrow-clockwise"></i>
@@ -176,6 +258,20 @@ export default function SuperAdminDashboard() {
             onClick={() => setActiveTab('overview')}
           >
             <i className="bi bi-grid-fill me-2"></i>Platform Overview
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link fw-semibold px-3 py-2 ${activeTab === 'number_matrix' ? 'active bg-primary text-white' : 'text-dark'}`}
+            onClick={() => { setActiveTab('number_matrix'); fetchMatrixData(); }}
+          >
+            <i className="bi bi-diagram-3-fill me-2 text-warning"></i>
+            Number Allocation & Approval Matrix
+            {matrixData?.businesses?.length > 0 && (
+              <span className={`badge ms-2 ${activeTab === 'number_matrix' ? 'bg-light text-primary' : 'bg-primary text-white'}`}>
+                {matrixData.businesses.reduce((sum, b) => sum + (b.whatsapp_accounts?.length || 0), 0)} Allotted
+              </span>
+            )}
           </button>
         </li>
         <li className="nav-item">
@@ -204,7 +300,7 @@ export default function SuperAdminDashboard() {
             className={`nav-link fw-semibold px-3 py-2 ${activeTab === 'whatsapp_accounts' ? 'active' : 'text-dark'}`}
             onClick={() => setActiveTab('whatsapp_accounts')}
           >
-            <i className="bi bi-whatsapp me-2"></i>Client Accounts ({whatsappAccounts.length})
+            <i className="bi bi-whatsapp me-2"></i>Raw Accounts ({whatsappAccounts.length})
           </button>
         </li>
       </ul>
@@ -723,6 +819,601 @@ export default function SuperAdminDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: NUMBER ALLOCATION & APPROVAL MATRIX */}
+      {activeTab === 'number_matrix' && (
+        <div>
+          {/* Summary KPI Cards */}
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-sm-6 col-xl-3">
+              <div className="stat-card">
+                <div className="stat-icon-wrapper stat-icon-blue">
+                  <i className="bi bi-people-fill"></i>
+                </div>
+                <div>
+                  <div className="stat-label">Total Clients / Businesses</div>
+                  <div className="stat-value">{matrixData.businesses?.length || 0}</div>
+                  <div className="small text-muted">Active tenants with matrix rules</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-12 col-sm-6 col-xl-3">
+              <div className="stat-card">
+                <div className="stat-icon-wrapper stat-icon-green">
+                  <i className="bi bi-whatsapp"></i>
+                </div>
+                <div>
+                  <div className="stat-label">Allotted Numbers</div>
+                  <div className="stat-value">
+                    {(matrixData.businesses || []).reduce((acc, b) => acc + (b.whatsapp_accounts?.length || 0), 0)}
+                  </div>
+                  <div className="small text-success">Assigned across all clients</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-12 col-sm-6 col-xl-3">
+              <div className="stat-card">
+                <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                  <i className="bi bi-check-circle-fill"></i>
+                </div>
+                <div>
+                  <div className="stat-label">Active & Approved</div>
+                  <div className="stat-value text-success">
+                    {(matrixData.businesses || []).flatMap(b => b.whatsapp_accounts || []).filter(a => a.admin_status !== 'DEACTIVE').length}
+                  </div>
+                  <div className="small text-muted">Visible in client dashboards</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-12 col-sm-6 col-xl-3">
+              <div className="stat-card">
+                <div className="stat-icon-wrapper" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                  <i className="bi bi-eye-slash-fill"></i>
+                </div>
+                <div>
+                  <div className="stat-label">Deactive / Hidden</div>
+                  <div className="stat-value text-danger">
+                    {(matrixData.businesses || []).flatMap(b => b.whatsapp_accounts || []).filter(a => a.admin_status === 'DEACTIVE').length}
+                  </div>
+                  <div className="small text-danger">Completely blocked from tenants</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Matrix Main Card */}
+          <div className="cf-card mb-4">
+            <div className="cf-card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+              <div>
+                <h5 className="mb-1 d-flex align-items-center gap-2">
+                  <i className="bi bi-diagram-3-fill text-primary"></i>
+                  <span>WhatsApp Number Allocation & Approval Matrix</span>
+                </h5>
+                <p className="text-muted small mb-0">
+                  SuperAdmin controls which WhatsApp numbers each client can see and use. Open the Detail Page to activate, deactivate, or reassign numbers.
+                </p>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <div className="input-group input-group-sm" style={{ width: '280px' }}>
+                  <span className="input-group-text bg-white border-end-0">
+                    <i className="bi bi-search text-muted"></i>
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0 ps-0"
+                    placeholder="Search name, business, phone..."
+                    value={matrixSearch}
+                    onChange={(e) => setMatrixSearch(e.target.value)}
+                  />
+                  {matrixSearch && (
+                    <button className="btn btn-outline-secondary" onClick={() => setMatrixSearch('')}>
+                      <i className="bi bi-x"></i>
+                    </button>
+                  )}
+                </div>
+                <button
+                  className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+                  onClick={fetchMatrixData}
+                  disabled={loadingMatrix}
+                >
+                  <i className={`bi bi-arrow-clockwise ${loadingMatrix ? 'spin' : ''}`}></i>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="table-responsive">
+              <table className="table cf-table align-middle">
+                <thead>
+                  <tr>
+                    <th style={{ width: '26%' }}>Client & Business</th>
+                    <th style={{ width: '42%' }}>Allotted WhatsApp Numbers</th>
+                    <th style={{ width: '16%' }}>Allocation Status</th>
+                    <th style={{ width: '16%' }} className="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingMatrix ? (
+                    <tr>
+                      <td colSpan="4" className="text-center py-5">
+                        <div className="spinner-border text-primary" role="status"></div>
+                        <div className="small text-muted mt-2">Loading Allocation Matrix...</div>
+                      </td>
+                    </tr>
+                  ) : matrixData.businesses?.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="text-center text-muted py-5">
+                        No clients registered yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    (matrixData.businesses || [])
+                      .filter(b => {
+                        if (!matrixSearch.trim()) return true;
+                        const q = matrixSearch.toLowerCase();
+                        const matchesOwner = (b.owner_name || '').toLowerCase().includes(q);
+                        const matchesEmail = (b.owner_email || '').toLowerCase().includes(q);
+                        const matchesBiz = (b.name || '').toLowerCase().includes(q);
+                        const matchesPhone = (b.whatsapp_accounts || []).some(wa =>
+                          (wa.display_phone_number || '').toLowerCase().includes(q) ||
+                          (wa.account_name || '').toLowerCase().includes(q) ||
+                          (wa.verified_name || '').toLowerCase().includes(q)
+                        );
+                        return matchesOwner || matchesEmail || matchesBiz || matchesPhone;
+                      })
+                      .map(biz => {
+                        const totalAccounts = biz.whatsapp_accounts?.length || 0;
+                        const activeAccounts = (biz.whatsapp_accounts || []).filter(a => a.admin_status !== 'DEACTIVE').length;
+                        const deactiveAccounts = totalAccounts - activeAccounts;
+
+                        return (
+                          <tr key={biz.id}>
+                            <td>
+                              <div className="d-flex align-items-center gap-2">
+                                <div
+                                  className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm"
+                                  style={{
+                                    width: '38px',
+                                    height: '38px',
+                                    backgroundColor: '#4f46e5',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {(biz.owner_name || biz.name || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className="fw-bold text-dark d-flex align-items-center gap-2">
+                                    <span>{biz.owner_name || 'No Owner Name'}</span>
+                                    {biz.owner_role && (
+                                      <span className="badge bg-light text-secondary border small">
+                                        {biz.owner_role}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="small text-muted">{biz.owner_email || 'No email registered'}</div>
+                                  <div className="small text-primary fw-medium">
+                                    <i className="bi bi-building me-1"></i>
+                                    {biz.name} <code className="text-muted small">#{biz.id}</code>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td>
+                              {totalAccounts === 0 ? (
+                                <span className="badge bg-light text-muted border py-2 px-3 fst-italic">
+                                  <i className="bi bi-info-circle me-1"></i> No WhatsApp numbers allotted yet
+                                </span>
+                              ) : (
+                                <div className="d-flex flex-wrap gap-2">
+                                  {biz.whatsapp_accounts.map(acc => {
+                                    const isDeactive = acc.admin_status === 'DEACTIVE';
+                                    return (
+                                      <div
+                                        key={acc.id}
+                                        className={`p-2 rounded-2 border d-inline-flex align-items-center gap-2 shadow-sm ${
+                                          isDeactive
+                                            ? 'bg-danger-subtle border-danger text-danger'
+                                            : 'bg-success-subtle border-success text-success'
+                                        }`}
+                                        style={{ fontSize: '0.82rem' }}
+                                      >
+                                        <i className={`bi ${isDeactive ? 'bi-eye-slash-fill text-danger' : 'bi-whatsapp text-success'}`}></i>
+                                        <div>
+                                          <div className="fw-bold lh-1">
+                                            {acc.display_phone_number || acc.account_name || 'Unset phone'}
+                                          </div>
+                                          <div className="small opacity-75" style={{ fontSize: '0.72rem' }}>
+                                            {acc.verified_name || acc.account_name || 'WhatsApp'}
+                                          </div>
+                                        </div>
+                                        <span
+                                          className={`badge ms-1 ${
+                                            isDeactive ? 'bg-danger text-white' : 'bg-success text-white'
+                                          }`}
+                                          style={{ fontSize: '0.65rem' }}
+                                        >
+                                          {isDeactive ? 'DEACTIVE' : 'ACTIVE'}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </td>
+
+                            <td>
+                              <div>
+                                <span className="fw-bold">{totalAccounts}</span> Allotted
+                              </div>
+                              <div className="small d-flex gap-2 mt-1">
+                                <span className="text-success fw-medium">
+                                  <i className="bi bi-check-circle-fill me-1"></i>{activeAccounts} Active
+                                </span>
+                                {deactiveAccounts > 0 && (
+                                  <span className="text-danger fw-medium">
+                                    <i className="bi bi-eye-slash-fill me-1"></i>{deactiveAccounts} Deactive
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="text-end">
+                              <button
+                                className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 shadow-sm px-3"
+                                onClick={() => setSelectedClientDetail(biz)}
+                              >
+                                <i className="bi bi-sliders2-vertical"></i>
+                                <span>Detail & Control</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Unassigned Pool Numbers Section (if any) */}
+          {matrixData.unassignedAccounts?.length > 0 && (
+            <div className="cf-card mb-4 border-warning">
+              <div className="cf-card-header bg-warning-subtle d-flex align-items-center justify-content-between">
+                <h6 className="mb-0 text-dark fw-bold d-flex align-items-center gap-2">
+                  <i className="bi bi-exclamation-triangle-fill text-warning"></i>
+                  Unassigned Numbers in System Pool ({matrixData.unassignedAccounts.length})
+                </h6>
+                <span className="badge bg-warning text-dark">Awaiting Business Allotment</span>
+              </div>
+              <div className="p-3">
+                <p className="small text-muted mb-3">
+                  These numbers are registered in the platform database but currently not assigned to any client business. SuperAdmin can assign them below.
+                </p>
+                <div className="table-responsive">
+                  <table className="table cf-table align-middle">
+                    <thead>
+                      <tr>
+                        <th>Display Name & Phone</th>
+                        <th>Phone ID / WABA</th>
+                        <th>Quality</th>
+                        <th>Allot to Client</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {matrixData.unassignedAccounts.map(unacc => (
+                        <tr key={unacc.id}>
+                          <td>
+                            <div className="fw-bold">{unacc.display_phone_number || unacc.account_name}</div>
+                            <div className="small text-muted">{unacc.verified_name}</div>
+                          </td>
+                          <td>
+                            <code className="small">{unacc.phone_number_id}</code>
+                          </td>
+                          <td>
+                            <span className="badge bg-light text-dark border">{unacc.quality_rating || 'UNKNOWN'}</span>
+                          </td>
+                          <td>
+                            <select
+                              className="form-select form-select-sm"
+                              value={poolAllotBusinessId[unacc.id] || ''}
+                              onChange={(e) => setPoolAllotBusinessId(prev => ({ ...prev, [unacc.id]: e.target.value }))}
+                              style={{ maxWidth: '240px' }}
+                            >
+                              <option value="">Select Client / Business...</option>
+                              {(matrixData.businesses || []).map(b => (
+                                <option key={b.id} value={b.id}>
+                                  {b.owner_name ? `${b.owner_name} (${b.name})` : b.name}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-success btn-sm d-flex align-items-center gap-1"
+                              disabled={!poolAllotBusinessId[unacc.id] || reassigningAccountId === unacc.id}
+                              onClick={() => handleReassignAccount(unacc.id, poolAllotBusinessId[unacc.id])}
+                            >
+                              {reassigningAccountId === unacc.id ? (
+                                <span className="spinner-border spinner-border-sm"></span>
+                              ) : (
+                                <i className="bi bi-check2-circle"></i>
+                              )}
+                              <span>Allot Number</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CLIENT NUMBER ALLOCATION DETAIL MODAL */}
+      {selectedClientDetail && (
+        <div
+          className="modal show d-block"
+          tabIndex="-1"
+          style={{ background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', zIndex: 1060 }}
+        >
+          <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+              <div className="modal-header bg-light border-bottom py-3">
+                <div className="d-flex align-items-center gap-3">
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm"
+                    style={{
+                      width: '46px',
+                      height: '46px',
+                      backgroundColor: '#4f46e5',
+                      fontSize: '1.2rem'
+                    }}
+                  >
+                    {(selectedClientDetail.owner_name || selectedClientDetail.name || 'C').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h5 className="modal-title fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <span>{selectedClientDetail.owner_name || 'Client Details'}</span>
+                      {selectedClientDetail.owner_role && (
+                        <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
+                          {selectedClientDetail.owner_role}
+                        </span>
+                      )}
+                    </h5>
+                    <div className="small text-muted">
+                      <span><i className="bi bi-envelope me-1"></i>{selectedClientDetail.owner_email || 'No email'}</span>
+                      <span className="mx-2">•</span>
+                      <span><i className="bi bi-building me-1"></i>{selectedClientDetail.name} (Tenant #{selectedClientDetail.id})</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setSelectedClientDetail(null)}
+                ></button>
+              </div>
+
+              <div className="modal-body p-4 bg-white">
+                {/* Information banner on how Active/Deactive governs tenant visibility */}
+                <div className="alert alert-info border-info-subtle d-flex align-items-start gap-3 mb-4 shadow-sm">
+                  <i className="bi bi-shield-check fs-4 text-info mt-1"></i>
+                  <div>
+                    <div className="fw-bold mb-1">SuperAdmin Visibility & Approval Rules:</div>
+                    <div className="small text-muted">
+                      • 🟢 <strong>ACTIVE Numbers:</strong> Fully approved, visible, and selectable inside <strong>{selectedClientDetail.owner_name || selectedClientDetail.name}'s</strong> dashboard, inbox, and campaign launcher.<br />
+                      • 🔴 <strong>DEACTIVE Numbers:</strong> Instantly blocked and completely hidden from this client. Even if connected via Multi-App scan, clients will NEVER see deactivated numbers.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h6 className="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                    <i className="bi bi-phone text-primary"></i>
+                    Allotted WhatsApp Numbers ({selectedClientDetail.whatsapp_accounts?.length || 0})
+                  </h6>
+                  <button
+                    className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+                    onClick={fetchMatrixData}
+                    disabled={loadingMatrix}
+                  >
+                    <i className="bi bi-arrow-clockwise"></i>
+                    <span>Refresh</span>
+                  </button>
+                </div>
+
+                {(!selectedClientDetail.whatsapp_accounts || selectedClientDetail.whatsapp_accounts.length === 0) ? (
+                  <div className="text-center py-5 bg-light rounded-3 border">
+                    <i className="bi bi-whatsapp fs-1 text-muted"></i>
+                    <p className="mt-2 text-muted fw-medium">No WhatsApp numbers are currently allotted to this client.</p>
+                  </div>
+                ) : (
+                  <div className="table-responsive border rounded-3">
+                    <table className="table table-hover align-middle mb-0">
+                      <thead className="table-light">
+                        <tr>
+                          <th>Number & Verified Name</th>
+                          <th>IDs (Phone / WABA)</th>
+                          <th>Quality & Status</th>
+                          <th>Visibility Status</th>
+                          <th>Toggle Active / Deactive</th>
+                          <th>Reassign / Transfer</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedClientDetail.whatsapp_accounts.map(acc => {
+                          const isDeactive = acc.admin_status === 'DEACTIVE';
+                          const isToggling = togglingAccountId === acc.id;
+                          const isReassigning = reassigningAccountId === acc.id;
+
+                          return (
+                            <tr key={acc.id} className={isDeactive ? 'table-danger-subtle' : ''}>
+                              <td>
+                                <div className="fw-bold text-dark d-flex align-items-center gap-2">
+                                  <i className={`bi ${isDeactive ? 'bi-slash-circle text-danger' : 'bi-whatsapp text-success'}`}></i>
+                                  <span>{acc.display_phone_number || acc.account_name}</span>
+                                </div>
+                                <div className="small text-muted">{acc.verified_name || acc.account_name}</div>
+                              </td>
+
+                              <td>
+                                <div className="small">
+                                  <span className="text-muted">PID: </span>
+                                  <code>{acc.phone_number_id || '—'}</code>
+                                </div>
+                                <div className="small">
+                                  <span className="text-muted">WABA: </span>
+                                  <code>{acc.waba_id}</code>
+                                </div>
+                              </td>
+
+                              <td>
+                                <div>
+                                  <span className={`badge ${
+                                    acc.quality_rating === 'GREEN' ? 'bg-success-subtle text-success' :
+                                    acc.quality_rating === 'YELLOW' ? 'bg-warning-subtle text-warning' :
+                                    acc.quality_rating === 'RED' ? 'bg-danger-subtle text-danger' :
+                                    'bg-light text-muted'
+                                  }`}>
+                                    {acc.quality_rating || 'UNKNOWN'}
+                                  </span>
+                                </div>
+                                <div className="small text-muted mt-1">{acc.status}</div>
+                              </td>
+
+                              <td>
+                                {isDeactive ? (
+                                  <span className="badge bg-danger text-white px-2 py-1 shadow-sm">
+                                    <i className="bi bi-eye-slash-fill me-1"></i> DEACTIVE (Hidden)
+                                  </span>
+                                ) : (
+                                  <span className="badge bg-success text-white px-2 py-1 shadow-sm">
+                                    <i className="bi bi-check-circle-fill me-1"></i> ACTIVE (Visible)
+                                  </span>
+                                )}
+                              </td>
+
+                              <td>
+                                {isDeactive ? (
+                                  <button
+                                    className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm px-3"
+                                    onClick={() => handleToggleAdminStatus(acc.id, 'ACTIVE')}
+                                    disabled={isToggling}
+                                    title="Make this number active and visible in client panel"
+                                  >
+                                    {isToggling ? (
+                                      <span className="spinner-border spinner-border-sm"></span>
+                                    ) : (
+                                      <i className="bi bi-play-circle-fill"></i>
+                                    )}
+                                    <span>Make Active</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 shadow-sm px-3"
+                                    onClick={() => handleToggleAdminStatus(acc.id, 'DEACTIVE')}
+                                    disabled={isToggling}
+                                    title="Deactivate and instantly hide this number from client"
+                                  >
+                                    {isToggling ? (
+                                      <span className="spinner-border spinner-border-sm"></span>
+                                    ) : (
+                                      <i className="bi bi-pause-circle-fill"></i>
+                                    )}
+                                    <span>Deactivate</span>
+                                  </button>
+                                )}
+                              </td>
+
+                              <td>
+                                <div className="d-flex align-items-center gap-1">
+                                  <select
+                                    className="form-select form-select-sm"
+                                    style={{ width: '170px' }}
+                                    value={targetBusinessMap[acc.id] || ''}
+                                    onChange={(e) => setTargetBusinessMap(prev => ({ ...prev, [acc.id]: e.target.value }))}
+                                  >
+                                    <option value="">Transfer to...</option>
+                                    <option value="unassign">⚠️ Unassign Number</option>
+                                    {(matrixData.businesses || [])
+                                      .filter(b => b.id !== selectedClientDetail.id)
+                                      .map(b => (
+                                        <option key={b.id} value={b.id}>
+                                          {b.owner_name ? `${b.owner_name} (${b.name})` : b.name}
+                                        </option>
+                                      ))}
+                                  </select>
+                                  <button
+                                    className="btn btn-outline-secondary btn-sm"
+                                    disabled={!targetBusinessMap[acc.id] || isReassigning}
+                                    onClick={() => handleReassignAccount(
+                                      acc.id,
+                                      targetBusinessMap[acc.id] === 'unassign' ? null : targetBusinessMap[acc.id]
+                                    )}
+                                    title="Execute transfer"
+                                  >
+                                    {isReassigning ? (
+                                      <span className="spinner-border spinner-border-sm"></span>
+                                    ) : (
+                                      <i className="bi bi-arrow-right-short"></i>
+                                    )}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Pool Allocation inside Modal */}
+                {matrixData.unassignedAccounts?.length > 0 && (
+                  <div className="mt-4 p-3 bg-light rounded-3 border">
+                    <h6 className="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                      <i className="bi bi-plus-circle-fill text-success"></i>
+                      Allot an Unassigned Pool Number to {selectedClientDetail.owner_name || selectedClientDetail.name}
+                    </h6>
+                    <div className="d-flex flex-wrap gap-2">
+                      {matrixData.unassignedAccounts.map(unacc => (
+                        <button
+                          key={unacc.id}
+                          className="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
+                          disabled={reassigningAccountId === unacc.id}
+                          onClick={() => handleReassignAccount(unacc.id, selectedClientDetail.id)}
+                        >
+                          <i className="bi bi-plus-lg"></i>
+                          <span>{unacc.display_phone_number || unacc.account_name}</span>
+                          <span className="badge bg-secondary">{unacc.verified_name || 'Pool'}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer bg-light py-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm px-4"
+                  onClick={() => setSelectedClientDetail(null)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
