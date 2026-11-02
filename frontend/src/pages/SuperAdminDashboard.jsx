@@ -157,13 +157,70 @@ export default function SuperAdminDashboard() {
   };
 
   const handleRemoveAllowedNumber = async (bizId, numToRemove) => {
-    const currentList = selectedClientDetail?.allowed_phone_numbers || [];
-    const updatedList = currentList.filter(n => n !== numToRemove);
+    const biz = (matrixData?.businesses || []).find(b => b.id === bizId) || selectedClientDetail;
+    const currentList = Array.isArray(biz?.allowed_phone_numbers) ? biz.allowed_phone_numbers : [];
+    const cleanToRemove = String(numToRemove).replace(/\D/g, '').slice(-10);
+    const updatedList = currentList.filter(n => {
+      if (n === numToRemove) return false;
+      const clean = String(n).replace(/\D/g, '').slice(-10);
+      return clean !== cleanToRemove;
+    });
     await saveAllowedNumbersList(bizId, updatedList);
   };
 
+  const handleQuickRemoveApprovedNumber = async (biz, phoneToRemove) => {
+    if (!biz || !phoneToRemove) return;
+    const cleanToRemove = String(phoneToRemove).replace(/\D/g, '').slice(-10);
+    const currentList = Array.isArray(biz.allowed_phone_numbers) ? [...biz.allowed_phone_numbers] : [];
+
+    let updatedList;
+    if (currentList.includes('*')) {
+      // Wildcard was active: convert to explicit list excluding this phone
+      const remaining = [];
+      const seen = new Set();
+
+      // Keep existing specific numbers
+      currentList.filter(n => n !== '*').forEach(n => {
+        const clean = String(n).replace(/\D/g, '').slice(-10);
+        if (clean && clean !== cleanToRemove && !seen.has(clean)) {
+          seen.add(clean);
+          remaining.push(n);
+        }
+      });
+
+      // Keep other connected accounts
+      (biz.whatsapp_accounts || []).forEach(acc => {
+        const raw = acc.display_phone_number || acc.phone_number;
+        if (raw) {
+          const clean = String(raw).replace(/\D/g, '').slice(-10);
+          if (clean && clean !== cleanToRemove && !seen.has(clean)) {
+            seen.add(clean);
+            remaining.push(raw);
+          }
+        }
+      });
+
+      updatedList = remaining;
+    } else {
+      updatedList = currentList.filter(n => {
+        const clean = String(n).replace(/\D/g, '').slice(-10);
+        return clean !== cleanToRemove && n !== phoneToRemove;
+      });
+    }
+
+    await saveAllowedNumbersList(biz.id, updatedList);
+  };
+
+  const handleQuickRemoveWildcard = async (biz) => {
+    if (!biz) return;
+    const currentList = Array.isArray(biz.allowed_phone_numbers) ? [...biz.allowed_phone_numbers] : [];
+    const updatedList = currentList.filter(n => n !== '*');
+    await saveAllowedNumbersList(biz.id, updatedList);
+  };
+
   const handleToggleAllowAllNumbers = async (bizId) => {
-    const currentList = selectedClientDetail?.allowed_phone_numbers || [];
+    const biz = (matrixData?.businesses || []).find(b => b.id === bizId) || selectedClientDetail;
+    const currentList = Array.isArray(biz?.allowed_phone_numbers) ? biz.allowed_phone_numbers : [];
     const isAllowAll = currentList.includes('*');
     const updatedList = isAllowAll ? currentList.filter(n => n !== '*') : ['*'];
     await saveAllowedNumbersList(bizId, updatedList);
@@ -178,9 +235,9 @@ export default function SuperAdminDashboard() {
       if (res.data?.success) {
         setFeedback({
           type: 'success',
-          text: `Allowed WhatsApp numbers updated for ${selectedClientDetail?.owner_name || selectedClientDetail?.name}!`
+          text: `Pre-Approved discovery numbers updated successfully!`
         });
-        setSelectedClientDetail(prev => prev ? { ...prev, allowed_phone_numbers: list } : null);
+        setSelectedClientDetail(prev => prev && prev.id === bizId ? { ...prev, allowed_phone_numbers: list } : prev);
         setMatrixData(prev => {
           if (!prev?.businesses) return prev;
           return {
@@ -1251,6 +1308,21 @@ export default function SuperAdminDashboard() {
                                               >
                                                 {isAlreadyConnected ? '🟢 Connected' : '⏳ Awaiting Scan'}
                                               </span>
+                                              <button
+                                                type="button"
+                                                className="btn btn-outline-danger btn-xs py-0 px-1 border-0 ms-1"
+                                                style={{ fontSize: '0.78rem', lineHeight: '1', borderRadius: '4px' }}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  if (window.confirm(`Remove "${item.phone}" from pre-approved discovery numbers for ${biz.name}?`)) {
+                                                    handleQuickRemoveApprovedNumber(biz, item.phone);
+                                                  }
+                                                }}
+                                                disabled={savingAllowedNumbers}
+                                                title={`Remove ${item.phone} from Pre-Approved list`}
+                                              >
+                                                <i className="bi bi-x-circle-fill text-danger"></i>
+                                              </button>
                                             </div>
                                           );
                                         })}
@@ -1272,6 +1344,21 @@ export default function SuperAdminDashboard() {
                                             <span className="badge bg-primary text-white ms-1" style={{ fontSize: '0.65rem' }}>
                                               WILDCARD (*)
                                             </span>
+                                            <button
+                                              type="button"
+                                              className="btn btn-outline-danger btn-xs py-0 px-1 border-0 ms-1"
+                                              style={{ fontSize: '0.78rem', lineHeight: '1', borderRadius: '4px' }}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm(`Remove Wildcard (*) rule for ${biz.name}? Only specific pre-approved numbers will be allowed.`)) {
+                                                  handleQuickRemoveWildcard(biz);
+                                                }
+                                              }}
+                                              disabled={savingAllowedNumbers}
+                                              title="Remove Wildcard (*) rule"
+                                            >
+                                              <i className="bi bi-x-circle-fill text-danger"></i>
+                                            </button>
                                           </div>
                                         )}
                                       </div>
@@ -1508,6 +1595,22 @@ export default function SuperAdminDashboard() {
                         <i className="bi bi-asterisk me-1"></i>
                         {selectedClientDetail.allowed_phone_numbers?.includes('*') ? 'All Numbers Allowed (*)' : 'Allow All Numbers'}
                       </button>
+                      {selectedClientDetail.allowed_phone_numbers?.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to remove ALL pre-approved discovery rules for ${selectedClientDetail.name}?`)) {
+                              saveAllowedNumbersList(selectedClientDetail.id, []);
+                            }
+                          }}
+                          disabled={savingAllowedNumbers}
+                          title="Clear all allowed discovery numbers"
+                        >
+                          <i className="bi bi-trash3 me-1"></i>
+                          Clear All
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1601,26 +1704,39 @@ export default function SuperAdminDashboard() {
                           );
 
                           return (
-                            <button
-                              key={acc.id}
-                              type="button"
-                              className={`btn btn-xs py-1 px-2 font-monospace d-inline-flex align-items-center gap-1 ${
-                                isAlreadyApproved ? 'btn-success disabled' : 'btn-outline-primary'
-                              }`}
-                              style={{ fontSize: '0.75rem' }}
-                              disabled={savingAllowedNumbers || isAlreadyApproved}
-                              onClick={async () => {
-                                const currentList = selectedClientDetail?.allowed_phone_numbers || [];
-                                const updatedList = [...currentList, rawPhone];
-                                await saveAllowedNumbersList(selectedClientDetail.id, updatedList);
-                              }}
-                              title={isAlreadyApproved ? 'Already approved' : `Add ${rawPhone} to approved list`}
-                            >
-                              <i className={`bi ${isAlreadyApproved ? 'bi-check-circle-fill' : 'bi-plus-circle'}`}></i>
-                              <span>{rawPhone}</span>
-                              <span className="small opacity-75">({acc.verified_name || acc.account_name})</span>
-                              {isAlreadyApproved && <span className="badge bg-white text-success ms-1 small">Approved</span>}
-                            </button>
+                            <div key={acc.id} className="btn-group btn-group-sm" role="group">
+                              <button
+                                type="button"
+                                className={`btn btn-xs py-1 px-2 font-monospace d-inline-flex align-items-center gap-1 ${
+                                  isAlreadyApproved ? 'btn-success' : 'btn-outline-primary'
+                                }`}
+                                style={{ fontSize: '0.75rem' }}
+                                disabled={savingAllowedNumbers || isAlreadyApproved}
+                                onClick={async () => {
+                                  const currentList = selectedClientDetail?.allowed_phone_numbers || [];
+                                  const updatedList = [...currentList, rawPhone];
+                                  await saveAllowedNumbersList(selectedClientDetail.id, updatedList);
+                                }}
+                                title={isAlreadyApproved ? 'Number is pre-approved' : `Add ${rawPhone} to approved list`}
+                              >
+                                <i className={`bi ${isAlreadyApproved ? 'bi-check-circle-fill' : 'bi-plus-circle'}`}></i>
+                                <span>{rawPhone}</span>
+                                <span className="small opacity-75 ms-1">({acc.verified_name || acc.account_name})</span>
+                                {isAlreadyApproved && <span className="badge bg-white text-success ms-1 small">Approved</span>}
+                              </button>
+                              {isAlreadyApproved && (
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-outline-danger py-1 px-2"
+                                  style={{ fontSize: '0.75rem' }}
+                                  disabled={savingAllowedNumbers}
+                                  onClick={() => handleRemoveAllowedNumber(selectedClientDetail.id, rawPhone)}
+                                  title={`Remove ${rawPhone} from approved list`}
+                                >
+                                  <i className="bi bi-x-lg"></i>
+                                </button>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
