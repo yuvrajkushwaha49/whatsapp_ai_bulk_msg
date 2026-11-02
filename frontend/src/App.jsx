@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import Contacts from './pages/Contacts';
 import CsvImport from './pages/CsvImport';
 import WhatsAppAccounts from './pages/WhatsAppAccounts';
+import WhatsAppAccountDetail from './pages/WhatsAppAccountDetail';
 import Templates from './pages/Templates';
 import Inbox from './pages/Inbox';
 import CampaignList from './pages/CampaignList';
@@ -79,6 +80,8 @@ export default function App() {
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/imports" element={<CsvImport />} />
         <Route path="/whatsapp" element={<WhatsAppAccounts />} />
+        <Route path="/whatsapp/accounts/:id" element={<WhatsAppAccountDetail />} />
+        <Route path="/whatsapp/:id" element={<WhatsAppAccountDetail />} />
         <Route path="/templates" element={<Templates />} />
         <Route path="/campaigns" element={<CampaignList />} />
         <Route path="/campaigns/new" element={<CampaignBuilder />} />

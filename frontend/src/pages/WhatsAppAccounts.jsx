@@ -683,7 +683,9 @@ export default function WhatsAppAccounts() {
                       </div>
                       <div>
                         <div className="d-flex align-items-center gap-2">
-                          <h6 className="mb-0 fw-bold">{acc.display_name || acc.verified_name || 'WhatsApp Account'}</h6>
+                          <Link to={`/whatsapp/accounts/${acc.id}`} className="text-decoration-none text-dark">
+                            <h6 className="mb-0 fw-bold">{acc.display_name || acc.verified_name || 'WhatsApp Account'}</h6>
+                          </Link>
                           {acc.is_primary && (
                             <span className="badge bg-warning text-dark border border-warning-subtle" style={{ fontSize: '0.7rem' }}>
                               <i className="bi bi-star-fill me-1 text-dark"></i>
@@ -691,7 +693,9 @@ export default function WhatsAppAccounts() {
                             </span>
                           )}
                         </div>
-                        <span className="small text-muted">{acc.phone_number}</span>
+                        <Link to={`/whatsapp/accounts/${acc.id}`} className="small text-muted font-monospace text-decoration-none">
+                          {acc.phone_number} <i className="bi bi-arrow-up-right-square small ms-1 text-primary"></i>
+                        </Link>
                       </div>
                     </div>
 
@@ -806,6 +810,15 @@ export default function WhatsAppAccounts() {
                       <Link to="/inbox" className="btn btn-sm btn-outline-primary" title="Go to WhatsApp Inbox">
                         <i className="bi bi-chat-dots-fill me-1"></i>
                         Inbox
+                      </Link>
+
+                      <Link
+                        to={`/whatsapp/accounts/${acc.id}`}
+                        className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-xs fw-semibold"
+                        title="View Full Connected WhatsApp Number Details & Credentials"
+                      >
+                        <i className="bi bi-eye-fill"></i>
+                        <span>Details</span>
                       </Link>
 
                       {isSuperAdmin() && (

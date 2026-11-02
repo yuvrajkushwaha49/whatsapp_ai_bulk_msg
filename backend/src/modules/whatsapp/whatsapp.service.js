@@ -889,6 +889,48 @@ export async function listAccounts(businessId) {
   return rows.map(sanitizeAccount);
 }
 
+export async function getAccount(businessId, accountId) {
+  const numAccountId = Number(accountId);
+  const numBusinessId = Number(businessId);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const acc = (store.whatsapp_accounts || []).find(
+      a => a.id === numAccountId && a.business_id === numBusinessId && a.admin_status !== 'DEACTIVE'
+    );
+    if (!acc) return null;
+    return sanitizeAccount(acc);
+  }
+
+  const rows = await executeQuery(
+    `SELECT id, business_id, meta_business_id, waba_id, phone_number_id, phone_number, display_name, verified_name, 
+            quality_rating, messaging_limit_tier, status, connection_status, is_primary, last_verified_at, webhook_subscribed_at, created_at,
+            COALESCE(admin_status, 'ACTIVE') as admin_status
+     FROM whatsapp_accounts 
+     WHERE id = ? AND business_id = ? AND (admin_status IS NULL OR admin_status != 'DEACTIVE')
+     LIMIT 1`,
+    [numAccountId, numBusinessId]
+  );
+
+  if (!rows || rows.length === 0) return null;
+  const account = sanitizeAccount(rows[0]);
+
+  try {
+    const [templatesCount, campaignsCount] = await Promise.all([
+      executeQuery(`SELECT COUNT(*) as count FROM templates WHERE business_id = ?`, [numBusinessId]).catch(() => [{ count: 0 }]),
+      executeQuery(`SELECT COUNT(*) as count FROM campaigns WHERE business_id = ?`, [numBusinessId]).catch(() => [{ count: 0 }])
+    ]);
+    account.stats = {
+      totalTemplates: templatesCount[0]?.count || 0,
+      totalCampaigns: campaignsCount[0]?.count || 0
+    };
+  } catch (_) {
+    account.stats = { totalTemplates: 0, totalCampaigns: 0 };
+  }
+
+  return account;
+}
+
 /**
  * List templates with search, filtering, pagination, and real aggregated status stats
  */
@@ -1976,6 +2018,7 @@ export async function bulkConnectSystemUserAccounts(businessId, payload = {}) {
 export default {
   connectAccount,
   listAccounts,
+  getAccount,
   listTemplates,
   getTemplate,
   createTemplate,
