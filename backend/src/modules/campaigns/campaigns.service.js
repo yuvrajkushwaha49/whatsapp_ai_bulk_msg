@@ -73,13 +73,13 @@ export async function getCampaignDetails(businessId, campaignId) {
 export async function previewAudience(businessId, { tagIds = [], contactIds = [], excludeTagIds = [] } = {}) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    let eligible = store.contacts.filter(c => c.business_id === Number(businessId) && c.is_opted_in && c.status === 'active');
+    let eligible = (store.contacts || []).filter(c => c.business_id === Number(businessId) && (c.status === 'active' || !c.status));
 
     if (Array.isArray(contactIds) && contactIds.length > 0) {
       const cIdNums = contactIds.map(Number);
       eligible = eligible.filter(c => cIdNums.includes(c.id));
-    } else if (tagIds.length > 0) {
-      const matchContactIds = store.contact_tags.filter(ct => tagIds.includes(ct.tag_id)).map(ct => ct.contact_id);
+    } else if (Array.isArray(tagIds) && tagIds.length > 0) {
+      const matchContactIds = (store.contact_tags || []).filter(ct => tagIds.includes(ct.tag_id)).map(ct => ct.contact_id);
       eligible = eligible.filter(c => matchContactIds.includes(c.id));
     }
 
@@ -92,16 +92,18 @@ export async function previewAudience(businessId, { tagIds = [], contactIds = []
   let sql = `
     SELECT c.id, c.name, c.phone, c.email, c.is_opted_in
     FROM contacts c
-    WHERE c.business_id = ? AND c.is_opted_in = TRUE AND c.status = 'active'
+    WHERE c.business_id = ? AND (c.status = 'active' OR c.status IS NULL)
   `;
   const params = [businessId];
 
   if (Array.isArray(contactIds) && contactIds.length > 0) {
-    sql += ` AND c.id IN (?)`;
-    params.push(contactIds.map(Number));
-  } else if (tagIds.length > 0) {
-    sql += ` AND EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.contact_id = c.id AND ct.tag_id IN (?))`;
-    params.push(tagIds);
+    const cPlaceholders = contactIds.map(() => '?').join(',');
+    sql += ` AND c.id IN (${cPlaceholders})`;
+    params.push(...contactIds.map(Number));
+  } else if (Array.isArray(tagIds) && tagIds.length > 0) {
+    const tPlaceholders = tagIds.map(() => '?').join(',');
+    sql += ` AND EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.contact_id = c.id AND ct.tag_id IN (${tPlaceholders}))`;
+    params.push(...tagIds.map(Number));
   }
 
   const rows = await executeQuery(sql, params);
@@ -122,21 +124,30 @@ export async function preflightCheck(businessId, { whatsappAccountId, whatsappAc
   let accounts = [];
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    accounts = store.whatsapp_accounts.filter(a => accountIdsList.includes(a.id) && a.business_id === Number(businessId));
+    accounts = (store.whatsapp_accounts || []).filter(a => accountIdsList.includes(a.id) && a.business_id === Number(businessId));
     if (accounts.length === 0 && whatsappAccountId) {
-      const single = store.whatsapp_accounts.find(a => a.id === Number(whatsappAccountId) && a.business_id === Number(businessId));
+      const single = (store.whatsapp_accounts || []).find(a => a.id === Number(whatsappAccountId) && a.business_id === Number(businessId));
       if (single) accounts = [single];
     }
   } else {
     if (accountIdsList.length > 0) {
-      accounts = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id IN (?) AND business_id = ?', [accountIdsList, businessId]);
+      const placeholders = accountIdsList.map(() => '?').join(',');
+      accounts = await executeQuery(
+        `SELECT * FROM whatsapp_accounts 
+         WHERE id IN (${placeholders}) 
+           AND business_id = ? 
+           AND (admin_status IS NULL OR admin_status != 'DEACTIVE')`,
+        [...accountIdsList, businessId]
+      );
     }
   }
 
   const primaryAccount = accounts[0];
 
-  if (!primaryAccount || accounts.some(a => a.status !== 'connected')) {
-    issues.push('WhatsApp Account is not connected or requires reauthorization.');
+  if (!primaryAccount) {
+    issues.push('WhatsApp Account is not connected or has been deactivated by SuperAdmin.');
+  } else if (accounts.some(a => a.status === 'disconnected' || a.status === 'restricted')) {
+    issues.push('One or more selected WhatsApp Accounts are disconnected or require reauthorization.');
   }
 
   // 2. Verify Template Approval
