@@ -1066,6 +1066,41 @@ export default function SuperAdminDashboard() {
                         const allowsAll = allowedList.includes('*');
                         const specificAllowed = allowedList.filter(n => n !== '*');
 
+                        // Build complete list of approved numbers to visibly display
+                        const displayedApprovedNumbers = [];
+                        const seenNums = new Set();
+
+                        // 1. Add all specifically configured pre-approved numbers
+                        specificAllowed.forEach(num => {
+                          const clean = String(num).trim();
+                          if (clean) {
+                            const last10 = clean.replace(/\D/g, '').slice(-10);
+                            seenNums.add(last10 || clean);
+                            displayedApprovedNumbers.push({
+                              phone: clean,
+                              source: 'explicit'
+                            });
+                          }
+                        });
+
+                        // 2. If wildcard (*) is active or if accounts exist, also include the client's connected numbers as approved numbers so the user sees the real phone numbers!
+                        if (allowsAll) {
+                          (biz.whatsapp_accounts || []).forEach(acc => {
+                            const rawPhone = acc.display_phone_number || acc.phone_number;
+                            if (rawPhone) {
+                              const last10 = String(rawPhone).replace(/\D/g, '').slice(-10);
+                              if (!seenNums.has(last10)) {
+                                seenNums.add(last10);
+                                displayedApprovedNumbers.push({
+                                  phone: rawPhone,
+                                  name: acc.verified_name || acc.account_name,
+                                  source: 'wildcard_account'
+                                });
+                              }
+                            }
+                          });
+                        }
+
                         return (
                           <tr key={biz.id}>
                             <td>
@@ -1118,7 +1153,7 @@ export default function SuperAdminDashboard() {
                                       <div className="d-flex flex-wrap gap-2">
                                         {biz.whatsapp_accounts.map(acc => {
                                           const isDeactive = acc.admin_status === 'DEACTIVE';
-                                          const cleanAccNum = (acc.display_phone_number || '').replace(/\D/g, '').slice(-10);
+                                          const cleanAccNum = (acc.display_phone_number || acc.phone_number || '').replace(/\D/g, '').slice(-10);
                                           const isPreApproved = allowsAll || specificAllowed.some(num => {
                                             const cleanAllowed = String(num).replace(/\D/g, '').slice(-10);
                                             return cleanAllowed && cleanAccNum && cleanAccNum === cleanAllowed;
@@ -1166,39 +1201,24 @@ export default function SuperAdminDashboard() {
                                   )}
 
                                   {/* Section 2: Pre-Approved for 1-Click Multi-App Discovery */}
-                                  {allowedList.length > 0 && (
+                                  {(allowedList.length > 0 || displayedApprovedNumbers.length > 0) ? (
                                     <div className={totalAccounts > 0 ? 'pt-2 border-top' : ''}>
                                       <div className="d-flex align-items-center justify-content-between mb-1">
                                         <span className="small text-primary fw-semibold text-uppercase" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>
                                           <i className="bi bi-shield-check me-1"></i>
-                                          Pre-Approved for 1-Click Discovery ({allowsAll ? 'All (*)' : allowedList.length})
+                                          Pre-Approved for 1-Click Discovery ({displayedApprovedNumbers.length > 0 ? `${displayedApprovedNumbers.length} Numbers` : ''}{allowsAll ? (displayedApprovedNumbers.length > 0 ? ' + Wildcard (*)' : 'All (*)') : ''})
                                         </span>
                                       </div>
                                       <div className="d-flex flex-wrap gap-2">
-                                        {allowsAll && (
-                                          <div
-                                            className="p-2 rounded-2 border d-inline-flex align-items-center gap-2 shadow-sm"
-                                            style={{ backgroundColor: '#f5f3ff', borderColor: '#a78bfa', color: '#4c1d95', fontSize: '0.80rem' }}
-                                          >
-                                            <i className="bi bi-patch-check-fill text-primary fs-6"></i>
-                                            <div>
-                                              <div className="fw-bold lh-1">All Numbers Pre-Approved</div>
-                                              <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
-                                                Wildcard (*) &bull; Client can import any discovered number
-                                              </div>
-                                            </div>
-                                            <span className="badge bg-primary text-white ms-1" style={{ fontSize: '0.65rem' }}>
-                                              WILDCARD (*)
-                                            </span>
-                                          </div>
-                                        )}
-                                        {specificAllowed.map((num, idx) => {
-                                          const cleanAllowed = String(num).replace(/\D/g, '').slice(-10);
+                                        {/* Render every approved phone number as a distinct badge/card */}
+                                        {displayedApprovedNumbers.map((item, idx) => {
+                                          const cleanAllowed = String(item.phone).replace(/\D/g, '').slice(-10);
                                           const matchingAcc = (biz.whatsapp_accounts || []).find(acc => {
-                                            const cleanAcc = String(acc.display_phone_number || '').replace(/\D/g, '').slice(-10);
+                                            const cleanAcc = String(acc.display_phone_number || acc.phone_number || '').replace(/\D/g, '').slice(-10);
                                             return cleanAllowed && cleanAcc && cleanAcc === cleanAllowed;
                                           });
                                           const isAlreadyConnected = !!matchingAcc;
+                                          const displayName = item.name || matchingAcc?.verified_name || matchingAcc?.account_name;
 
                                           return (
                                             <div
@@ -1210,15 +1230,15 @@ export default function SuperAdminDashboard() {
                                                 color: '#1e1b4b',
                                                 fontSize: '0.82rem'
                                               }}
-                                              title={isAlreadyConnected ? 'Pre-Approved number is already linked and connected' : 'Pre-Approved number is awaiting 1-Click Multi-App Discovery import by client'}
+                                              title={isAlreadyConnected ? 'Pre-Approved number is connected in client panel' : 'Pre-Approved number is awaiting 1-Click Multi-App Discovery import by client'}
                                             >
                                               <i className={`bi ${isAlreadyConnected ? 'bi-shield-fill-check text-primary' : 'bi-lightning-charge-fill text-warning'}`}></i>
                                               <div>
                                                 <div className="fw-bold lh-1 font-monospace" style={{ color: '#3730a3' }}>
-                                                  {num}
+                                                  {item.phone}
                                                 </div>
                                                 <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
-                                                  1-Click Pre-Approved
+                                                  {displayName ? `${displayName} • ` : ''}1-Click Pre-Approved
                                                 </div>
                                               </div>
                                               <span
@@ -1234,6 +1254,48 @@ export default function SuperAdminDashboard() {
                                             </div>
                                           );
                                         })}
+
+                                        {/* Wildcard indicator if wildcard is active */}
+                                        {allowsAll && (
+                                          <div
+                                            className="p-2 rounded-2 border border-dashed d-inline-flex align-items-center gap-2 shadow-sm"
+                                            style={{ backgroundColor: '#f5f3ff', borderColor: '#a78bfa', color: '#4c1d95', fontSize: '0.80rem' }}
+                                            title="Wildcard (*) allows this client to discover and import any other phone number from their Meta account"
+                                          >
+                                            <i className="bi bi-asterisk text-primary fs-6"></i>
+                                            <div>
+                                              <div className="fw-bold lh-1">Any Meta Number Allowed</div>
+                                              <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
+                                                Wildcard (*) active
+                                              </div>
+                                            </div>
+                                            <span className="badge bg-primary text-white ms-1" style={{ fontSize: '0.65rem' }}>
+                                              WILDCARD (*)
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className={totalAccounts > 0 ? 'pt-2 border-top' : ''}>
+                                      <div className="d-flex align-items-center justify-content-between mb-1">
+                                        <span className="small text-secondary fw-semibold text-uppercase" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>
+                                          <i className="bi bi-shield-slash me-1"></i>
+                                          Pre-Approved for 1-Click Discovery (None)
+                                        </span>
+                                      </div>
+                                      <div className="d-flex align-items-center gap-2">
+                                        <span className="badge bg-light text-secondary border small py-1 px-2">
+                                          <i className="bi bi-exclamation-triangle text-warning me-1"></i> No discovery rules set
+                                        </span>
+                                        <button
+                                          type="button"
+                                          className="btn btn-outline-primary btn-xs py-0 px-2"
+                                          style={{ fontSize: '0.70rem' }}
+                                          onClick={() => setSelectedClientDetail(biz)}
+                                        >
+                                          <i className="bi bi-plus-circle me-1"></i> Configure Pre-Approved
+                                        </button>
                                       </div>
                                     </div>
                                   )}
@@ -1521,6 +1583,49 @@ export default function SuperAdminDashboard() {
                       Tip: Enter with or without country code (+91). Exact or last-10-digits will match.
                     </span>
                   </div>
+
+                  {/* Quick 1-click approve suggestions from client's WhatsApp numbers */}
+                  {selectedClientDetail.whatsapp_accounts?.length > 0 && (
+                    <div className="mt-3 pt-3 border-top">
+                      <div className="small text-muted mb-2 fw-semibold d-flex align-items-center gap-1" style={{ fontSize: '0.75rem' }}>
+                        <i className="bi bi-lightning-charge-fill text-warning"></i>
+                        <span>1-Click Approve Client's Existing WhatsApp Numbers:</span>
+                      </div>
+                      <div className="d-flex flex-wrap gap-2">
+                        {selectedClientDetail.whatsapp_accounts.map(acc => {
+                          const rawPhone = acc.display_phone_number || acc.phone_number;
+                          if (!rawPhone) return null;
+                          const cleanAcc = String(rawPhone).replace(/\D/g, '').slice(-10);
+                          const isAlreadyApproved = (selectedClientDetail.allowed_phone_numbers || []).some(n =>
+                            String(n).replace(/\D/g, '').slice(-10) === cleanAcc
+                          );
+
+                          return (
+                            <button
+                              key={acc.id}
+                              type="button"
+                              className={`btn btn-xs py-1 px-2 font-monospace d-inline-flex align-items-center gap-1 ${
+                                isAlreadyApproved ? 'btn-success disabled' : 'btn-outline-primary'
+                              }`}
+                              style={{ fontSize: '0.75rem' }}
+                              disabled={savingAllowedNumbers || isAlreadyApproved}
+                              onClick={async () => {
+                                const currentList = selectedClientDetail?.allowed_phone_numbers || [];
+                                const updatedList = [...currentList, rawPhone];
+                                await saveAllowedNumbersList(selectedClientDetail.id, updatedList);
+                              }}
+                              title={isAlreadyApproved ? 'Already approved' : `Add ${rawPhone} to approved list`}
+                            >
+                              <i className={`bi ${isAlreadyApproved ? 'bi-check-circle-fill' : 'bi-plus-circle'}`}></i>
+                              <span>{rawPhone}</span>
+                              <span className="small opacity-75">({acc.verified_name || acc.account_name})</span>
+                              {isAlreadyApproved && <span className="badge bg-white text-success ms-1 small">Approved</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="d-flex align-items-center justify-content-between mb-3">
