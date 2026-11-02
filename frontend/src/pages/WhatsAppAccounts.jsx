@@ -4,8 +4,10 @@ import api from '../services/api';
 import WhatsAppConnectButton from '../components/WhatsAppConnectButton';
 import MetaSetupWizardModal from '../components/MetaSetupWizardModal';
 import SystemUserBulkConnectModal from '../components/SystemUserBulkConnectModal';
+import { useAuth } from '../hooks/useAuth';
 
 export default function WhatsAppAccounts() {
+  const { isSuperAdmin } = useAuth();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState(null);
@@ -391,8 +393,8 @@ export default function WhatsAppAccounts() {
         </div>
       )}
 
-      {/* Meta Developer In-Software Control Center (All Developer Operations in CampaignFlow) */}
-      {accounts.length > 0 && !loading && (
+      {/* Meta Developer In-Software Control Center (Restricted to SuperAdmin Only) */}
+      {isSuperAdmin() && accounts.length > 0 && !loading && (
         <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '14px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)' }}>
           <div className="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div className="d-flex align-items-center gap-2">
@@ -806,16 +808,18 @@ export default function WhatsAppAccounts() {
                         Inbox
                       </Link>
 
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-xs"
-                        style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
-                        onClick={() => openTestModal(acc.id)}
-                        title="Send a live test message (Meta Cloud API Test Messenger)"
-                      >
-                        <i className="bi bi-send-fill"></i>
-                        <span>Send Test</span>
-                      </button>
+                      {isSuperAdmin() && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-xs"
+                          style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+                          onClick={() => openTestModal(acc.id)}
+                          title="Send a live test message (Meta Cloud API Test Messenger)"
+                        >
+                          <i className="bi bi-send-fill"></i>
+                          <span>Send Test</span>
+                        </button>
+                      )}
                     </div>
 
                     <div className="d-flex align-items-center gap-1">
@@ -1026,8 +1030,8 @@ export default function WhatsAppAccounts() {
         </div>
       )}
 
-      {/* Meta Test Messenger Modal (In-Software Meta Developer Testing Tool) */}
-      {testModal.isOpen && (
+      {/* Meta Test Messenger Modal (In-Software Meta Developer Testing Tool - SuperAdmin Only) */}
+      {isSuperAdmin() && testModal.isOpen && (
         <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', zIndex: 1060 }}>
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
