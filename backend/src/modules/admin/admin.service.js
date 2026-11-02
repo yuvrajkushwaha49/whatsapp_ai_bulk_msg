@@ -216,7 +216,8 @@ export async function getNumberAllocationMatrix() {
         status: b.status || 'active',
         accounts_count: accounts.length,
         active_accounts_count: accounts.filter(a => a.admin_status === 'ACTIVE').length,
-        accounts
+        accounts,
+        whatsapp_accounts: accounts
       };
     });
 
@@ -224,47 +225,44 @@ export async function getNumberAllocationMatrix() {
       .filter(a => !a.business_id)
       .map(a => ({
         ...a,
+        display_phone_number: a.phone_number || a.display_name,
+        account_name: a.display_name || a.phone_number,
+        verified_name: a.display_name || a.phone_number,
         admin_status: a.admin_status || 'ACTIVE'
       }));
 
     return { businesses, unassignedAccounts };
   }
 
-  // Real MySQL implementation
+  // Real MySQL implementation (100% immune to sql_mode=only_full_group_by)
+  // 1. Fetch all businesses
   const businesses = await executeQuery(`
-    SELECT 
-      b.id,
-      b.name,
-      b.slug,
-      b.status,
-      COALESCE(u.name, 'N/A') as owner_name,
-      COALESCE(u.email, 'N/A') as owner_email,
-      COALESCE(u.role, 'owner') as owner_role
+    SELECT b.id, b.name, b.slug, b.status
     FROM businesses b
-    LEFT JOIN users u ON b.id = u.business_id AND u.role IN ('owner', 'admin')
-    GROUP BY b.id
     ORDER BY b.id ASC
   `);
 
+  // 2. Fetch users ordered by owner first, then admin, then members
+  const users = await executeQuery(`
+    SELECT id, business_id, name, email, role
+    FROM users
+    ORDER BY CASE WHEN role = 'owner' THEN 1 WHEN role = 'admin' THEN 2 ELSE 3 END, id ASC
+  `);
+
+  // Map first owner/admin for each business
+  const ownerMap = new Map();
+  for (const u of users) {
+    if (u.business_id && !ownerMap.has(u.business_id)) {
+      ownerMap.set(u.business_id, u);
+    }
+  }
+
+  // 3. Fetch all accounts
   const allAccounts = await executeQuery(`
     SELECT 
-      wa.id,
-      wa.business_id,
+      wa.*,
       b.name as business_name,
-      wa.meta_business_id,
-      wa.waba_id,
-      wa.phone_number_id,
-      wa.phone_number,
-      wa.display_name,
-      wa.verified_name,
-      wa.quality_rating,
-      wa.messaging_limit_tier,
-      wa.status,
-      wa.connection_status,
-      wa.is_primary,
-      COALESCE(wa.admin_status, 'ACTIVE') as admin_status,
-      wa.last_verified_at,
-      wa.created_at
+      COALESCE(wa.admin_status, 'ACTIVE') as admin_status
     FROM whatsapp_accounts wa
     LEFT JOIN businesses b ON wa.business_id = b.id
     ORDER BY wa.created_at DESC
@@ -272,26 +270,43 @@ export async function getNumberAllocationMatrix() {
 
   const businessMap = new Map();
   businesses.forEach(b => {
+    const owner = ownerMap.get(b.id);
     businessMap.set(b.id, {
-      ...b,
+      id: b.id,
+      name: b.name,
+      slug: b.slug,
+      status: b.status,
+      owner_name: owner?.name || 'N/A',
+      owner_email: owner?.email || 'N/A',
+      owner_role: owner?.role || 'owner',
       accounts_count: 0,
       active_accounts_count: 0,
-      accounts: []
+      accounts: [],
+      whatsapp_accounts: []
     });
   });
 
   const unassignedAccounts = [];
 
   allAccounts.forEach(acc => {
+    const normalizedAcc = {
+      ...acc,
+      display_phone_number: acc.phone_number || acc.display_name,
+      account_name: acc.display_name || acc.phone_number,
+      verified_name: acc.display_name || acc.phone_number,
+      admin_status: acc.admin_status || 'ACTIVE'
+    };
+
     if (acc.business_id && businessMap.has(acc.business_id)) {
       const b = businessMap.get(acc.business_id);
-      b.accounts.push(acc);
+      b.accounts.push(normalizedAcc);
+      b.whatsapp_accounts.push(normalizedAcc);
       b.accounts_count++;
-      if (acc.admin_status === 'ACTIVE') {
+      if (normalizedAcc.admin_status === 'ACTIVE') {
         b.active_accounts_count++;
       }
     } else {
-      unassignedAccounts.push(acc);
+      unassignedAccounts.push(normalizedAcc);
     }
   });
 
