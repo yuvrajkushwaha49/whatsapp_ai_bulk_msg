@@ -641,16 +641,16 @@ export default function Inbox() {
             {/* Multi-Account Selection Pill */}
             {accounts.length > 0 && (
               <div className="inbox-account-pill">
-                <i className="bi bi-phone text-success"></i>
+                <i className="bi bi-whatsapp text-success"></i>
                 <select
                   className="inbox-account-select"
                   value={selectedAccountId}
                   onChange={(e) => setSelectedAccountId(e.target.value)}
                 >
-                  <option value="all">All WhatsApp Numbers ({accounts.length})</option>
+                  <option value="all">All WhatsApp Channels ({accounts.length})</option>
                   {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>
-                      {acc.phone_number} {acc.is_primary ? '★ Primary' : ''} — {acc.display_name}
+                      {acc.display_name || acc.verified_name || acc.account_name || 'WhatsApp'} ({acc.phone_number}) {acc.is_primary ? '★ Primary' : ''}
                     </option>
                   ))}
                 </select>
@@ -745,14 +745,21 @@ export default function Inbox() {
                     {/* Metadata & Preview */}
                     <div className="conversation-info">
                       <div className="conversation-header-row">
-                        <span className="conversation-name">{contactName}</span>
-                        <span className="conversation-time">{formatTime(c.last_message_at || c.updated_at)}</span>
+                        <span className="conversation-name d-flex align-items-center gap-1 overflow-hidden text-truncate">
+                          <span className="text-truncate">{contactName}</span>
+                        </span>
+                        <span className="conversation-time ms-2">{formatTime(c.last_message_at || c.updated_at)}</span>
                       </div>
                       <div className="conversation-preview-row">
                         <div className="conversation-snippet-wrapper">
                           {c.whatsapp_account && (
-                            <span className="badge bg-light text-secondary border me-1 py-0 px-1" style={{ fontSize: '0.62rem' }}>
-                              {c.whatsapp_account.phone_number}
+                            <span
+                              className="badge bg-success-subtle text-success border border-success-subtle me-1 py-0 px-1 d-inline-flex align-items-center gap-1 flex-shrink-0"
+                              style={{ fontSize: '0.62rem', fontWeight: 600 }}
+                              title={`WhatsApp Account: ${c.whatsapp_account.display_name || c.whatsapp_account.phone_number}`}
+                            >
+                              <i className="bi bi-whatsapp" style={{ fontSize: '0.60rem' }}></i>
+                              <span>{c.whatsapp_account.display_name || c.whatsapp_account.phone_number}</span>
                             </span>
                           )}
                           <span className="conversation-snippet">
@@ -794,19 +801,25 @@ export default function Inbox() {
                       {((selectedConversation.contact?.name || selectedConversation.customer_phone).replace(/[^a-zA-Z0-9]/g, '').slice(0, 2) || 'WA').toUpperCase()}
                     </div>
                     <div className="chat-header-info">
-                      <div className="chat-header-title">
-                        {selectedConversation.contact?.name || selectedConversation.customer_phone}
+                      <div className="chat-header-title d-flex align-items-center gap-2">
+                        <span>{selectedConversation.contact?.name || selectedConversation.customer_phone}</span>
+                        {selectedConversation.contact?.name && selectedConversation.contact.name !== selectedConversation.customer_phone && (
+                          <span className="text-muted fw-normal small" style={{ fontSize: '0.78rem' }}>
+                            ({selectedConversation.customer_phone})
+                          </span>
+                        )}
                       </div>
                       <div className="chat-header-subtitle">
-                        <span>{selectedConversation.customer_phone}</span>
                         {selectedConversation.whatsapp_account && (
-                          <>
-                            <span>•</span>
-                            <span className="text-success fw-medium">
-                              <i className="bi bi-whatsapp me-1"></i>
-                              Via {selectedConversation.whatsapp_account.phone_number}
-                            </span>
-                          </>
+                          <span
+                            className="badge bg-success-subtle text-success border border-success-subtle py-0 px-1 d-inline-flex align-items-center gap-1 flex-shrink-0"
+                            style={{ fontSize: '0.68rem', fontWeight: 600 }}
+                            title="WhatsApp Account Name"
+                          >
+                            <i className="bi bi-whatsapp"></i>
+                            <span>{selectedConversation.whatsapp_account.display_name || 'WhatsApp'}</span>
+                            <span className="text-secondary small">({selectedConversation.whatsapp_account.phone_number})</span>
+                          </span>
                         )}
                         <span>•</span>
                         {selectedConversation.assigned_user ? (
@@ -1110,6 +1123,21 @@ export default function Inbox() {
                 <div className="text-secondary small mt-1">
                   <i className="bi bi-envelope me-1"></i>
                   {selectedConversation.contact.email}
+                </div>
+              )}
+
+              {/* Connected WhatsApp Channel & Name */}
+              {selectedConversation.whatsapp_account && (
+                <div className="mt-2 p-2 rounded-2 bg-light border text-start" style={{ fontSize: '0.78rem' }}>
+                  <div className="text-muted small text-uppercase fw-semibold" style={{ fontSize: '0.64rem', letterSpacing: '0.5px' }}>
+                    <i className="bi bi-whatsapp text-success me-1"></i>WhatsApp Channel
+                  </div>
+                  <div className="fw-bold text-dark mt-1">
+                    {selectedConversation.whatsapp_account.display_name || 'WhatsApp Channel'}
+                  </div>
+                  <div className="text-muted font-monospace small" style={{ fontSize: '0.70rem' }}>
+                    {selectedConversation.whatsapp_account.phone_number}
+                  </div>
                 </div>
               )}
 
