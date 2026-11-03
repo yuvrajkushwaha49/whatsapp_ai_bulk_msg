@@ -1,6 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import logger from './utils/logger.js';
+import { isCorsOriginAllowed } from './app.js';
 
 let ioInstance = null;
 
@@ -10,7 +11,13 @@ let ioInstance = null;
 export function initSocketServer(httpServer) {
   ioInstance = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        if (isCorsOriginAllowed(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`Socket CORS blocked origin: ${origin}`));
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true
     },
