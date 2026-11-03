@@ -185,6 +185,14 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   flex: 1;
 }
 
+.content-container.inbox-container-reset {
+  padding: 0 !important;
+  overflow: hidden !important;
+  height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+
 /* Card Styling */
 .cf-card {
   background-color: var(--cf-card-bg);

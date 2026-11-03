@@ -22,7 +22,7 @@ export default function Inbox() {
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
-  const [showCrmPanel, setShowCrmPanel] = useState(true);
+  const [showCrmPanel, setShowCrmPanel] = useState(false);
   const [stats, setStats] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
 

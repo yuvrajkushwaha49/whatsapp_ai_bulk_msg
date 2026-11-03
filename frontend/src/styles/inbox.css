@@ -26,46 +26,55 @@
    Container & Full-Bleed Layout
    -------------------------------------------------------------------------- */
 .inbox-page-container {
-  margin: -1.75rem -1.75rem -1.75rem -1.75rem;
-  height: calc(100vh - 65px);
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: #f0f2f5;
+  box-sizing: border-box;
 }
 
 .inbox-wrapper {
   display: flex;
-  height: 100%;
+  flex: 1;
   width: 100%;
+  height: 100%;
+  max-width: 100%;
   background: #ffffff;
   overflow: hidden;
   position: relative;
-  border-top: 1px solid var(--wa-border);
+  box-sizing: border-box;
 }
 
 /* --------------------------------------------------------------------------
    Left Sidebar: Conversations List
    -------------------------------------------------------------------------- */
 .inbox-sidebar {
-  width: 400px;
-  min-width: 320px;
-  max-width: 440px;
+  width: 340px;
+  min-width: 280px;
+  max-width: 380px;
+  flex-shrink: 0;
   border-right: 1px solid var(--wa-border);
   display: flex;
   flex-direction: column;
   background: #ffffff;
   z-index: 10;
   height: 100%;
+  box-sizing: border-box;
 }
 
 .inbox-sidebar-header {
-  padding: 12px 16px;
+  padding: 12px 14px;
   background: var(--wa-bg-panel);
   border-bottom: 1px solid var(--wa-border-light);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .inbox-sidebar-toprow {
@@ -81,20 +90,20 @@
 }
 
 .inbox-brand-icon {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #25d366, #128c7e);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   box-shadow: 0 2px 6px rgba(37, 211, 102, 0.3);
 }
 
 .inbox-brand-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--wa-text-primary);
   letter-spacing: -0.2px;
@@ -110,11 +119,11 @@
   background: #ffffff;
   border: 1px solid var(--wa-border);
   border-radius: 18px;
-  padding: 4px 10px;
+  padding: 3px 8px;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--wa-text-primary);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
@@ -123,11 +132,11 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: var(--wa-text-primary);
   cursor: pointer;
-  max-width: 100%;
+  width: 100%;
 }
 
 /* Search Box */
@@ -139,19 +148,19 @@
 
 .inbox-search-box i.search-icon {
   position: absolute;
-  left: 12px;
+  left: 10px;
   color: var(--wa-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   pointer-events: none;
 }
 
 .inbox-search-input {
   width: 100%;
-  padding: 7px 32px 7px 36px;
+  padding: 6px 28px 6px 32px;
   background: #ffffff;
   border: 1px solid var(--wa-border);
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: var(--wa-text-primary);
   outline: none;
   transition: all 0.2s ease;
@@ -169,7 +178,7 @@
 
 .inbox-search-clear {
   position: absolute;
-  right: 10px;
+  right: 8px;
   background: none;
   border: none;
   color: var(--wa-text-muted);
@@ -189,11 +198,12 @@
 .inbox-filters-bar {
   display: flex;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   overflow-x: auto;
   border-bottom: 1px solid var(--wa-border-light);
   background: #ffffff;
   scrollbar-width: none;
+  flex-shrink: 0;
 }
 
 .inbox-filters-bar::-webkit-scrollbar {
@@ -201,10 +211,10 @@
 }
 
 .filter-chip {
-  padding: 5px 12px;
-  font-size: 0.76rem;
+  padding: 4px 10px;
+  font-size: 0.74rem;
   font-weight: 500;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--wa-border-light);
   background: var(--wa-bg-panel);
   color: var(--wa-text-secondary);
@@ -214,7 +224,7 @@
   user-select: none;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .filter-chip:hover {
@@ -230,10 +240,10 @@
 }
 
 .filter-chip-count {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   background: rgba(0, 0, 0, 0.08);
-  padding: 1px 6px;
-  border-radius: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
 }
 
 .filter-chip.active .filter-chip-count {
@@ -251,12 +261,13 @@
 .conversation-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 14px;
   cursor: pointer;
   border-bottom: 1px solid var(--wa-border-light);
   transition: background 0.15s ease;
   position: relative;
-  height: 72px;
+  height: 68px;
+  box-sizing: border-box;
 }
 
 .conversation-item:hover {
@@ -270,13 +281,13 @@
 
 .conversation-avatar-wrapper {
   position: relative;
-  margin-right: 14px;
+  margin-right: 12px;
   flex-shrink: 0;
 }
 
 .conversation-avatar {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: linear-gradient(135deg, #128c7e, #075e54);
   color: #ffffff;
@@ -284,7 +295,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   letter-spacing: 0.5px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -293,8 +304,8 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   border: 2px solid #ffffff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -320,11 +331,11 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .conversation-name {
-  font-size: 0.93rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--wa-text-primary);
   white-space: nowrap;
@@ -333,9 +344,9 @@
 }
 
 .conversation-time {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--wa-text-secondary);
-  margin-left: 8px;
+  margin-left: 6px;
   white-space: nowrap;
   font-weight: 400;
 }
@@ -356,7 +367,7 @@
 }
 
 .conversation-snippet {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--wa-text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -389,12 +400,12 @@
 .unread-badge {
   background: var(--wa-unread-badge);
   color: #ffffff;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -407,34 +418,40 @@
    -------------------------------------------------------------------------- */
 .inbox-chat {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: var(--wa-bg-chat);
   position: relative;
-  min-width: 0;
   height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .chat-header {
-  height: 62px;
+  height: 60px;
   background: var(--wa-bg-panel);
   border-bottom: 1px solid var(--wa-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 16px;
   z-index: 5;
   flex-shrink: 0;
+  gap: 12px;
+  box-sizing: border-box;
 }
 
 .chat-header-user {
   display: flex;
   align-items: center;
   min-width: 0;
+  flex: 1;
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 8px;
   transition: background 0.15s ease;
+  overflow: hidden;
 }
 
 .chat-header-user:hover {
@@ -442,8 +459,8 @@
 }
 
 .chat-header-avatar {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: linear-gradient(135deg, #128c7e, #075e54);
   color: #ffffff;
@@ -451,32 +468,34 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 0.95rem;
-  margin-right: 12px;
+  font-size: 0.92rem;
+  margin-right: 10px;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .chat-header-info {
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .chat-header-title {
-  font-size: 0.95rem;
+  font-size: 0.93rem;
   font-weight: 600;
   color: var(--wa-text-primary);
-  line-height: 1.25;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .chat-header-subtitle {
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   color: var(--wa-text-secondary);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -485,7 +504,7 @@
 .chat-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -493,12 +512,13 @@
 .service-window-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 14px;
-  font-size: 0.74rem;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
   font-weight: 600;
   border: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .service-window-badge.open {
@@ -518,14 +538,15 @@
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
   border-top: 1px solid #fde68a;
   border-bottom: 1px solid #fde68a;
-  padding: 10px 18px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: #92400e;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.1);
   z-index: 4;
+  flex-shrink: 0;
 }
 
 .service-window-banner strong {
@@ -538,30 +559,32 @@
 .chat-messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 24px;
+  overflow-x: hidden;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   background-color: var(--wa-bg-chat);
   /* Authentic WhatsApp doodle vector wallpaper encoded in CSS */
   background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d1d7db' fill-opacity='0.25' fill-rule='evenodd'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 9c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-14 62c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm52-44c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM26 38c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm35 34c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM9 56c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm64-16c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM29 64c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM48 18c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM58 50c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM4 31c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM40 76c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM3 72c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM64 4c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z'/%3E%3C/g%3E%3C/svg%3E");
   background-attachment: local;
+  box-sizing: border-box;
 }
 
 .date-divider {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 12px 0 8px 0;
+  margin: 10px 0 6px 0;
 }
 
 .date-pill {
   background: rgba(255, 255, 255, 0.95);
   color: #54656f;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 4px 14px;
-  border-radius: 7.5px;
+  padding: 3px 12px;
+  border-radius: 7px;
   box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -573,22 +596,24 @@
 .message-row {
   display: flex;
   flex-direction: column;
-  max-width: 68%;
+  max-width: 75%;
   position: relative;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .message-row.inbound {
   align-self: flex-start;
+  margin-left: 6px;
 }
 
 .message-row.outbound {
   align-self: flex-end;
+  margin-right: 6px;
 }
 
 .message-bubble {
-  padding: 7px 11px 6px 11px;
-  font-size: 0.9rem;
+  padding: 6px 10px 5px 10px;
+  font-size: 0.88rem;
   line-height: 1.4;
   color: var(--wa-text-primary);
   box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
@@ -606,12 +631,12 @@
   content: '';
   position: absolute;
   top: 0;
-  left: -8px;
+  left: -6px;
   width: 0;
   height: 0;
   border-top: 0px solid transparent;
-  border-bottom: 10px solid transparent;
-  border-right: 8px solid var(--wa-bubble-in);
+  border-bottom: 8px solid transparent;
+  border-right: 6px solid var(--wa-bubble-in);
 }
 
 /* Outbound: Light Green with right tail */
@@ -624,12 +649,12 @@
   content: '';
   position: absolute;
   top: 0;
-  right: -8px;
+  right: -6px;
   width: 0;
   height: 0;
   border-top: 0px solid transparent;
-  border-bottom: 10px solid transparent;
-  border-left: 8px solid var(--wa-bubble-out);
+  border-bottom: 8px solid transparent;
+  border-left: 6px solid var(--wa-bubble-out);
 }
 
 .message-text {
@@ -643,14 +668,14 @@
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: var(--wa-text-secondary);
   margin-top: 2px;
   user-select: none;
 }
 
 .tick-icon {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   line-height: 1;
 }
 
@@ -671,37 +696,32 @@
 }
 
 /* WhatsApp Template Card */
-.template-bubble-card {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
 .template-badge {
   background: rgba(0, 128, 105, 0.12);
   color: var(--wa-green-dark);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .template-button-mockup {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   color: #00a884;
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
 }
 
 /* Media preview inside bubble */
@@ -712,7 +732,7 @@
 }
 
 .bubble-image-preview {
-  max-height: 280px;
+  max-height: 240px;
   max-width: 100%;
   border-radius: 6px;
   object-fit: cover;
@@ -726,11 +746,11 @@
 
 .bubble-doc-card {
   background: rgba(0, 0, 0, 0.04);
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: 6px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -740,17 +760,19 @@
 .chat-composer {
   background: var(--wa-bg-panel);
   border-top: 1px solid var(--wa-border);
-  padding: 8px 16px;
+  padding: 8px 14px;
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
   z-index: 5;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .composer-action-btn {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: transparent;
   color: var(--wa-text-secondary);
@@ -758,7 +780,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
@@ -780,11 +802,12 @@
   background: #ffffff;
   border-radius: 8px;
   border: 1px solid var(--wa-border-light);
-  padding: 8px 14px;
+  padding: 7px 12px;
   display: flex;
   align-items: center;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-width: 0;
 }
 
 .composer-input-wrapper:focus-within {
@@ -797,7 +820,7 @@
   border: none;
   outline: none;
   resize: none;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   line-height: 1.4;
   max-height: 120px;
   background: transparent;
@@ -810,8 +833,8 @@
 }
 
 .btn-send-whatsapp {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--wa-green);
   color: #ffffff;
@@ -819,7 +842,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   box-shadow: 0 2px 6px rgba(0, 168, 132, 0.35);
   transition: transform 0.15s ease, background 0.15s ease;
   flex-shrink: 0;
@@ -842,20 +865,23 @@
    Right Sidebar: Customer CRM Panel
    -------------------------------------------------------------------------- */
 .inbox-crm {
-  width: 340px;
+  width: 320px;
+  min-width: 280px;
+  max-width: 340px;
+  flex-shrink: 0;
   border-left: 1px solid var(--wa-border);
   background: #ffffff;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   height: 100%;
-  flex-shrink: 0;
   z-index: 10;
+  box-sizing: border-box;
 }
 
 .crm-header {
-  height: 62px;
-  padding: 0 18px;
+  height: 60px;
+  padding: 0 16px;
   background: var(--wa-bg-panel);
   border-bottom: 1px solid var(--wa-border);
   display: flex;
@@ -865,7 +891,7 @@
 }
 
 .crm-header h6 {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--wa-text-primary);
   margin: 0;
@@ -873,24 +899,24 @@
 
 .crm-profile-card {
   text-align: center;
-  padding: 24px 18px 20px 18px;
+  padding: 20px 16px 16px 16px;
   border-bottom: 1px solid var(--wa-border-light);
   background: #ffffff;
 }
 
 .crm-avatar {
-  width: 76px;
-  height: 76px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   background: linear-gradient(135deg, #00a884, #008069);
   color: #ffffff;
-  font-size: 1.9rem;
+  font-size: 1.7rem;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.25);
+  margin-bottom: 10px;
+  box-shadow: 0 4px 10px rgba(0, 168, 132, 0.25);
   position: relative;
 }
 
@@ -898,49 +924,50 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #ffffff;
   color: #25d366;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .crm-contact-name {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--wa-text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
+  word-break: break-word;
 }
 
 .crm-phone-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: var(--wa-bg-panel);
   border: 1px solid var(--wa-border-light);
-  padding: 4px 10px;
-  border-radius: 14px;
-  font-size: 0.8rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.76rem;
   color: var(--wa-text-secondary);
   font-family: monospace;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .crm-quick-actions {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .crm-action-btn-circle {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: 1px solid var(--wa-border);
   background: #ffffff;
@@ -948,7 +975,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   transition: all 0.15s ease;
 }
 
@@ -959,17 +986,17 @@
 }
 
 .crm-section {
-  padding: 16px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--wa-border-light);
 }
 
 .crm-section-title {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 700;
   color: var(--wa-text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -978,25 +1005,25 @@
 .notes-feed {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 220px;
+  gap: 6px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
 .note-card {
   background: var(--wa-bg-panel);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.82rem;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.8rem;
   border: 1px solid var(--wa-border-light);
 }
 
 .note-meta {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--wa-text-secondary);
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 /* --------------------------------------------------------------------------
@@ -1005,15 +1032,15 @@
 .template-modal-preview {
   background: var(--wa-bg-chat);
   background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d1d7db' fill-opacity='0.25' fill-rule='evenodd'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 9c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-14 62c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm52-44c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM26 38c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm35 34c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM9 56c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm64-16c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM29 64c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM48 18c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM58 50c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM4 31c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM40 76c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM3 72c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zM64 4c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z'/%3E%3C/g%3E%3C/svg%3E");
-  padding: 16px;
-  border-radius: 12px;
+  padding: 14px;
+  border-radius: 10px;
   border: 1px solid var(--wa-border);
 }
 
 .template-smartphone-card {
   background: var(--wa-bubble-out);
   border-radius: 8px 0px 8px 8px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   box-shadow: 0 1px 2px rgba(11, 20, 26, 0.15);
   position: relative;
 }
@@ -1021,9 +1048,13 @@
 /* --------------------------------------------------------------------------
    Mobile Responsiveness
    -------------------------------------------------------------------------- */
-@media (max-width: 992px) {
+@media (max-width: 1200px) {
   .inbox-crm {
-    display: none;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
   }
 }
 
