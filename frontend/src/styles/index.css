@@ -163,6 +163,9 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: calc(100vw - 260px);
+  max-width: calc(100vw - 260px);
+  min-width: 0;
   background-color: var(--cf-light-bg);
 }
 
@@ -189,8 +192,12 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   padding: 0 !important;
   overflow: hidden !important;
   height: calc(100vh - 64px);
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 /* Card Styling */
@@ -473,6 +480,8 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   }
   .main-content {
     margin-left: 0;
+    width: 100vw;
+    max-width: 100vw;
   }
   .content-container {
     padding: 1.25rem;

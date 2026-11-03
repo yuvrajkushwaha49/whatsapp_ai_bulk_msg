@@ -28,24 +28,27 @@
 .inbox-page-container {
   margin: 0 !important;
   padding: 0 !important;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: hidden !important;
   background: #f0f2f5;
   box-sizing: border-box;
+  position: relative;
 }
 
 .inbox-wrapper {
   display: flex;
   flex: 1;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   background: #ffffff;
-  overflow: hidden;
+  overflow: hidden !important;
   position: relative;
   box-sizing: border-box;
 }
@@ -54,9 +57,9 @@
    Left Sidebar: Conversations List
    -------------------------------------------------------------------------- */
 .inbox-sidebar {
-  width: 340px;
-  min-width: 280px;
-  max-width: 380px;
+  width: 320px;
+  min-width: 260px;
+  max-width: 340px;
   flex-shrink: 0;
   border-right: 1px solid var(--wa-border);
   display: flex;
@@ -65,6 +68,7 @@
   z-index: 10;
   height: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .inbox-sidebar-header {
@@ -417,14 +421,15 @@
    Middle Section: Chat Window
    -------------------------------------------------------------------------- */
 .inbox-chat {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: 0 !important;
+  width: 0;
   display: flex;
   flex-direction: column;
   background: var(--wa-bg-chat);
   position: relative;
   height: 100%;
-  overflow: hidden;
+  overflow: hidden !important;
   box-sizing: border-box;
 }
 
@@ -435,11 +440,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 12px;
   z-index: 5;
   flex-shrink: 0;
-  gap: 12px;
+  gap: 8px;
   box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .chat-header-user {
@@ -519,6 +527,7 @@
   font-weight: 600;
   border: 1px solid transparent;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .service-window-badge.open {
@@ -538,15 +547,35 @@
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
   border-top: 1px solid #fde68a;
   border-bottom: 1px solid #fde68a;
-  padding: 8px 16px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #92400e;
   box-shadow: 0 2px 6px rgba(245, 158, 11, 0.1);
   z-index: 4;
   flex-shrink: 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  gap: 8px;
+}
+
+.service-window-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.service-window-banner-text {
+  min-width: 0;
+  flex: 1;
+  line-height: 1.35;
+  font-size: 0.78rem;
 }
 
 .service-window-banner strong {
@@ -1048,13 +1077,22 @@
 /* --------------------------------------------------------------------------
    Mobile Responsiveness
    -------------------------------------------------------------------------- */
-@media (max-width: 1200px) {
+@media (max-width: 1500px) {
   .inbox-crm {
     position: absolute;
     right: 0;
     top: 0;
     bottom: 0;
-    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+    width: 320px;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    z-index: 30;
+  }
+}
+
+@media (max-width: 1200px) {
+  .inbox-sidebar {
+    width: 290px;
+    min-width: 250px;
   }
 }
 
@@ -1074,5 +1112,6 @@
     right: 0;
     bottom: 0;
     z-index: 20;
+    width: 100% !important;
   }
 }

@@ -779,11 +779,11 @@ export default function Inbox() {
             <>
               {/* Chat Top Header */}
               <div className="chat-header">
-                <div className="d-flex align-items-center min-w-0">
+                <div className="d-flex align-items-center min-w-0" style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                   {/* Mobile Back Button */}
                   <button
                     type="button"
-                    className="btn btn-sm btn-light border-0 d-md-none me-2 p-1"
+                    className="btn btn-sm btn-light border-0 d-md-none me-2 p-1 flex-shrink-0"
                     onClick={() => setSelectedConversation(null)}
                   >
                     <i className="bi bi-arrow-left fs-5"></i>
@@ -834,7 +834,7 @@ export default function Inbox() {
 
                   {/* Send Template Button */}
                   <button
-                    className="btn btn-sm btn-success d-flex align-items-center gap-1 shadow-sm px-2 py-1"
+                    className="btn btn-sm btn-success d-flex align-items-center gap-1 shadow-sm px-2 py-1 flex-shrink-0"
                     onClick={handleOpenTemplateModal}
                     title="Send Meta-Approved WhatsApp Template"
                   >
@@ -844,7 +844,7 @@ export default function Inbox() {
 
                   {/* Toggle CRM Details Sidebar */}
                   <button
-                    className={`btn btn-sm ${showCrmPanel ? 'btn-outline-success active' : 'btn-outline-secondary'} d-flex align-items-center gap-1 px-2 py-1`}
+                    className={`btn btn-sm ${showCrmPanel ? 'btn-outline-success active' : 'btn-outline-secondary'} d-flex align-items-center gap-1 px-2 py-1 flex-shrink-0`}
                     onClick={() => setShowCrmPanel(!showCrmPanel)}
                     title="Toggle Customer Information Panel"
                   >
@@ -857,14 +857,14 @@ export default function Inbox() {
               {/* Expired Window Alert Banner (Sticky right above messages) */}
               {!selectedConversation.is_window_open && (
                 <div className="service-window-banner">
-                  <div className="d-flex align-items-center gap-2">
-                    <i className="bi bi-shield-lock-fill text-warning fs-5"></i>
-                    <div>
-                      <strong>24-Hour Customer Care Window Closed.</strong> Under Meta WhatsApp policies, free-form text messages cannot be sent. You can re-open the conversation by sending an approved WhatsApp Template.
+                  <div className="service-window-banner-content">
+                    <i className="bi bi-shield-lock-fill text-warning fs-5 flex-shrink-0"></i>
+                    <div className="service-window-banner-text">
+                      <strong>24-Hour Customer Care Window Closed.</strong> Free-form text messages are locked by Meta policy. Send an approved template to re-open.
                     </div>
                   </div>
                   <button
-                    className="btn btn-sm btn-warning fw-semibold ms-3 text-dark shadow-sm px-3"
+                    className="btn btn-sm btn-warning fw-semibold ms-2 text-dark shadow-sm px-3 flex-shrink-0"
                     onClick={handleOpenTemplateModal}
                   >
                     Choose Template
