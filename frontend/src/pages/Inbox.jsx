@@ -24,6 +24,7 @@ export default function Inbox() {
   const [sending, setSending] = useState(false);
   const [showCrmPanel, setShowCrmPanel] = useState(true);
   const [stats, setStats] = useState(null);
+  const [copiedPhone, setCopiedPhone] = useState(false);
 
   // CRM details & notes
   const [notes, setNotes] = useState([]);
@@ -108,6 +109,14 @@ export default function Inbox() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-resize composer textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+    }
+  }, [inputText]);
 
   // 2. Fetch Handlers
   const loadAccounts = async () => {
@@ -558,7 +567,11 @@ export default function Inbox() {
     if (isToday) {
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const isThisYear = d.getFullYear() === now.getFullYear();
+    if (isThisYear) {
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+    return d.toLocaleDateString([], { month: '2-digit', day: '2-digit', year: '2-digit' });
   };
 
   const formatWindowRemaining = (ms) => {
@@ -568,88 +581,123 @@ export default function Inbox() {
     return `${hours}h ${mins}m left`;
   };
 
+  const copyPhoneNumber = (phone) => {
+    if (!phone) return;
+    navigator.clipboard?.writeText(phone);
+    setCopiedPhone(true);
+    setTimeout(() => setCopiedPhone(false), 2000);
+  };
+
   return (
-    <div className="container-fluid py-2 px-3">
+    <div className="inbox-page-container">
       {/* Top Notification Toast */}
       {alertMsg && (
-        <div className={`alert alert-${alertMsg.type} alert-dismissible fade show py-2 mb-2 shadow-sm`} role="alert">
+        <div
+          className={`alert alert-${alertMsg.type} alert-dismissible fade show m-2 py-2 px-3 shadow-sm border-0`}
+          role="alert"
+          style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 1050, minWidth: '320px' }}
+        >
           <div className="d-flex align-items-center justify-content-between">
-            <span className="small">{alertMsg.text}</span>
+            <span className="small fw-medium">{alertMsg.text}</span>
             <button type="button" className="btn-close py-2" onClick={() => setAlertMsg(null)}></button>
           </div>
         </div>
       )}
 
-      {/* Main 3-Column WhatsApp Web Layout */}
+      {/* Main 3-Column Authentic WhatsApp Web Layout */}
       <div className="inbox-wrapper">
         {/* ==================================================================
             LEFT COLUMN: Conversations List & Filters
             ================================================================== */}
         <div className="inbox-sidebar">
-          {/* Header & Search */}
+          {/* Header & Account Selection */}
           <div className="inbox-sidebar-header">
-            <div className="d-flex align-items-center justify-content-between">
-              <div className="d-flex align-items-center gap-2">
-                <i className="bi bi-whatsapp text-success fs-5"></i>
-                <h5 className="mb-0 fw-bold fs-6">WhatsApp Inbox</h5>
-              </div>
-              {stats && (
-                <span className="badge bg-success-subtle text-success border border-success-subtle">
-                  {stats.open} Open • {stats.unread} Unread
-                </span>
-              )}
-            </div>
-
-              {/* Multi-Account Selection Dropdown */}
-              {accounts.length > 0 && (
-                <div className="mt-2 pt-2 border-top">
-                  <div className="d-flex align-items-center gap-2">
-                    <i className="bi bi-phone-vibrate text-success small"></i>
-                    <select
-                      className="form-select form-select-sm border bg-white py-1 shadow-xs"
-                      value={selectedAccountId}
-                      onChange={(e) => setSelectedAccountId(e.target.value)}
-                      style={{ fontSize: '0.78rem' }}
-                    >
-                      <option value="all">All WhatsApp Numbers ({accounts.length})</option>
-                      {accounts.map(acc => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.phone_number} {acc.is_primary ? '⭐ (Default)' : ''} — {acc.display_name}
-                        </option>
-                      ))}
-                    </select>
+            <div className="inbox-sidebar-toprow">
+              <div className="inbox-brand-badge">
+                <div className="inbox-brand-icon">
+                  <i className="bi bi-whatsapp"></i>
+                </div>
+                <div>
+                  <div className="inbox-brand-title">WhatsApp Inbox</div>
+                  <div className="inbox-brand-subtitle">
+                    {stats ? `${stats.open} Open • ${stats.unread} Unread` : 'Two-way live chat'}
                   </div>
                 </div>
-              )}
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-light border-0 rounded-circle d-flex align-items-center justify-content-center text-secondary"
+                style={{ width: '32px', height: '32px' }}
+                onClick={() => {
+                  loadConversations(true);
+                  loadStats();
+                }}
+                title="Refresh Conversations"
+              >
+                <i className={`bi bi-arrow-clockwise ${loadingConversations ? 'spin' : ''}`}></i>
+              </button>
+            </div>
+
+            {/* Multi-Account Selection Pill */}
+            {accounts.length > 0 && (
+              <div className="inbox-account-pill">
+                <i className="bi bi-phone text-success"></i>
+                <select
+                  className="inbox-account-select"
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                >
+                  <option value="all">All WhatsApp Numbers ({accounts.length})</option>
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.phone_number} {acc.is_primary ? '★ Primary' : ''} — {acc.display_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Search Input */}
             <div className="inbox-search-box">
-              <i className="bi bi-search"></i>
+              <i className="bi bi-search search-icon"></i>
               <input
                 type="text"
-                className="form-control"
-                placeholder="Search name or +91..."
+                className="inbox-search-input"
+                placeholder="Search or start new chat..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="inbox-search-clear"
+                  onClick={() => setSearchQuery('')}
+                  title="Clear search"
+                >
+                  <i className="bi bi-x-circle-fill"></i>
+                </button>
+              )}
             </div>
           </div>
 
           {/* Filter Chips Bar */}
           <div className="inbox-filters-bar">
             {[
-              { id: 'all', label: 'All' },
-              { id: 'unread', label: 'Unread' },
-              { id: 'assigned_to_me', label: 'Assigned to Me' },
-              { id: 'unassigned', label: 'Unassigned' },
-              { id: 'closed', label: 'Closed' }
+              { id: 'all', label: 'All', count: stats?.open },
+              { id: 'unread', label: 'Unread', count: stats?.unread },
+              { id: 'assigned_to_me', label: 'Mine' },
+              { id: 'unassigned', label: 'Unassigned', count: stats?.unassigned },
+              { id: 'closed', label: 'Closed', count: stats?.closed }
             ].map((f) => (
               <span
                 key={f.id}
                 className={`filter-chip ${filter === f.id ? 'active' : ''}`}
                 onClick={() => setFilter(f.id)}
               >
-                {f.label}
+                <span>{f.label}</span>
+                {f.count !== undefined && f.count > 0 && (
+                  <span className="filter-chip-count">{f.count}</span>
+                )}
               </span>
             ))}
           </div>
@@ -659,21 +707,23 @@ export default function Inbox() {
             {loadingConversations ? (
               <div className="p-4 text-center text-muted">
                 <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
-                <span className="small">Loading conversations...</span>
+                <span className="small">Loading chats...</span>
               </div>
             ) : conversations.length === 0 ? (
-              <div className="p-4 text-center text-muted">
-                <i className="bi bi-chat-square-text fs-3 d-block mb-2 text-secondary"></i>
-                <div className="fw-semibold small">No conversations found</div>
-                <div className="text-secondary" style={{ fontSize: '0.75rem' }}>
-                  Incoming messages from WhatsApp will automatically appear here.
+              <div className="p-5 text-center text-muted">
+                <div className="mb-2">
+                  <i className="bi bi-chat-square-text text-secondary opacity-50" style={{ fontSize: '2.4rem' }}></i>
+                </div>
+                <div className="fw-semibold text-dark small">No conversations found</div>
+                <div className="text-secondary small mt-1" style={{ fontSize: '0.76rem' }}>
+                  Customer messages received via WhatsApp will automatically sync here.
                 </div>
               </div>
             ) : (
               conversations.map((c) => {
                 const isActive = selectedConversation?.id === c.id;
                 const contactName = c.contact?.name || c.customer_phone;
-                const initials = contactName.slice(0, 2).toUpperCase();
+                const initials = (contactName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2) || 'WA').toUpperCase();
 
                 return (
                   <div
@@ -682,11 +732,13 @@ export default function Inbox() {
                     onClick={() => setSelectedConversation(c)}
                   >
                     {/* Avatar with 24h Window Indicator */}
-                    <div className="conversation-avatar">
-                      {initials}
+                    <div className="conversation-avatar-wrapper">
+                      <div className="conversation-avatar">
+                        {initials}
+                      </div>
                       <span
                         className={`window-indicator-dot ${c.is_window_open ? 'active' : 'expired'}`}
-                        title={c.is_window_open ? '24h Service Window Open' : '24h Window Expired'}
+                        title={c.is_window_open ? '24h Service Window Active' : '24h Window Expired'}
                       ></span>
                     </div>
 
@@ -697,14 +749,16 @@ export default function Inbox() {
                         <span className="conversation-time">{formatTime(c.last_message_at || c.updated_at)}</span>
                       </div>
                       <div className="conversation-preview-row">
-                        <span className="conversation-snippet">
+                        <div className="conversation-snippet-wrapper">
                           {c.whatsapp_account && (
                             <span className="badge bg-light text-secondary border me-1 py-0 px-1" style={{ fontSize: '0.62rem' }}>
                               {c.whatsapp_account.phone_number}
                             </span>
                           )}
-                          {c.last_message_text || 'No message preview'}
-                        </span>
+                          <span className="conversation-snippet">
+                            {c.last_message_text || 'No message preview'}
+                          </span>
+                        </div>
                         {c.unread_count > 0 && (
                           <span className="unread-badge">{c.unread_count}</span>
                         )}
@@ -725,78 +779,92 @@ export default function Inbox() {
             <>
               {/* Chat Top Header */}
               <div className="chat-header">
-                <div className="chat-header-user">
-                  <div className="chat-header-avatar">
-                    {(selectedConversation.contact?.name || selectedConversation.customer_phone).slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="fw-bold fs-6 text-dark mb-0">
+                <div className="d-flex align-items-center min-w-0">
+                  {/* Mobile Back Button */}
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-light border-0 d-md-none me-2 p-1"
+                    onClick={() => setSelectedConversation(null)}
+                  >
+                    <i className="bi bi-arrow-left fs-5"></i>
+                  </button>
+
+                  <div className="chat-header-user" onClick={() => setShowCrmPanel(!showCrmPanel)} title="Click to toggle customer details">
+                    <div className="chat-header-avatar">
+                      {((selectedConversation.contact?.name || selectedConversation.customer_phone).replace(/[^a-zA-Z0-9]/g, '').slice(0, 2) || 'WA').toUpperCase()}
+                    </div>
+                    <div className="chat-header-info">
+                      <div className="chat-header-title">
                         {selectedConversation.contact?.name || selectedConversation.customer_phone}
                       </div>
-                      {selectedConversation.whatsapp_account && (
-                        <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-0" style={{ fontSize: '0.7rem' }}>
-                          <i className="bi bi-whatsapp me-1"></i>
-                          Via {selectedConversation.whatsapp_account.phone_number}
-                        </span>
-                      )}
-                    </div>
-                    <div className="small text-muted d-flex align-items-center gap-2" style={{ fontSize: '0.75rem' }}>
-                      <span>{selectedConversation.customer_phone}</span>
-                      <span>•</span>
-                      {selectedConversation.assigned_user ? (
-                        <span className="text-secondary">Assigned: {selectedConversation.assigned_user.name}</span>
-                      ) : (
-                        <span className="text-warning">Unassigned</span>
-                      )}
+                      <div className="chat-header-subtitle">
+                        <span>{selectedConversation.customer_phone}</span>
+                        {selectedConversation.whatsapp_account && (
+                          <>
+                            <span>•</span>
+                            <span className="text-success fw-medium">
+                              <i className="bi bi-whatsapp me-1"></i>
+                              Via {selectedConversation.whatsapp_account.phone_number}
+                            </span>
+                          </>
+                        )}
+                        <span>•</span>
+                        {selectedConversation.assigned_user ? (
+                          <span className="text-secondary">Agent: {selectedConversation.assigned_user.name}</span>
+                        ) : (
+                          <span className="text-warning">Unassigned</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Header Action Buttons */}
-                <div className="d-flex align-items-center gap-2">
+                <div className="chat-header-actions">
                   {/* Service Window Badge */}
                   <span
                     className={`service-window-badge ${selectedConversation.is_window_open ? 'open' : 'expired'}`}
+                    title={selectedConversation.is_window_open ? '24h Service Window is currently open for direct two-way messaging' : '24h Window is closed. Meta policy requires approved templates.'}
                   >
-                    <i className="bi bi-clock"></i>
+                    <i className={`bi ${selectedConversation.is_window_open ? 'bi-clock-fill text-success' : 'bi-lock-fill text-warning'}`}></i>
                     {selectedConversation.is_window_open
                       ? `24h Window: ${formatWindowRemaining(selectedConversation.window_remaining_ms)}`
-                      : '24h Window Closed'}
+                      : 'Window Closed'}
                   </span>
 
                   {/* Send Template Button */}
                   <button
-                    className="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
+                    className="btn btn-sm btn-success d-flex align-items-center gap-1 shadow-sm px-2 py-1"
                     onClick={handleOpenTemplateModal}
-                    title="Send Approved WhatsApp Template"
+                    title="Send Meta-Approved WhatsApp Template"
                   >
-                    <i className="bi bi-card-text"></i>
-                    <span className="d-none d-md-inline">Template</span>
+                    <i className="bi bi-lightning-charge-fill"></i>
+                    <span className="d-none d-sm-inline fw-semibold">Template</span>
                   </button>
 
                   {/* Toggle CRM Details Sidebar */}
                   <button
-                    className={`btn btn-sm ${showCrmPanel ? 'btn-success' : 'btn-outline-secondary'}`}
+                    className={`btn btn-sm ${showCrmPanel ? 'btn-outline-success active' : 'btn-outline-secondary'} d-flex align-items-center gap-1 px-2 py-1`}
                     onClick={() => setShowCrmPanel(!showCrmPanel)}
                     title="Toggle Customer Information Panel"
                   >
                     <i className="bi bi-person-lines-fill"></i>
+                    <span className="d-none d-lg-inline">Contact Info</span>
                   </button>
                 </div>
               </div>
 
-              {/* Expired Window Alert Banner */}
+              {/* Expired Window Alert Banner (Sticky right above messages) */}
               {!selectedConversation.is_window_open && (
                 <div className="service-window-banner">
                   <div className="d-flex align-items-center gap-2">
-                    <i className="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <i className="bi bi-shield-lock-fill text-warning fs-5"></i>
                     <div>
-                      <strong>24-Hour Customer Service Window Closed.</strong> Under Meta WhatsApp policies, free-form messages cannot be sent. You can re-open the conversation by sending an approved WhatsApp Template.
+                      <strong>24-Hour Customer Care Window Closed.</strong> Under Meta WhatsApp policies, free-form text messages cannot be sent. You can re-open the conversation by sending an approved WhatsApp Template.
                     </div>
                   </div>
                   <button
-                    className="btn btn-sm btn-warning fw-semibold ms-3"
+                    className="btn btn-sm btn-warning fw-semibold ms-3 text-dark shadow-sm px-3"
                     onClick={handleOpenTemplateModal}
                   >
                     Choose Template
@@ -807,18 +875,24 @@ export default function Inbox() {
               {/* Message History Feed */}
               <div className="chat-messages-container">
                 <div className="date-divider">
-                  <span className="date-pill">Messages Encrypted & Stored via Meta Cloud API</span>
+                  <span className="date-pill">
+                    <i className="bi bi-lock-fill text-muted me-1"></i>
+                    End-to-End Meta Cloud API Integration
+                  </span>
                 </div>
 
                 {loadingMessages ? (
-                  <div className="text-center py-4 text-muted">
+                  <div className="text-center py-5 text-muted">
                     <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
-                    <span>Loading message history...</span>
+                    <span className="small">Loading conversation history...</span>
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="text-center py-5 text-muted">
-                    <i className="bi bi-chat-heart fs-1 text-secondary opacity-50 d-block mb-2"></i>
-                    <div className="small">No messages yet. Send a message or template to start chatting.</div>
+                  <div className="text-center py-5 text-muted my-auto">
+                    <div className="mb-2">
+                      <i className="bi bi-chat-dots text-success opacity-75" style={{ fontSize: '2.5rem' }}></i>
+                    </div>
+                    <div className="fw-semibold text-dark">No messages in this chat yet</div>
+                    <div className="small text-secondary mt-1">Send a message or template below to initiate communication.</div>
                   </div>
                 ) : (
                   messages.map((m) => {
@@ -833,35 +907,54 @@ export default function Inbox() {
                         <div className={`message-bubble ${isInbound ? 'inbound' : 'outbound'}`}>
                           {/* Template Header Badge */}
                           {isTemplate && (
-                            <div className="badge bg-secondary-subtle text-secondary border mb-1 d-inline-block small">
-                              <i className="bi bi-patch-check-fill text-success me-1"></i>
-                              Approved Template
+                            <div className="template-badge">
+                              <i className="bi bi-patch-check-fill text-success"></i>
+                              Official Template
                             </div>
                           )}
 
                           {/* Media Preview if attached */}
                           {m.media_url && (
-                            <div className="mb-2">
+                            <div className="bubble-media-wrapper">
                               {m.message_type === 'image' ? (
                                 <img
                                   src={m.media_url}
                                   alt="media"
-                                  className="img-fluid rounded"
-                                  style={{ maxHeight: '200px' }}
+                                  className="bubble-image-preview"
+                                  onClick={() => window.open(m.media_url, '_blank')}
+                                  title="Click to view full image"
                                 />
                               ) : (
-                                <div className="p-2 bg-light rounded border d-flex align-items-center gap-2">
-                                  <i className="bi bi-file-earmark-text fs-4 text-primary"></i>
-                                  <a href={m.media_url} target="_blank" rel="noopener noreferrer" className="small">
-                                    View Attached {m.message_type}
-                                  </a>
+                                <div className="bubble-doc-card">
+                                  <i className="bi bi-file-earmark-pdf-fill fs-3 text-danger"></i>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="small fw-semibold text-truncate">
+                                      Attached {m.message_type?.toUpperCase()}
+                                    </div>
+                                    <a
+                                      href={m.media_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="small text-primary text-decoration-none"
+                                    >
+                                      <i className="bi bi-download me-1"></i>Download Document
+                                    </a>
+                                  </div>
                                 </div>
                               )}
                             </div>
                           )}
 
                           {/* Message Body Content */}
-                          <div>{m.message_body}</div>
+                          <div className="message-text">{m.message_body}</div>
+
+                          {/* Template Mockup Action Buttons */}
+                          {isTemplate && (
+                            <div className="template-button-mockup">
+                              <i className="bi bi-arrow-up-right-square"></i>
+                              <span>Interactive Template</span>
+                            </div>
+                          )}
 
                           {/* Meta timestamp & status ticks */}
                           <div className="message-meta">
@@ -869,13 +962,13 @@ export default function Inbox() {
                             {!isInbound && (
                               <span className="ms-1">
                                 {m.message_status === 'read' ? (
-                                  <i className="bi bi-check2-all tick-icon read" title="Read"></i>
+                                  <i className="bi bi-check2-all tick-icon read" title="Read (Blue Ticks)"></i>
                                 ) : m.message_status === 'delivered' ? (
-                                  <i className="bi bi-check2-all tick-icon delivered" title="Delivered"></i>
+                                  <i className="bi bi-check2-all tick-icon delivered" title="Delivered (Double Ticks)"></i>
                                 ) : m.message_status === 'failed' ? (
-                                  <i className="bi bi-exclamation-circle-fill tick-icon failed" title={m.failure_reason || 'Failed'}></i>
+                                  <i className="bi bi-exclamation-circle-fill tick-icon failed" title={m.failure_reason || 'Failed to deliver'}></i>
                                 ) : (
-                                  <i className="bi bi-check tick-icon sent" title="Sent"></i>
+                                  <i className="bi bi-check tick-icon sent" title="Sent to WhatsApp"></i>
                                 )}
                               </span>
                             )}
@@ -888,17 +981,27 @@ export default function Inbox() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Bottom Message Composer */}
+              {/* Bottom Message Composer (WhatsApp Web Style) */}
               <div className="chat-composer">
                 {/* Media Attachment Button */}
                 <button
                   type="button"
-                  className="btn btn-outline-secondary border-0 text-secondary fs-5 p-1"
+                  className="composer-action-btn"
                   onClick={() => setShowMediaModal(true)}
                   disabled={!selectedConversation.is_window_open}
-                  title={selectedConversation.is_window_open ? 'Attach Media' : 'Window closed'}
+                  title={selectedConversation.is_window_open ? 'Attach Media / Document' : '24h Window closed'}
                 >
                   <i className="bi bi-paperclip"></i>
+                </button>
+
+                {/* Quick Template Picker Shortcut */}
+                <button
+                  type="button"
+                  className="composer-action-btn text-success"
+                  onClick={handleOpenTemplateModal}
+                  title="Choose & Send WhatsApp Template"
+                >
+                  <i className="bi bi-lightning-charge"></i>
                 </button>
 
                 {/* Input Textarea */}
@@ -909,7 +1012,7 @@ export default function Inbox() {
                     placeholder={
                       selectedConversation.is_window_open
                         ? 'Type a message... (Enter to send, Shift+Enter for newline)'
-                        : '24-hour service window expired. Click Template to reply.'
+                        : '24-hour service window closed. Click Template icon to reply.'
                     }
                     value={inputText}
                     disabled={!selectedConversation.is_window_open || sending}
@@ -929,7 +1032,7 @@ export default function Inbox() {
                   className="btn-send-whatsapp"
                   onClick={handleSendMessage}
                   disabled={!inputText.trim() || sending || !selectedConversation.is_window_open}
-                  title="Send message"
+                  title="Send Message"
                 >
                   {sending ? (
                     <div className="spinner-border spinner-border-sm text-white" role="status"></div>
@@ -942,13 +1045,26 @@ export default function Inbox() {
           ) : (
             /* Empty State when no conversation is selected */
             <div className="d-flex flex-column align-items-center justify-content-center h-100 p-4 text-center text-muted">
-              <div className="rounded-circle bg-white p-4 shadow-sm mb-3">
-                <i className="bi bi-whatsapp text-success" style={{ fontSize: '3rem' }}></i>
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center shadow-sm mb-3"
+                style={{ width: '80px', height: '80px', backgroundColor: '#dcfce7', color: '#16a34a' }}
+              >
+                <i className="bi bi-whatsapp" style={{ fontSize: '2.8rem' }}></i>
               </div>
-              <h5 className="fw-bold text-dark">CampaignFlow WhatsApp Inbox</h5>
-              <p className="text-secondary small max-w-sm" style={{ maxWidth: '420px' }}>
-                Select a conversation from the left to start live two-way customer communication, review chat history, or dispatch Meta-approved templates.
+              <h5 className="fw-bold text-dark mb-1">CampaignFlow WhatsApp Live Chat</h5>
+              <p className="text-secondary small max-w-sm" style={{ maxWidth: '440px', lineHeight: 1.5 }}>
+                Select a conversation on the left to begin live two-way customer messaging, review previous chat histories, and dispatch official Meta-approved templates.
               </p>
+              <div className="d-flex align-items-center gap-2 mt-2">
+                <span className="badge bg-light text-secondary border px-3 py-2 small">
+                  <i className="bi bi-shield-check text-success me-1"></i>
+                  Meta Cloud API Powered
+                </span>
+                <span className="badge bg-light text-secondary border px-3 py-2 small">
+                  <i className="bi bi-clock-history text-primary me-1"></i>
+                  24h Window Tracking
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -959,52 +1075,106 @@ export default function Inbox() {
         {selectedConversation && showCrmPanel && (
           <div className="inbox-crm">
             <div className="crm-header">
-              <h6 className="mb-0 fw-bold fs-6">Customer Details</h6>
+              <h6>Contact Details</h6>
               <button
                 type="button"
                 className="btn-close"
                 onClick={() => setShowCrmPanel(false)}
+                title="Close panel"
               ></button>
             </div>
 
             {/* Profile Summary Card */}
             <div className="crm-profile-card">
               <div className="crm-avatar">
-                {(selectedConversation.contact?.name || selectedConversation.customer_phone).slice(0, 2).toUpperCase()}
+                {((selectedConversation.contact?.name || selectedConversation.customer_phone).replace(/[^a-zA-Z0-9]/g, '').slice(0, 2) || 'WA').toUpperCase()}
+                <span className="crm-verified-badge" title="WhatsApp Verified Contact">
+                  <i className="bi bi-whatsapp"></i>
+                </span>
               </div>
-              <h6 className="fw-bold mb-1 text-dark">
+              <div className="crm-contact-name">
                 {selectedConversation.contact?.name || selectedConversation.customer_phone}
-              </h6>
-              <div className="text-muted small">{selectedConversation.customer_phone}</div>
+              </div>
+              <div
+                className="crm-phone-chip cursor-pointer"
+                onClick={() => copyPhoneNumber(selectedConversation.customer_phone)}
+                title="Click to copy phone number"
+                style={{ cursor: 'pointer' }}
+              >
+                <i className="bi bi-telephone"></i>
+                <span>{selectedConversation.customer_phone}</span>
+                <i className={`bi ${copiedPhone ? 'bi-check-lg text-success' : 'bi-copy'} ms-1`}></i>
+              </div>
+
               {selectedConversation.contact?.email && (
-                <div className="text-secondary small">{selectedConversation.contact.email}</div>
+                <div className="text-secondary small mt-1">
+                  <i className="bi bi-envelope me-1"></i>
+                  {selectedConversation.contact.email}
+                </div>
               )}
+
+              {/* Quick Actions (Call, Web Link) */}
+              <div className="crm-quick-actions">
+                <a
+                  href={`https://wa.me/${selectedConversation.customer_phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="crm-action-btn-circle text-decoration-none"
+                  title="Open in WhatsApp Web"
+                >
+                  <i className="bi bi-whatsapp"></i>
+                </a>
+                <a
+                  href={`tel:${selectedConversation.customer_phone}`}
+                  className="crm-action-btn-circle text-decoration-none"
+                  title="Call Phone"
+                >
+                  <i className="bi bi-telephone-fill"></i>
+                </a>
+                {selectedConversation.contact?.email && (
+                  <a
+                    href={`mailto:${selectedConversation.contact.email}`}
+                    className="crm-action-btn-circle text-decoration-none"
+                    title="Send Email"
+                  >
+                    <i className="bi bi-envelope-fill"></i>
+                  </a>
+                )}
+              </div>
             </div>
 
             {/* Quick Actions (Close/Reopen, Mark Unread) */}
             <div className="crm-section">
-              <div className="crm-section-title">Conversation Actions</div>
+              <div className="crm-section-title">
+                <span>Conversation Status</span>
+                <span className={`badge ${selectedConversation.status === 'closed' ? 'bg-secondary' : 'bg-success'}`}>
+                  {selectedConversation.status === 'closed' ? 'CLOSED' : 'OPEN'}
+                </span>
+              </div>
               <div className="d-grid gap-2">
                 <button
-                  className={`btn btn-sm ${selectedConversation.status === 'closed' ? 'btn-success' : 'btn-outline-danger'}`}
+                  className={`btn btn-sm ${selectedConversation.status === 'closed' ? 'btn-success' : 'btn-outline-danger'} d-flex align-items-center justify-content-center gap-1`}
                   onClick={handleToggleStatus}
                 >
-                  <i className={`bi ${selectedConversation.status === 'closed' ? 'bi-arrow-counterclockwise' : 'bi-check2-circle'} me-1`}></i>
-                  {selectedConversation.status === 'closed' ? 'Reopen Conversation' : 'Close Conversation'}
+                  <i className={`bi ${selectedConversation.status === 'closed' ? 'bi-arrow-counterclockwise' : 'bi-check2-circle'}`}></i>
+                  <span>{selectedConversation.status === 'closed' ? 'Reopen Conversation' : 'Close Conversation'}</span>
                 </button>
                 <button
-                  className="btn btn-sm btn-outline-secondary"
+                  className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-1"
                   onClick={handleMarkUnread}
                 >
-                  <i className="bi bi-envelope-badge me-1"></i>
-                  Mark as Unread
+                  <i className="bi bi-envelope-badge"></i>
+                  <span>Mark as Unread</span>
                 </button>
               </div>
             </div>
 
             {/* Agent Assignment */}
             <div className="crm-section">
-              <div className="crm-section-title">Assigned Agent</div>
+              <div className="crm-section-title">
+                <span>Assigned Agent</span>
+                <i className="bi bi-person-badge text-muted"></i>
+              </div>
               <select
                 className="form-select form-select-sm"
                 value={selectedConversation.assigned_user_id || ''}
@@ -1021,27 +1191,37 @@ export default function Inbox() {
 
             {/* Customer Tags Manager */}
             <div className="crm-section">
-              <div className="crm-section-title">Customer Tags</div>
+              <div className="crm-section-title">
+                <span>Customer Tags</span>
+                <i className="bi bi-tags text-muted"></i>
+              </div>
               <div className="d-flex flex-wrap gap-1 mb-2">
-                {(selectedConversation.contact?.tags || []).map((tag, idx) => (
-                  <span
-                    key={idx}
-                    className="badge bg-light text-dark border d-flex align-items-center gap-1"
-                  >
-                    {tag}
-                    <i
-                      className="bi bi-x text-muted cursor-pointer"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handleRemoveTag(tag)}
-                    ></i>
-                  </span>
-                ))}
+                {(selectedConversation.contact?.tags || []).length === 0 ? (
+                  <span className="small text-muted fst-italic">No tags added yet</span>
+                ) : (
+                  (selectedConversation.contact?.tags || []).map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="badge bg-light text-dark border d-flex align-items-center gap-1 py-1 px-2"
+                      style={{ fontSize: '0.74rem' }}
+                    >
+                      <i className="bi bi-tag-fill text-success" style={{ fontSize: '0.65rem' }}></i>
+                      <span>{tag}</span>
+                      <i
+                        className="bi bi-x text-muted"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleRemoveTag(tag)}
+                        title="Remove tag"
+                      ></i>
+                    </span>
+                  ))
+                )}
               </div>
               <div className="input-group input-group-sm">
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Add tag..."
+                  placeholder="Add tag and press Enter..."
                   value={newTagInput}
                   onChange={(e) => setNewTagInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -1059,12 +1239,15 @@ export default function Inbox() {
 
             {/* Internal CRM Notes */}
             <div className="crm-section">
-              <div className="crm-section-title">Customer Notes ({notes.length})</div>
+              <div className="crm-section-title">
+                <span>Internal Notes ({notes.length})</span>
+                <i className="bi bi-journal-text text-muted"></i>
+              </div>
               <form onSubmit={handleAddNote} className="mb-2">
                 <textarea
                   className="form-control form-control-sm mb-1"
                   rows="2"
-                  placeholder="Add internal note..."
+                  placeholder="Write an internal note for team..."
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                 ></textarea>
@@ -1073,20 +1256,26 @@ export default function Inbox() {
                   className="btn btn-sm btn-outline-success w-100"
                   disabled={!newNote.trim()}
                 >
-                  Save Note
+                  <i className="bi bi-plus-lg me-1"></i>Save Note
                 </button>
               </form>
 
               <div className="notes-feed">
-                {notes.map((n) => (
-                  <div key={n.id} className="note-card">
-                    <div className="note-meta">
-                      <span className="fw-semibold text-dark">{n.user_name || 'Agent'}</span>
-                      <span>{formatTime(n.created_at)}</span>
-                    </div>
-                    <div>{n.note}</div>
+                {notes.length === 0 ? (
+                  <div className="text-center py-3 text-muted small fst-italic">
+                    No notes recorded for this customer.
                   </div>
-                ))}
+                ) : (
+                  notes.map((n) => (
+                    <div key={n.id} className="note-card">
+                      <div className="note-meta">
+                        <span className="fw-semibold text-dark">{n.user_name || 'Agent'}</span>
+                        <span>{formatTime(n.created_at)}</span>
+                      </div>
+                      <div className="text-secondary small">{n.note}</div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -1094,16 +1283,18 @@ export default function Inbox() {
       </div>
 
       {/* ==================================================================
-          TEMPLATE SELECTOR MODAL (Reusing Existing Templates Module)
+          TEMPLATE SELECTOR MODAL (With Live Smartphone Mockup)
           ================================================================== */}
       {showTemplateModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
           <div className="modal-dialog modal-dialog-centered modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title fw-bold">
-                  <i className="bi bi-card-text text-success me-2"></i>
-                  Send Approved WhatsApp Template
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+              <div className="modal-header bg-light border-bottom py-3">
+                <h5 className="modal-title fw-bold text-dark d-flex align-items-center gap-2 mb-0 fs-6">
+                  <div className="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style={{ width: '28px', height: '28px' }}>
+                    <i className="bi bi-lightning-charge-fill" style={{ fontSize: '0.9rem' }}></i>
+                  </div>
+                  <span>Send Approved WhatsApp Template</span>
                 </h5>
                 <button
                   type="button"
@@ -1111,36 +1302,42 @@ export default function Inbox() {
                   onClick={() => setShowTemplateModal(false)}
                 ></button>
               </div>
-              <div className="modal-body">
-                <div className="alert alert-info py-2 small mb-3">
-                  <i className="bi bi-info-circle me-1"></i>
-                  Approved WhatsApp templates can be sent at any time, even after the 24-hour customer service window has expired.
+
+              <div className="modal-body p-4 bg-white">
+                <div className="alert alert-info border-info-subtle py-2 small mb-3 d-flex align-items-center gap-2">
+                  <i className="bi bi-info-circle-fill text-info fs-5"></i>
+                  <div>
+                    Approved WhatsApp templates can be dispatched at any time, even after the 24-hour customer service window has expired.
+                  </div>
                 </div>
 
                 <div className="row g-3">
                   {/* Template Picker */}
                   <div className="col-md-5">
-                    <label className="form-label fw-semibold small">Choose Template</label>
-                    <div className="list-group" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                    <label className="form-label fw-semibold small text-dark mb-1">Choose Template</label>
+                    <div className="list-group rounded-3 border" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                       {templates.length === 0 ? (
-                        <div className="p-3 text-center text-muted small">
-                          No approved templates available in this account.
+                        <div className="p-4 text-center text-muted small">
+                          <i className="bi bi-card-text fs-3 d-block mb-1 text-secondary opacity-50"></i>
+                          No approved templates found.
                         </div>
                       ) : (
                         templates.map((t) => (
                           <button
                             key={t.id}
                             type="button"
-                            className={`list-group-item list-group-item-action ${selectedTemplate?.id === t.id ? 'active' : ''}`}
+                            className={`list-group-item list-group-item-action py-2 ${selectedTemplate?.id === t.id ? 'active' : ''}`}
                             onClick={() => {
                               setSelectedTemplate(t);
                               setTemplateVariables(initTemplateVars(t));
                             }}
                           >
                             <div className="fw-bold small">{t.name}</div>
-                            <div className="d-flex justify-content-between small text-secondary">
-                              <span>{t.category}</span>
-                              <span className="badge bg-success-subtle text-success">Approved</span>
+                            <div className="d-flex justify-content-between align-items-center small mt-1">
+                              <span className="opacity-75">{t.category}</span>
+                              <span className={`badge ${selectedTemplate?.id === t.id ? 'bg-white text-dark' : 'bg-success-subtle text-success'}`}>
+                                Approved
+                              </span>
                             </div>
                           </button>
                         ))
@@ -1148,17 +1345,32 @@ export default function Inbox() {
                     </div>
                   </div>
 
-                  {/* Template Preview & Dynamic Variables */}
+                  {/* Template Live Preview & Dynamic Variables */}
                   <div className="col-md-7">
                     {selectedTemplate ? (
                       <div>
-                        <label className="form-label fw-semibold small">Template Preview & Variables</label>
+                        <label className="form-label fw-semibold small text-dark mb-1">WhatsApp Message Preview</label>
                         <div className="template-modal-preview mb-3">
-                          <div className="fw-bold small text-success mb-1">
-                            {selectedTemplate.name} ({selectedTemplate.language})
-                          </div>
-                          <div className="small text-dark">
-                            {selectedTemplate.body_text || selectedTemplate.components_json || 'Template content'}
+                          <div className="template-smartphone-card">
+                            <div className="d-flex align-items-center justify-content-between mb-1">
+                              <span className="badge bg-success text-white small" style={{ fontSize: '0.65rem' }}>
+                                <i className="bi bi-whatsapp me-1"></i>Official Template
+                              </span>
+                              <span className="small text-muted" style={{ fontSize: '0.7rem' }}>
+                                {selectedTemplate.language}
+                              </span>
+                            </div>
+                            <div className="small text-dark font-monospace" style={{ whiteSpace: 'pre-wrap', fontSize: '0.86rem' }}>
+                              {(() => {
+                                let rendered = selectedTemplate.body_text || selectedTemplate.components_json || 'Template content';
+                                Object.entries(templateVariables).forEach(([key, val]) => {
+                                  if (val) {
+                                    rendered = rendered.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val);
+                                  }
+                                });
+                                return rendered;
+                              })()}
+                            </div>
                           </div>
                         </div>
 
@@ -1184,12 +1396,12 @@ export default function Inbox() {
                           }
 
                           return (
-                            <div className="bg-light p-2 rounded border">
-                              <div className="small fw-semibold mb-2">Dynamic Template Variables:</div>
+                            <div className="bg-light p-3 rounded-3 border">
+                              <div className="small fw-bold text-dark mb-2">Dynamic Template Variables:</div>
                               <div className="row g-2">
                                 {placeholders.map((ph) => (
                                   <div key={ph} className="col-12 col-md-6">
-                                    <label className="form-label mb-1" style={{ fontSize: '0.74rem' }}>
+                                    <label className="form-label mb-1 small text-muted" style={{ fontSize: '0.74rem' }}>
                                       <code>{`{{${ph}}}`}</code>
                                     </label>
                                     <input
@@ -1215,7 +1427,7 @@ export default function Inbox() {
                 </div>
               </div>
 
-              <div className="modal-footer">
+              <div className="modal-footer bg-light border-top py-2 px-3">
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-secondary"
@@ -1225,11 +1437,21 @@ export default function Inbox() {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm btn-success"
+                  className="btn btn-sm btn-success fw-semibold px-3"
                   onClick={handleSendTemplate}
                   disabled={!selectedTemplate || sendingTemplate}
                 >
-                  {sendingTemplate ? 'Dispatching...' : 'Send WhatsApp Template'}
+                  {sendingTemplate ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-1"></span>
+                      Dispatching...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-send-fill me-1"></i>
+                      Send WhatsApp Template
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -1241,19 +1463,21 @@ export default function Inbox() {
           MEDIA ATTACHMENT MODAL
           ================================================================== */}
       {showMediaModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title fw-bold">
-                  <i className="bi bi-paperclip text-success me-2"></i>
-                  Send Media Attachment
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+              <div className="modal-header bg-light border-bottom py-3">
+                <h5 className="modal-title fw-bold text-dark d-flex align-items-center gap-2 mb-0 fs-6">
+                  <div className="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style={{ width: '28px', height: '28px' }}>
+                    <i className="bi bi-paperclip" style={{ fontSize: '0.9rem' }}></i>
+                  </div>
+                  <span>Send Media Attachment</span>
                 </h5>
                 <button type="button" className="btn-close" onClick={() => setShowMediaModal(false)}></button>
               </div>
-              <div className="modal-body">
+              <div className="modal-body p-4 bg-white">
                 <div className="mb-3">
-                  <label className="form-label small fw-semibold">Media Type</label>
+                  <label className="form-label small fw-semibold text-dark">Media Type</label>
                   <select
                     className="form-select form-select-sm"
                     value={mediaType}
@@ -1266,7 +1490,7 @@ export default function Inbox() {
                   </select>
                 </div>
                 <div className="mb-3">
-                  <label className="form-label small fw-semibold">Public Media URL / S3 Link</label>
+                  <label className="form-label small fw-semibold text-dark">Public Media URL / S3 Link</label>
                   <input
                     type="url"
                     className="form-control form-control-sm"
@@ -1274,9 +1498,10 @@ export default function Inbox() {
                     value={mediaUrl}
                     onChange={(e) => setMediaUrl(e.target.value)}
                   />
+                  <div className="form-text small">Ensure the URL is publicly reachable by Meta servers.</div>
                 </div>
                 <div className="mb-3">
-                  <label className="form-label small fw-semibold">Caption (Optional)</label>
+                  <label className="form-label small fw-semibold text-dark">Caption (Optional)</label>
                   <input
                     type="text"
                     className="form-control form-control-sm"
@@ -1286,17 +1511,27 @@ export default function Inbox() {
                   />
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer bg-light border-top py-2 px-3">
                 <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setShowMediaModal(false)}>
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm btn-success"
+                  className="btn btn-sm btn-success fw-semibold px-3"
                   onClick={handleSendMedia}
                   disabled={!mediaUrl.trim() || sendingMedia}
                 >
-                  {sendingMedia ? 'Sending Media...' : 'Send Media'}
+                  {sendingMedia ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-1"></span>
+                      Sending Media...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-send-fill me-1"></i>
+                      Send Media
+                    </>
+                  )}
                 </button>
               </div>
             </div>
