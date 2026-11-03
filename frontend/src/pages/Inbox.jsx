@@ -52,14 +52,29 @@ export default function Inbox() {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // 1. Initial Load: Accounts, Conversations, Stats, Team Members, Approved Templates
+  // Stable ref for selectedConversation in socket callbacks
+  const selectedConversationRef = useRef(selectedConversation);
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
+
+  // Debounced search query (300ms) to eliminate keystroke lag
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // 1. One-time Setup: Accounts, Stats, Team Members, Templates & Socket.IO
   useEffect(() => {
     loadAccounts();
     loadStats();
     loadTeamMembers();
     loadTemplates();
 
-    // Setup Socket.IO
+    // Setup Socket.IO once
     const socket = initSocket();
     if (socket) {
       socket.on('inbox:new_message', handleIncomingSocketMessage);
@@ -67,11 +82,11 @@ export default function Inbox() {
       socket.on('inbox:conversation_updated', handleSocketConversationUpdated);
     }
 
-    // Polling fallback every 8 seconds
+    // Gentle background sync every 25 seconds
     const interval = setInterval(() => {
       loadConversations(false);
       loadStats();
-    }, 8000);
+    }, 25000);
 
     return () => {
       clearInterval(interval);
@@ -81,7 +96,12 @@ export default function Inbox() {
         socket.off('inbox:conversation_updated', handleSocketConversationUpdated);
       }
     };
-  }, [filter, searchQuery, selectedAccountId]);
+  }, []); // Run strictly once on mount!
+
+  // 2. Fetch conversations smoothly when filter, debounced search, or account changes
+  useEffect(() => {
+    loadConversations(conversations.length === 0);
+  }, [filter, debouncedSearch, selectedAccountId]);
 
   // Join conversation socket room on selection
   useEffect(() => {
@@ -130,25 +150,29 @@ export default function Inbox() {
     }
   };
 
-  useEffect(() => {
-    loadConversations();
-  }, [filter, searchQuery, selectedAccountId]);
-
-  const loadConversations = async (showLoading = true) => {
+  const loadConversations = async (showLoading = false) => {
     if (showLoading) setLoadingConversations(true);
     try {
       const res = await inboxApi.getConversations({
         filter,
-        search: searchQuery,
+        search: debouncedSearch,
         accountId: selectedAccountId
       });
       if (res.data?.success) {
         setConversations(res.data.data || []);
-        // If selected conversation was updated, sync its metadata
-        if (selectedConversation) {
-          const updatedSelected = res.data.data.find(c => c.id === selectedConversation.id);
+        // If selected conversation was updated, sync its metadata without triggering refetch loops
+        const current = selectedConversationRef.current;
+        if (current) {
+          const updatedSelected = res.data.data.find(c => c.id === current.id);
           if (updatedSelected) {
-            setSelectedConversation(prev => ({ ...prev, ...updatedSelected }));
+            if (
+              current.unread_count !== updatedSelected.unread_count ||
+              current.status !== updatedSelected.status ||
+              current.is_window_open !== updatedSelected.is_window_open ||
+              current.last_message_text !== updatedSelected.last_message_text
+            ) {
+              setSelectedConversation(prev => ({ ...prev, ...updatedSelected }));
+            }
           }
         }
       }
@@ -232,8 +256,10 @@ export default function Inbox() {
     const { conversation, message } = data;
     if (!message) return;
 
+    const currentSelected = selectedConversationRef.current;
+
     // If belongs to currently viewed conversation, append immediately
-    if (selectedConversation && (message.conversation_id === selectedConversation.id || data.conversationId === selectedConversation.id)) {
+    if (currentSelected && (message.conversation_id === currentSelected.id || data.conversationId === currentSelected.id)) {
       setMessages(prev => {
         if (prev.some(m => m.id === message.id || (m.meta_message_id && m.meta_message_id === message.meta_message_id))) {
           return prev;
@@ -248,7 +274,7 @@ export default function Inbox() {
       if (idx !== -1) {
         const updated = [...prev];
         const existing = updated[idx];
-        const isCurrentActive = selectedConversation?.id === existing.id;
+        const isCurrentActive = currentSelected?.id === existing.id;
         updated[idx] = {
           ...existing,
           last_message_text: message.message_body,
@@ -285,7 +311,7 @@ export default function Inbox() {
     setConversations(prev =>
       prev.map(c => (c.id === conversation.id ? { ...c, ...conversation } : c))
     );
-    if (selectedConversation?.id === conversation.id) {
+    if (selectedConversationRef.current?.id === conversation.id) {
       setSelectedConversation(prev => ({ ...prev, ...conversation }));
     }
   };
@@ -704,7 +730,7 @@ export default function Inbox() {
 
           {/* Conversations Scrollable List */}
           <div className="conversation-list">
-            {loadingConversations ? (
+            {loadingConversations && conversations.length === 0 ? (
               <div className="p-4 text-center text-muted">
                 <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
                 <span className="small">Loading chats...</span>
