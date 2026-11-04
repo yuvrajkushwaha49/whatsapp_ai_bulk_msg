@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 
 export default function CampaignBuilder() {
@@ -20,8 +20,11 @@ export default function CampaignBuilder() {
     var_3: 'FESTIVE30'
   });
 
-  // Audience Targeting Mode: 'tags' (Segment Tags / All), 'specific' (Pick Specific Contacts), 'csv' (Upload CSV Audience)
-  const [audienceMode, setAudienceMode] = useState('tags');
+  // Audience Targeting Mode: 'groups' (Contact Groups), 'tags' (Segment Tags / All), 'specific' (Pick Specific Contacts), 'csv' (Upload CSV Audience)
+  const [audienceMode, setAudienceMode] = useState('groups');
+  const [selectedGroupIds, setSelectedGroupIds] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState([]);
   const [availableContacts, setAvailableContacts] = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
@@ -65,11 +68,13 @@ export default function CampaignBuilder() {
   const loadPrerequisites = async () => {
     try {
       setLoadingContacts(true);
-      const [accRes, tagRes, tplRes, contactRes] = await Promise.all([
+      setLoadingGroups(true);
+      const [accRes, tagRes, tplRes, contactRes, groupRes] = await Promise.all([
         api.get('/whatsapp/accounts'),
         api.get('/contacts/tags'),
         api.get('/whatsapp/templates?status=APPROVED'),
-        api.get('/contacts?limit=500')
+        api.get('/contacts?limit=500'),
+        api.get('/contact-groups')
       ]);
 
       if (accRes.data?.success && accRes.data.data.length > 0) {
@@ -77,6 +82,12 @@ export default function CampaignBuilder() {
         setSelectedAccountIds([accRes.data.data[0].id]);
       }
       if (tagRes.data?.success) setTags(tagRes.data.data);
+      if (groupRes.data?.success) {
+        setGroups(groupRes.data.data || []);
+        if (groupRes.data.data?.length > 0) {
+          setSelectedGroupIds([groupRes.data.data[0].id]);
+        }
+      }
       if (tplRes.data?.success && tplRes.data.data.length > 0) {
         setTemplates(tplRes.data.data);
         const welcomeTpl = tplRes.data.data.find(t => t.name === 'welcome_msg');
@@ -94,6 +105,7 @@ export default function CampaignBuilder() {
       console.error('Failed to load prerequisites', err);
     } finally {
       setLoadingContacts(false);
+      setLoadingGroups(false);
     }
   };
 
@@ -395,6 +407,14 @@ export default function CampaignBuilder() {
       setLoading(true);
       setError('');
 
+      if (audienceMode === 'groups') {
+        if (selectedGroupIds.length === 0) {
+          setError('Please select at least one contact group to target.');
+          setLoading(false);
+          return;
+        }
+      }
+
       if (audienceMode === 'specific') {
         if (selectedContactIds.length === 0) {
           setError('Please select at least one contact (single or multiple) to target.');
@@ -413,7 +433,9 @@ export default function CampaignBuilder() {
 
       const payload = (audienceMode === 'specific' || audienceMode === 'csv')
         ? { contactIds: selectedContactIds }
-        : { tagIds: selectedTagIds };
+        : (audienceMode === 'groups')
+          ? { groupIds: selectedGroupIds }
+          : { tagIds: selectedTagIds };
 
       const res = await api.post('/campaigns/preview', payload);
       if (res.data?.success) {
@@ -436,7 +458,9 @@ export default function CampaignBuilder() {
         templateId,
         ...((audienceMode === 'specific' || audienceMode === 'csv')
           ? { contactIds: selectedContactIds }
-          : { tagIds: selectedTagIds })
+          : (audienceMode === 'groups')
+            ? { groupIds: selectedGroupIds }
+            : { tagIds: selectedTagIds })
       };
       const res = await api.post('/campaigns/preflight', payload);
       if (res.data?.success) {
@@ -465,7 +489,9 @@ export default function CampaignBuilder() {
         variableMappings,
         ...((audienceMode === 'specific' || audienceMode === 'csv')
           ? { contactIds: selectedContactIds }
-          : { tagIds: selectedTagIds })
+          : (audienceMode === 'groups')
+            ? { groupIds: selectedGroupIds }
+            : { tagIds: selectedTagIds })
       };
 
       const createRes = await api.post('/campaigns', payload);
@@ -709,7 +735,18 @@ export default function CampaignBuilder() {
               <div className="text-muted small">Choose whether to broadcast by segment tags, target all contacts, hand-pick specific contacts, or upload a CSV file.</div>
             </div>
             {/* Mode Switcher Tabs */}
-            <div className="btn-group" role="group">
+            <div className="btn-group flex-wrap" role="group">
+              <button
+                type="button"
+                className={`btn btn-sm ${audienceMode === 'groups' ? 'btn-success fw-bold' : 'btn-outline-secondary'}`}
+                onClick={() => setAudienceMode('groups')}
+              >
+                <i className="bi bi-folder-fill me-1"></i>
+                Target Contact Groups
+                {selectedGroupIds.length > 0 && audienceMode === 'groups' && (
+                  <span className="badge bg-light text-success ms-1">{selectedGroupIds.length}</span>
+                )}
+              </button>
               <button
                 type="button"
                 className={`btn btn-sm ${audienceMode === 'tags' ? 'btn-success fw-bold' : 'btn-outline-secondary'}`}
@@ -745,6 +782,117 @@ export default function CampaignBuilder() {
             </div>
           </div>
           <div className="cf-card-body">
+            {/* AUDIENCE MODE: Contact Groups */}
+            {audienceMode === 'groups' && (
+              <div>
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+                  <div>
+                    <h6 className="fw-bold mb-1 text-dark">
+                      Select Contact Groups (Single or Multiple)
+                    </h6>
+                    <p className="text-muted small mb-0">
+                      Target customers saved in your custom contact groups. You can select multiple groups at once!
+                    </p>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-outline-secondary"
+                      onClick={() => {
+                        if (selectedGroupIds.length === groups.length) {
+                          setSelectedGroupIds([]);
+                        } else {
+                          setSelectedGroupIds(groups.map(g => g.id));
+                        }
+                      }}
+                    >
+                      {selectedGroupIds.length === groups.length ? 'Deselect All' : 'Select All Groups'}
+                    </button>
+                    <Link to="/contacts/groups" target="_blank" className="btn btn-xs btn-outline-success">
+                      <i className="bi bi-plus-lg me-1"></i> Manage Groups
+                    </Link>
+                  </div>
+                </div>
+
+                {loadingGroups ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-success" role="status"></div>
+                    <div className="text-muted small mt-2">Loading contact groups...</div>
+                  </div>
+                ) : groups.length === 0 ? (
+                  <div className="alert alert-light border p-4 text-center rounded-3">
+                    <i className="bi bi-folder-x fs-2 text-warning d-block mb-2"></i>
+                    <h6>No Contact Groups Found</h6>
+                    <p className="text-muted small mb-3">
+                      You haven't created any contact groups yet. You can create groups in the Contact Groups module or target by tags/specific contacts.
+                    </p>
+                    <Link to="/contacts/groups" className="btn btn-sm btn-success">
+                      <i className="bi bi-plus-lg me-1"></i> Create Contact Group
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="row g-3">
+                    {groups.map(g => {
+                      const isSelected = selectedGroupIds.includes(g.id);
+                      return (
+                        <div key={g.id} className="col-12 col-md-6 col-lg-4">
+                          <div
+                            onClick={() => {
+                              setSelectedGroupIds(prev =>
+                                prev.includes(g.id) ? prev.filter(x => x !== g.id) : [...prev, g.id]
+                              );
+                            }}
+                            className={`p-3 border rounded-3 cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-success-subtle border-success shadow-xs'
+                                : 'bg-white hover-bg-light'
+                            }`}
+                            style={{
+                              borderLeft: `5px solid ${g.color || '#0d6efd'}`,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <div className="d-flex align-items-start justify-content-between mb-2">
+                              <div className="d-flex align-items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  className="form-check-input mt-0"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                />
+                                <h6 className="fw-bold text-dark mb-0 text-truncate" style={{ maxWidth: '170px' }}>
+                                  {g.name}
+                                </h6>
+                              </div>
+                              <span
+                                className="badge rounded-pill"
+                                style={{
+                                  backgroundColor: `${g.color || '#0d6efd'}20`,
+                                  color: g.color || '#0d6efd',
+                                  fontSize: '0.72rem'
+                                }}
+                              >
+                                {g.member_count || 0} Contacts
+                              </span>
+                            </div>
+                            <p className="text-muted small mb-0 text-truncate" title={g.description || ''}>
+                              {g.description || 'No description provided.'}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="alert alert-info py-2 px-3 small mt-3 d-flex align-items-center gap-2">
+                  <i className="bi bi-info-circle-fill flex-shrink-0"></i>
+                  <div>
+                    Selected <strong>{selectedGroupIds.length}</strong> group(s). When multiple groups are selected, duplicate contacts between groups are automatically deduplicated.
+                  </div>
+                </div>
+              </div>
+            )}
             {audienceMode === 'tags' && (
               <div>
                 <p className="text-muted small mb-3">

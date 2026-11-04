@@ -70,7 +70,7 @@ export async function getCampaignDetails(businessId, campaignId) {
   return { campaign: campaigns[0], recipients };
 }
 
-export async function previewAudience(businessId, { tagIds = [], contactIds = [], excludeTagIds = [] } = {}) {
+export async function previewAudience(businessId, { tagIds = [], contactIds = [], groupIds = [], excludeTagIds = [] } = {}) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
     let eligible = (store.contacts || []).filter(c => c.business_id === Number(businessId) && (c.status === 'active' || !c.status));
@@ -78,6 +78,10 @@ export async function previewAudience(businessId, { tagIds = [], contactIds = []
     if (Array.isArray(contactIds) && contactIds.length > 0) {
       const cIdNums = contactIds.map(Number);
       eligible = eligible.filter(c => cIdNums.includes(c.id));
+    } else if (Array.isArray(groupIds) && groupIds.length > 0) {
+      const gIdNums = groupIds.map(Number);
+      const matchContactIds = (store.contact_group_members || []).filter(m => gIdNums.includes(m.group_id)).map(m => m.contact_id);
+      eligible = eligible.filter(c => matchContactIds.includes(c.id));
     } else if (Array.isArray(tagIds) && tagIds.length > 0) {
       const matchContactIds = (store.contact_tags || []).filter(ct => tagIds.includes(ct.tag_id)).map(ct => ct.contact_id);
       eligible = eligible.filter(c => matchContactIds.includes(c.id));
@@ -100,6 +104,10 @@ export async function previewAudience(businessId, { tagIds = [], contactIds = []
     const cPlaceholders = contactIds.map(() => '?').join(',');
     sql += ` AND c.id IN (${cPlaceholders})`;
     params.push(...contactIds.map(Number));
+  } else if (Array.isArray(groupIds) && groupIds.length > 0) {
+    const gPlaceholders = groupIds.map(() => '?').join(',');
+    sql += ` AND EXISTS (SELECT 1 FROM contact_group_members gm WHERE gm.contact_id = c.id AND gm.group_id IN (${gPlaceholders}))`;
+    params.push(...groupIds.map(Number));
   } else if (Array.isArray(tagIds) && tagIds.length > 0) {
     const tPlaceholders = tagIds.map(() => '?').join(',');
     sql += ` AND EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.contact_id = c.id AND ct.tag_id IN (${tPlaceholders}))`;
@@ -113,7 +121,7 @@ export async function previewAudience(businessId, { tagIds = [], contactIds = []
   };
 }
 
-export async function preflightCheck(businessId, { campaignId, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [] } = {}) {
+export async function preflightCheck(businessId, { campaignId, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [], groupIds = [] } = {}) {
   const issues = [];
 
   if (campaignId) {
@@ -204,7 +212,7 @@ export async function preflightCheck(businessId, { campaignId, whatsappAccountId
       audienceCount = recRows[0]?.count || 0;
     }
   } else {
-    const audience = await previewAudience(businessId, { tagIds, contactIds });
+    const audience = await previewAudience(businessId, { tagIds, contactIds, groupIds });
     audienceCount = audience.estimatedCount;
   }
 
@@ -220,8 +228,8 @@ export async function preflightCheck(businessId, { campaignId, whatsappAccountId
   };
 }
 
-export async function createCampaign(businessId, { name, purpose, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [], variableMappings = {} }) {
-  const audience = await previewAudience(businessId, { tagIds, contactIds });
+export async function createCampaign(businessId, { name, purpose, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [], groupIds = [], variableMappings = {} }) {
+  const audience = await previewAudience(businessId, { tagIds, contactIds, groupIds });
 
   // Support single or multiple sending accounts
   const accountIdsList = Array.isArray(whatsappAccountIds) && whatsappAccountIds.length > 0 
@@ -260,6 +268,10 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
     if (Array.isArray(contactIds) && contactIds.length > 0) {
       const cIdNums = contactIds.map(Number);
       eligibleContacts = eligibleContacts.filter(c => cIdNums.includes(c.id));
+    } else if (Array.isArray(groupIds) && groupIds.length > 0) {
+      const gIdNums = groupIds.map(Number);
+      const matchContactIds = (store.contact_group_members || []).filter(m => gIdNums.includes(m.group_id)).map(m => m.contact_id);
+      eligibleContacts = eligibleContacts.filter(c => matchContactIds.includes(c.id));
     } else if (Array.isArray(tagIds) && tagIds.length > 0) {
       const tIdNums = tagIds.map(Number);
       const matchContactIds = (store.contact_tags || []).filter(ct => tIdNums.includes(ct.tag_id)).map(ct => ct.contact_id);
@@ -303,6 +315,10 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
     const cPlaceholders = contactIds.map(() => '?').join(',');
     contactSelectSql += ` AND c.id IN (${cPlaceholders})`;
     params.push(...contactIds.map(Number));
+  } else if (Array.isArray(groupIds) && groupIds.length > 0) {
+    const gPlaceholders = groupIds.map(() => '?').join(',');
+    contactSelectSql += ` AND EXISTS (SELECT 1 FROM contact_group_members gm WHERE gm.contact_id = c.id AND gm.group_id IN (${gPlaceholders}))`;
+    params.push(...groupIds.map(Number));
   } else if (Array.isArray(tagIds) && tagIds.length > 0) {
     const tPlaceholders = tagIds.map(() => '?').join(',');
     contactSelectSql += ` AND EXISTS (SELECT 1 FROM contact_tags ct WHERE ct.contact_id = c.id AND ct.tag_id IN (${tPlaceholders}))`;
