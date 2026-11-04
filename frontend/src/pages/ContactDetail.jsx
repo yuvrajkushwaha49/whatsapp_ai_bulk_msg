@@ -553,22 +553,27 @@ export default function ContactDetail() {
                   <div className="row g-3 mb-4">
                     {/* Donut Pie Chart: Message Status Breakdown */}
                     <div className="col-12 col-md-6">
-                      <div className="cf-card h-100">
-                        <div className="cf-card-header d-flex justify-content-between align-items-center">
-                          <h6 className="mb-0 fw-bold">Delivery Status Breakdown</h6>
-                          <span className="small text-muted">WhatsApp Webhooks</span>
+                      <div className="cf-card h-100 shadow-sm border-0" style={{ borderRadius: '12px' }}>
+                        <div className="cf-card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                          <h6 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                            <i className="bi bi-pie-chart-fill text-success"></i>
+                            <span>Delivery Status Breakdown</span>
+                          </h6>
+                          <span className="badge bg-success-subtle text-success border border-success-subtle" style={{ fontSize: '0.72rem' }}>
+                            WhatsApp Webhooks
+                          </span>
                         </div>
-                        <div className="cf-card-body d-flex align-items-center justify-content-center p-2">
+                        <div className="cf-card-body d-flex flex-column align-items-center justify-content-center p-3">
                           {pieData.length > 0 ? (
-                            <div style={{ width: '100%', height: 210 }}>
+                            <div style={{ width: '100%', height: 230 }}>
                               <ResponsiveContainer>
                                 <PieChart>
                                   <Pie
                                     data={pieData}
                                     cx="50%"
-                                    cy="50%"
-                                    innerRadius={50}
-                                    outerRadius={75}
+                                    cy="48%"
+                                    innerRadius={55}
+                                    outerRadius={80}
                                     paddingAngle={4}
                                     dataKey="value"
                                   >
@@ -577,7 +582,7 @@ export default function ContactDetail() {
                                     ))}
                                   </Pie>
                                   <Tooltip />
-                                  <Legend verticalAlign="bottom" height={32} iconSize={10} />
+                                  <Legend verticalAlign="bottom" height={34} iconSize={10} />
                                 </PieChart>
                               </ResponsiveContainer>
                             </div>
@@ -593,23 +598,28 @@ export default function ContactDetail() {
 
                     {/* Bar Chart: Engagement Funnel */}
                     <div className="col-12 col-md-6">
-                      <div className="cf-card h-100">
-                        <div className="cf-card-header d-flex justify-content-between align-items-center">
-                          <h6 className="mb-0 fw-bold">Message Engagement Funnel</h6>
-                          <span className="small text-muted">Conversion Counts</span>
+                      <div className="cf-card h-100 shadow-sm border-0" style={{ borderRadius: '12px' }}>
+                        <div className="cf-card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                          <h6 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                            <i className="bi bi-bar-chart-fill text-primary"></i>
+                            <span>Message Engagement Funnel</span>
+                          </h6>
+                          <span className="badge bg-primary-subtle text-primary border border-primary-subtle" style={{ fontSize: '0.72rem' }}>
+                            Conversion Counts
+                          </span>
                         </div>
-                        <div className="cf-card-body d-flex align-items-center justify-content-center p-2">
+                        <div className="cf-card-body d-flex flex-column align-items-center justify-content-center p-3">
                           {totalBroadcasts > 0 ? (
-                            <div style={{ width: '100%', height: 210 }}>
+                            <div style={{ width: '100%', height: 230 }}>
                               <ResponsiveContainer>
-                                <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <BarChart data={barData} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
                                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} />
-                                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
+                                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                                   <Tooltip
-                                    contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}
+                                    contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
                                   />
-                                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                  <Bar dataKey="count" radius={[5, 5, 0, 0]}>
                                     {barData.map((entry, index) => (
                                       <Cell key={`bar-cell-${index}`} fill={entry.fill} />
                                     ))}
@@ -629,39 +639,48 @@ export default function ContactDetail() {
                   </div>
 
                   {/* Customer Information Cards */}
-                  <div className="cf-card">
-                    <div className="cf-card-header">
-                      <h5 className="mb-0 fw-bold">Customer CRM Information</h5>
+                  <div className="cf-card shadow-sm border-0" style={{ borderRadius: '12px' }}>
+                    <div className="cf-card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+                      <i className="bi bi-person-vcard text-success"></i>
+                      <h6 className="mb-0 fw-bold">Customer CRM Profile Information</h6>
                     </div>
-                    <div className="cf-card-body">
-                      <div className="row g-4">
+                    <div className="cf-card-body p-4">
+                      <div className="row g-3">
                         <div className="col-sm-6">
-                          <div className="p-3 bg-light rounded-3">
-                            <span className="text-muted small">Full Name</span>
+                          <div className="p-3 bg-light rounded-3 border border-light">
+                            <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '0.5px' }}>
+                              Full Name
+                            </span>
                             <div className="fw-bold text-dark mt-1 fs-5">
                               {contact?.name || 'N/A'}
                             </div>
                           </div>
                         </div>
                         <div className="col-sm-6">
-                          <div className="p-3 bg-light rounded-3">
-                            <span className="text-muted small">WhatsApp Phone Number</span>
+                          <div className="p-3 bg-light rounded-3 border border-light">
+                            <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '0.5px' }}>
+                              WhatsApp Phone Number
+                            </span>
                             <div className="fw-bold text-dark mt-1 fs-5">
-                              <code>{contact?.phone}</code>
+                              <code className="text-success">{contact?.phone}</code>
                             </div>
                           </div>
                         </div>
                         <div className="col-sm-6">
-                          <div className="p-3 bg-light rounded-3">
-                            <span className="text-muted small">Email Address</span>
+                          <div className="p-3 bg-light rounded-3 border border-light">
+                            <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '0.5px' }}>
+                              Email Address
+                            </span>
                             <div className="fw-semibold text-dark mt-1">
-                              {contact?.email || <span className="text-muted">Not provided</span>}
+                              {contact?.email || <span className="text-muted fst-italic">Not provided</span>}
                             </div>
                           </div>
                         </div>
                         <div className="col-sm-6">
-                          <div className="p-3 bg-light rounded-3">
-                            <span className="text-muted small">Opt-In Status & Consent</span>
+                          <div className="p-3 bg-light rounded-3 border border-light">
+                            <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '0.5px' }}>
+                              Opt-In Status & Consent
+                            </span>
                             <div className="fw-semibold mt-1">
                               {contact?.is_opted_in ? (
                                 <span className="text-success d-flex align-items-center gap-1">
@@ -676,13 +695,15 @@ export default function ContactDetail() {
                           </div>
                         </div>
                         <div className="col-12">
-                          <div className="p-3 bg-light rounded-3">
-                            <span className="text-muted small">System Information</span>
+                          <div className="p-3 bg-light rounded-3 border border-light">
+                            <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '0.5px' }}>
+                              System Audit Metadata
+                            </span>
                             <div className="row mt-2 small text-muted">
-                              <div className="col-sm-6">Record ID: #{contact?.id}</div>
-                              <div className="col-sm-6">Business Tenant ID: #{contact?.business_id}</div>
-                              <div className="col-sm-6 mt-1">Created At: {contact?.created_at ? new Date(contact.created_at).toLocaleString() : 'N/A'}</div>
-                              <div className="col-sm-6 mt-1">Last Updated: {contact?.updated_at ? new Date(contact.updated_at).toLocaleString() : 'N/A'}</div>
+                              <div className="col-sm-6">Record ID: <strong>#{contact?.id}</strong></div>
+                              <div className="col-sm-6">Business Tenant ID: <strong>#{contact?.business_id}</strong></div>
+                              <div className="col-sm-6 mt-1">Created At: <strong>{contact?.created_at ? new Date(contact.created_at).toLocaleString() : 'N/A'}</strong></div>
+                              <div className="col-sm-6 mt-1">Last Updated: <strong>{contact?.updated_at ? new Date(contact.updated_at).toLocaleString() : 'N/A'}</strong></div>
                             </div>
                           </div>
                         </div>
