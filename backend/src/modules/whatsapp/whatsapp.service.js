@@ -728,16 +728,48 @@ export async function getAccount(businessId, accountId) {
   const account = sanitizeAccount(rows[0]);
 
   try {
-    const [templatesCount, campaignsCount] = await Promise.all([
-      executeQuery(`SELECT COUNT(*) as count FROM templates WHERE business_id = ?`, [numBusinessId]).catch(() => [{ count: 0 }]),
-      executeQuery(`SELECT COUNT(*) as count FROM campaigns WHERE business_id = ?`, [numBusinessId]).catch(() => [{ count: 0 }])
+    const [templatesCount, campaignsCount, campaignMetrics, convMetrics] = await Promise.all([
+      executeQuery(`SELECT COUNT(*) as count FROM templates WHERE business_id = ? AND (whatsapp_account_id = ? OR whatsapp_account_id IS NULL)`, [numBusinessId, numAccountId]).catch(() => [{ count: 0 }]),
+      executeQuery(`SELECT COUNT(*) as count FROM campaigns WHERE business_id = ? AND (whatsapp_account_id = ? OR whatsapp_account_id IS NULL)`, [numBusinessId, numAccountId]).catch(() => [{ count: 0 }]),
+      executeQuery(
+        `SELECT 
+          COALESCE(SUM(total_recipients), 0) as totalRecipients,
+          COALESCE(SUM(sent_count), 0) as totalSent,
+          COALESCE(SUM(delivered_count), 0) as totalDelivered,
+          COALESCE(SUM(read_count), 0) as totalRead,
+          COALESCE(SUM(failed_count), 0) as totalFailed
+         FROM campaigns 
+         WHERE business_id = ? AND (whatsapp_account_id = ? OR whatsapp_account_id IS NULL)`,
+        [numBusinessId, numAccountId]
+      ).catch(() => [{ totalRecipients: 0, totalSent: 0, totalDelivered: 0, totalRead: 0, totalFailed: 0 }]),
+      executeQuery(
+        `SELECT COUNT(*) as totalConversations FROM whatsapp_conversations WHERE business_id = ? AND whatsapp_account_id = ?`,
+        [numBusinessId, numAccountId]
+      ).catch(() => [{ totalConversations: 0 }])
     ]);
+
+    const m = campaignMetrics[0] || {};
     account.stats = {
       totalTemplates: templatesCount[0]?.count || 0,
-      totalCampaigns: campaignsCount[0]?.count || 0
+      totalCampaigns: campaignsCount[0]?.count || 0,
+      totalConversations: convMetrics[0]?.totalConversations || 0,
+      totalRecipients: Number(m.totalRecipients || 0),
+      totalSent: Number(m.totalSent || 0),
+      totalDelivered: Number(m.totalDelivered || 0),
+      totalRead: Number(m.totalRead || 0),
+      totalFailed: Number(m.totalFailed || 0)
     };
   } catch (_) {
-    account.stats = { totalTemplates: 0, totalCampaigns: 0 };
+    account.stats = {
+      totalTemplates: 0,
+      totalCampaigns: 0,
+      totalConversations: 0,
+      totalRecipients: 0,
+      totalSent: 0,
+      totalDelivered: 0,
+      totalRead: 0,
+      totalFailed: 0
+    };
   }
 
   return account;

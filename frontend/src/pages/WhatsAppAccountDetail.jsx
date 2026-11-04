@@ -1,5 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid
+} from 'recharts';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -31,6 +44,38 @@ export default function WhatsAppAccountDetail() {
   });
   const [sendingTest, setSendingTest] = useState(false);
   const [testResult, setTestResult] = useState(null);
+
+  // Analytics Metrics (Hooks must always execute unconditionally at top level)
+  const totalSent = account?.stats?.totalSent || 0;
+  const totalDelivered = account?.stats?.totalDelivered || 0;
+  const totalRead = account?.stats?.totalRead || 0;
+  const totalFailed = account?.stats?.totalFailed || 0;
+  const totalConversations = account?.stats?.totalConversations || 0;
+
+  const deliveryRate = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
+  const readRate = totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
+
+  // Donut Pie Chart Data
+  const pieData = useMemo(() => {
+    const list = [
+      { name: 'Read', value: totalRead, color: '#198754' },
+      { name: 'Delivered', value: Math.max(0, totalDelivered - totalRead), color: '#25D366' },
+      { name: 'Sent (In Transit)', value: Math.max(0, totalSent - totalDelivered), color: '#0d6efd' },
+      { name: 'Failed', value: totalFailed, color: '#dc3545' }
+    ].filter(d => d.value > 0);
+    return list;
+  }, [totalRead, totalDelivered, totalSent, totalFailed]);
+
+  // Bar Chart Data (Delivery Funnel)
+  const barData = useMemo(() => {
+    return [
+      { name: 'Sent', count: totalSent, fill: '#0d6efd' },
+      { name: 'Delivered', count: totalDelivered, fill: '#25D366' },
+      { name: 'Read', count: totalRead, fill: '#198754' },
+      { name: 'Conversations', count: totalConversations, fill: '#6f42c1' },
+      { name: 'Failed', count: totalFailed, fill: '#dc3545' }
+    ];
+  }, [totalSent, totalDelivered, totalRead, totalConversations, totalFailed]);
 
   useEffect(() => {
     fetchAccountDetail();
@@ -330,6 +375,102 @@ export default function WhatsAppAccountDetail() {
               <div className="stat-label">Broadcast Campaigns</div>
               <div className="stat-value">{account.stats?.totalCampaigns || 0}</div>
               <div className="small text-muted">Sent from this workspace</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Performance & Delivery Analytics Visuals */}
+      <div className="row g-4 mb-4">
+        {/* Donut Pie Chart: Delivery Breakdown */}
+        <div className="col-12 col-lg-5">
+          <div className="card border-0 shadow-sm h-100" style={{ borderRadius: '14px' }}>
+            <div className="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+              <h6 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                <i className="bi bi-pie-chart-fill text-success"></i>
+                <span>Message Delivery Distribution</span>
+              </h6>
+              <span className="badge bg-success-subtle text-success border border-success-subtle">
+                {deliveryRate}% Delivery Rate
+              </span>
+            </div>
+            <div className="card-body d-flex flex-column align-items-center justify-content-center p-3">
+              {pieData.length > 0 ? (
+                <div style={{ width: '100%', height: 240 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={85}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`wa-pie-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend verticalAlign="bottom" height={36} iconSize={10} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted small">
+                  <i className="bi bi-broadcast fs-3 d-block mb-2 text-secondary"></i>
+                  No broadcast messages sent from this WhatsApp number yet.
+                </div>
+              )}
+              <div className="w-100 border-top pt-2 mt-2 d-flex justify-content-around text-center small text-muted">
+                <div>
+                  <div className="fw-bold text-dark">{totalSent}</div>
+                  <div>Sent</div>
+                </div>
+                <div>
+                  <div className="fw-bold text-success">{totalDelivered}</div>
+                  <div>Delivered</div>
+                </div>
+                <div>
+                  <div className="fw-bold text-warning">{totalRead}</div>
+                  <div>Read ({readRate}%)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bar Chart: Message Traffic Funnel */}
+        <div className="col-12 col-lg-7">
+          <div className="card border-0 shadow-sm h-100" style={{ borderRadius: '14px' }}>
+            <div className="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+              <h6 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                <i className="bi bi-bar-chart-fill text-primary"></i>
+                <span>Channel Traffic & Conversions</span>
+              </h6>
+              <span className="small text-muted">
+                Real-time Meta Webhooks
+              </span>
+            </div>
+            <div className="card-body p-3">
+              <div style={{ width: '100%', height: 260 }}>
+                <ResponsiveContainer>
+                  <BarChart data={barData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}
+                    />
+                    <Bar dataKey="count" radius={[5, 5, 0, 0]}>
+                      {barData.map((entry, index) => (
+                        <Cell key={`wa-bar-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
