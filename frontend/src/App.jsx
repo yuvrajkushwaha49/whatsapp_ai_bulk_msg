@@ -12,6 +12,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Contacts from './pages/Contacts';
 import ContactDetail from './pages/ContactDetail';
+import ContactGroups from './pages/ContactGroups';
 import CsvImport from './pages/CsvImport';
 import WhatsAppAccounts from './pages/WhatsAppAccounts';
 import WhatsAppAccountDetail from './pages/WhatsAppAccountDetail';
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/contacts/groups" element={<ContactGroups />} />
         <Route path="/contacts/:id" element={<ContactDetail />} />
         <Route path="/imports" element={<CsvImport />} />
         <Route path="/whatsapp" element={<WhatsAppAccounts />} />

@@ -113,6 +113,10 @@ export default function Contacts() {
           <p className="text-muted mb-0">E.164 verified phone numbers with auditable WhatsApp consent records</p>
         </div>
         <div className="d-flex gap-2">
+          <Link to="/contacts/groups" className="btn btn-outline-success d-flex align-items-center gap-2">
+            <i className="bi bi-folder-fill"></i>
+            <span>Contact Groups</span>
+          </Link>
           <Link to="/imports" className="btn btn-outline-secondary d-flex align-items-center gap-2">
             <i className="bi bi-file-earmark-arrow-up"></i>
             <span>Import CSV</span>

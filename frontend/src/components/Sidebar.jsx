@@ -55,9 +55,15 @@ export default function Sidebar({ isOpen, onClose }) {
 
         <li className="sidebar-heading">Audience & Consent</li>
         <li className="sidebar-item">
-          <NavLink to="/contacts" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+          <NavLink to="/contacts" end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <i className="bi bi-people-fill"></i>
             <span>Audience & Contacts</span>
+          </NavLink>
+        </li>
+        <li className="sidebar-item">
+          <NavLink to="/contacts/groups" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+            <i className="bi bi-folder-fill"></i>
+            <span>Contact Groups</span>
           </NavLink>
         </li>
         <li className="sidebar-item">
