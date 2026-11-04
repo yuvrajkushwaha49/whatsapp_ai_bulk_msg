@@ -18,6 +18,7 @@ import Templates from './pages/Templates';
 import Inbox from './pages/Inbox';
 import CampaignList from './pages/CampaignList';
 import CampaignBuilder from './pages/CampaignBuilder';
+import CampaignDetail from './pages/CampaignDetail';
 import CampaignReport from './pages/CampaignReport';
 import AiAssistant from './pages/AiAssistant';
 import TeamManagement from './pages/TeamManagement';
@@ -85,7 +86,8 @@ export default function App() {
         <Route path="/templates" element={<Templates />} />
         <Route path="/campaigns" element={<CampaignList />} />
         <Route path="/campaigns/new" element={<CampaignBuilder />} />
-        <Route path="/campaigns/:id" element={<CampaignReport />} />
+        <Route path="/campaigns/:id" element={<CampaignDetail />} />
+        <Route path="/campaigns/:id/report" element={<CampaignReport />} />
         <Route path="/ai-assistant" element={<AiAssistant />} />
         <Route path="/team" element={<TeamManagement />} />
         <Route path="/billing" element={<Billing />} />

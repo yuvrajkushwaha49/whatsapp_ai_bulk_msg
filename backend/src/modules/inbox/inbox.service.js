@@ -92,13 +92,14 @@ export async function listConversations(businessId, user, options = {}) {
 
     // Hydrate contacts and assigned users
     const items = conversations.map(c => {
-      const contact = store.contacts?.find(ct => ct.id === c.contact_id);
+      const contact = store.contacts?.find(ct => ct.id === c.contact_id || (ct.phone && ct.phone === c.customer_phone));
       const assignedUser = store.users?.find(u => u.id === c.assigned_user_id);
       const acc = store.whatsapp_accounts?.find(a => a.id === c.whatsapp_account_id);
       const windowExpiry = c.service_window_expires_at ? new Date(c.service_window_expires_at) : null;
       const isWindowOpen = windowExpiry ? now < windowExpiry : false;
 
       const accountName = acc ? (acc.verified_name || acc.display_name || acc.account_name || acc.phone_number) : null;
+      const contactDisplayName = contact?.name || `${contact?.first_name || ''} ${contact?.last_name || ''}`.trim() || c.customer_phone;
 
       return {
         ...c,
@@ -110,7 +111,7 @@ export async function listConversations(businessId, user, options = {}) {
         } : null,
         contact: contact ? {
           id: contact.id,
-          name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || c.customer_phone,
+          name: contactDisplayName,
           first_name: contact.first_name,
           last_name: contact.last_name,
           phone: contact.phone,
@@ -147,6 +148,7 @@ export async function listConversations(businessId, user, options = {}) {
   let query = `
     SELECT 
       c.*,
+      ct.name AS contact_full_name,
       ct.first_name AS contact_first_name,
       ct.last_name AS contact_last_name,
       ct.email AS contact_email,
@@ -159,7 +161,7 @@ export async function listConversations(businessId, user, options = {}) {
       COALESCE(NULLIF(wa.verified_name, ''), NULLIF(wa.display_name, ''), wa.phone_number) AS account_display_name,
       wa.phone_number AS account_phone_number
     FROM whatsapp_conversations c
-    LEFT JOIN contacts ct ON c.contact_id = ct.id
+    LEFT JOIN contacts ct ON (c.contact_id = ct.id OR (ct.phone = c.customer_phone AND ct.business_id = c.business_id))
     LEFT JOIN users u ON c.assigned_user_id = u.id
     LEFT JOIN whatsapp_accounts wa ON c.whatsapp_account_id = wa.id
     WHERE c.business_id = ?
@@ -234,7 +236,7 @@ export async function listConversations(businessId, user, options = {}) {
       updated_at: r.updated_at,
       contact: {
         id: r.contact_id,
-        name: `${r.contact_first_name || ''} ${r.contact_last_name || ''}`.trim() || r.customer_phone,
+        name: r.contact_full_name || `${r.contact_first_name || ''} ${r.contact_last_name || ''}`.trim() || r.customer_phone,
         first_name: r.contact_first_name,
         last_name: r.contact_last_name,
         phone: r.contact_phone || r.customer_phone,
@@ -269,7 +271,7 @@ export async function getConversation(businessId, conversationId) {
     const conv = store.whatsapp_conversations?.find(c => c.id === numConvId && c.business_id === numBusinessId);
     if (!conv) return null;
 
-    const contact = store.contacts?.find(ct => ct.id === conv.contact_id);
+    const contact = store.contacts?.find(ct => ct.id === conv.contact_id || (ct.phone && ct.phone === conv.customer_phone));
     const assignedUser = store.users?.find(u => u.id === conv.assigned_user_id);
     const acc = store.whatsapp_accounts?.find(a => a.id === conv.whatsapp_account_id);
     const notes = store.whatsapp_conversation_notes?.filter(n => n.conversation_id === numConvId) || [];
@@ -277,6 +279,7 @@ export async function getConversation(businessId, conversationId) {
     const isWindowOpen = windowExpiry ? now < windowExpiry : false;
 
     const accountName = acc ? (acc.verified_name || acc.display_name || acc.account_name || acc.phone_number) : null;
+    const contactDisplayName = contact?.name || `${contact?.first_name || ''} ${contact?.last_name || ''}`.trim() || conv.customer_phone;
 
     return {
       ...conv,
@@ -288,7 +291,7 @@ export async function getConversation(businessId, conversationId) {
       } : null,
       contact: contact ? {
         ...contact,
-        name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || conv.customer_phone
+        name: contactDisplayName
       } : null,
       assigned_user: assignedUser ? { id: assignedUser.id, name: assignedUser.name, email: assignedUser.email, role: assignedUser.role } : null,
       notes,
@@ -300,6 +303,7 @@ export async function getConversation(businessId, conversationId) {
   const rows = await executeQuery(
     `SELECT 
       c.*,
+      ct.name AS contact_full_name,
       ct.first_name AS contact_first_name,
       ct.last_name AS contact_last_name,
       ct.email AS contact_email,
@@ -312,7 +316,7 @@ export async function getConversation(businessId, conversationId) {
       COALESCE(NULLIF(wa.verified_name, ''), NULLIF(wa.display_name, ''), wa.phone_number) AS account_display_name,
       wa.phone_number AS account_phone_number
     FROM whatsapp_conversations c
-    LEFT JOIN contacts ct ON c.contact_id = ct.id
+    LEFT JOIN contacts ct ON (c.contact_id = ct.id OR (ct.phone = c.customer_phone AND ct.business_id = c.business_id))
     LEFT JOIN users u ON c.assigned_user_id = u.id
     LEFT JOIN whatsapp_accounts wa ON c.whatsapp_account_id = wa.id
     WHERE c.id = ? AND c.business_id = ? LIMIT 1`,
@@ -351,7 +355,7 @@ export async function getConversation(businessId, conversationId) {
     } : null,
     contact: {
       id: r.contact_id,
-      name: `${r.contact_first_name || ''} ${r.contact_last_name || ''}`.trim() || r.customer_phone,
+      name: r.contact_full_name || `${r.contact_first_name || ''} ${r.contact_last_name || ''}`.trim() || r.customer_phone,
       first_name: r.contact_first_name,
       last_name: r.contact_last_name,
       phone: r.contact_phone || r.customer_phone,

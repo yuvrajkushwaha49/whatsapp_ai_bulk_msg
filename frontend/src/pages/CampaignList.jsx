@@ -130,8 +130,9 @@ export default function CampaignList() {
                               <i className="bi bi-stop-fill"></i>
                             </button>
                           )}
-                          <Link to={`/campaigns/${camp.id}`} className="btn btn-outline-primary">
-                            Report
+                          <Link to={`/campaigns/${camp.id}`} className="btn btn-outline-primary d-flex align-items-center gap-1">
+                            <i className="bi bi-eye"></i>
+                            <span>Details</span>
                           </Link>
                         </div>
                       </td>

@@ -380,10 +380,10 @@ export default function Inbox() {
       placeholders.push('customer_name');
     }
     const initial = {};
-    const custName = selectedConversation?.contact?.first_name || 
-                     selectedConversation?.contact?.name || 
-                     selectedConversation?.customer_name || 
-                     'Customer';
+    const custName = selectedConversation?.contact?.first_name ||
+      selectedConversation?.contact?.name ||
+      selectedConversation?.customer_name ||
+      'Customer';
     placeholders.forEach(ph => {
       if (ph === 'customer_name' || ph === '1') {
         initial[ph] = custName;
@@ -409,10 +409,10 @@ export default function Inbox() {
 
     try {
       const varsToSend = { ...templateVariables };
-      const custName = selectedConversation?.contact?.first_name || 
-                       selectedConversation?.contact?.name || 
-                       selectedConversation?.customer_name || 
-                       'Customer';
+      const custName = selectedConversation?.contact?.first_name ||
+        selectedConversation?.contact?.name ||
+        selectedConversation?.customer_name ||
+        'Customer';
       if (!varsToSend.customer_name && selectedTemplate.name === 'welcome_msg') {
         varsToSend.customer_name = custName;
       }
@@ -614,6 +614,21 @@ export default function Inbox() {
     setTimeout(() => setCopiedPhone(false), 2000);
   };
 
+  // Get avatar initial: First capital letter of name or channel name (NEVER raw digits)
+  const getAvatarLetter = (name, fallback = '') => {
+    const clean = String(name || '').trim();
+    const match = clean.match(/[a-zA-Z]/);
+    if (match) {
+      return match[0].toUpperCase();
+    }
+    const fbClean = String(fallback || '').trim();
+    const fbMatch = fbClean.match(/[a-zA-Z]/);
+    if (fbMatch) {
+      return fbMatch[0].toUpperCase();
+    }
+    return <i className="bi bi-person-fill"></i>;
+  };
+
   return (
     <div className="inbox-page-container">
       {/* Top Notification Toast */}
@@ -749,7 +764,6 @@ export default function Inbox() {
               conversations.map((c) => {
                 const isActive = selectedConversation?.id === c.id;
                 const contactName = c.contact?.name || c.customer_phone;
-                const initials = (contactName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2) || 'WA').toUpperCase();
 
                 return (
                   <div
@@ -760,7 +774,7 @@ export default function Inbox() {
                     {/* Avatar with 24h Window Indicator */}
                     <div className="conversation-avatar-wrapper">
                       <div className="conversation-avatar">
-                        {initials}
+                        {getAvatarLetter(contactName, c.whatsapp_account?.display_name)}
                       </div>
                       <span
                         className={`window-indicator-dot ${c.is_window_open ? 'active' : 'expired'}`}
@@ -824,7 +838,12 @@ export default function Inbox() {
 
                   <div className="chat-header-user" onClick={() => setShowCrmPanel(!showCrmPanel)} title="Click to toggle customer details">
                     <div className="chat-header-avatar">
-                      {((selectedConversation.contact?.name || selectedConversation.customer_phone).replace(/[^a-zA-Z0-9]/g, '').slice(0, 2) || 'WA').toUpperCase()}
+                      {getAvatarLetter(
+                        selectedConversation.contact?.name && selectedConversation.contact?.name !== selectedConversation.customer_phone
+                          ? selectedConversation.contact.name
+                          : (selectedConversation.whatsapp_account?.display_name || selectedConversation.contact?.name),
+                        selectedConversation.whatsapp_account?.display_name
+                      )}
                     </div>
                     <div className="chat-header-info">
                       <div className="chat-header-title d-flex align-items-center gap-2">
@@ -839,8 +858,8 @@ export default function Inbox() {
                         {selectedConversation.whatsapp_account && (
                           <span
                             className="badge bg-success-subtle text-success border border-success-subtle py-0 px-1 d-inline-flex align-items-center gap-1 flex-shrink-0"
-                            style={{ fontSize: '0.68rem', fontWeight: 600 }}
-                            title="WhatsApp Account Name"
+                            style={{ fontSize: '0.72rem', fontWeight: 600 }}
+                            title="WhatsApp Account"
                           >
                             <i className="bi bi-whatsapp"></i>
                             <span>{selectedConversation.whatsapp_account.display_name || 'WhatsApp'}</span>
@@ -1126,7 +1145,12 @@ export default function Inbox() {
             {/* Profile Summary Card */}
             <div className="crm-profile-card">
               <div className="crm-avatar">
-                {((selectedConversation.contact?.name || selectedConversation.customer_phone).replace(/[^a-zA-Z0-9]/g, '').slice(0, 2) || 'WA').toUpperCase()}
+                {getAvatarLetter(
+                  selectedConversation.contact?.name && selectedConversation.contact?.name !== selectedConversation.customer_phone
+                    ? selectedConversation.contact.name
+                    : (selectedConversation.whatsapp_account?.display_name || selectedConversation.contact?.name),
+                  selectedConversation.whatsapp_account?.display_name
+                )}
                 <span className="crm-verified-badge" title="WhatsApp Verified Contact">
                   <i className="bi bi-whatsapp"></i>
                 </span>
