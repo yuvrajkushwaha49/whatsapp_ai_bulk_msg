@@ -9,6 +9,24 @@ export async function list(req, res, next) {
   }
 }
 
+export async function details(req, res, next) {
+  try {
+    const result = await contactsService.getContactDetails(req.businessId, req.params.id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function update(req, res, next) {
+  try {
+    const result = await contactsService.updateContact(req.businessId, req.params.id, req.body);
+    res.json({ success: true, message: 'Contact updated successfully', data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function create(req, res, next) {
   try {
     const result = await contactsService.createContact(req.businessId, req.body);
@@ -47,6 +65,8 @@ export async function tags(req, res, next) {
 
 export default {
   list,
+  details,
+  update,
   create,
   updateConsent,
   remove,

@@ -272,6 +272,13 @@ export default function Contacts() {
                       </td>
                       <td className="text-end">
                         <div className="btn-group btn-group-sm">
+                          <Link
+                            to={`/contacts/${c.id}`}
+                            className="btn btn-outline-primary"
+                            title="View Contact Profile & History"
+                          >
+                            <i className="bi bi-eye"></i>
+                          </Link>
                           <button
                             onClick={() => handleToggleConsent(c.id, isOptedIn)}
                             className={`btn ${isOptedIn ? 'btn-outline-warning' : 'btn-outline-success'}`}

@@ -216,6 +216,156 @@ export async function deleteContact(businessId, contactId) {
   return { success: true };
 }
 
+export async function getContactDetails(businessId, contactId) {
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const contact = store.contacts?.find(c => c.id === Number(contactId) && c.business_id === Number(businessId));
+    if (!contact) {
+      const error = new Error('Contact not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    const contactTagIds = store.contact_tags?.filter(ct => ct.contact_id === contact.id).map(ct => ct.tag_id) || [];
+    const tags = store.tags?.filter(t => contactTagIds.includes(t.id)) || [];
+    const consents = store.contact_consents?.filter(cc => cc.contact_id === contact.id) || [];
+    const campaignHistory = (store.campaign_recipients || [])
+      .filter(cr => cr.contact_id === contact.id || cr.phone === contact.phone)
+      .map(cr => {
+        const camp = store.campaigns?.find(c => c.id === cr.campaign_id);
+        return { ...cr, campaign_name: camp?.name || 'Campaign' };
+      });
+    const conversation = store.whatsapp_conversations?.find(c => c.customer_phone === contact.phone);
+
+    return {
+      contact: {
+        ...contact,
+        tags
+      },
+      consents,
+      campaignHistory,
+      conversationId: conversation?.id || null
+    };
+  }
+
+  const contacts = await executeQuery(
+    `SELECT c.*, 
+      COALESCE(
+        (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', t.id, 'name', t.name, 'color', t.color))
+         FROM contact_tags ct
+         JOIN tags t ON ct.tag_id = t.id
+         WHERE ct.contact_id = c.id),
+        JSON_ARRAY()
+      ) as tags
+     FROM contacts c
+     WHERE c.business_id = ? AND c.id = ? LIMIT 1`,
+    [businessId, contactId]
+  );
+
+  if (contacts.length === 0) {
+    const error = new Error('Contact not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const rawContact = contacts[0];
+  const tags = typeof rawContact.tags === 'string' ? JSON.parse(rawContact.tags) : (rawContact.tags || []);
+
+  const consents = await executeQuery(
+    `SELECT * FROM contact_consents 
+     WHERE business_id = ? AND contact_id = ? 
+     ORDER BY created_at DESC LIMIT 20`,
+    [businessId, contactId]
+  );
+
+  const campaignHistory = await executeQuery(
+    `SELECT cr.id, cr.campaign_id, cr.phone, cr.status, cr.sent_at, cr.delivered_at, cr.read_at, cr.error_message, cr.skip_reason, c.name as campaign_name, c.created_at as campaign_created_at
+     FROM campaign_recipients cr
+     LEFT JOIN campaigns c ON cr.campaign_id = c.id
+     WHERE cr.business_id = ? AND (cr.contact_id = ? OR cr.phone = ?)
+     ORDER BY cr.id DESC LIMIT 50`,
+    [businessId, contactId, rawContact.phone]
+  );
+
+  const convRows = await executeQuery(
+    `SELECT id FROM whatsapp_conversations 
+     WHERE business_id = ? AND customer_phone = ? 
+     ORDER BY last_message_at DESC LIMIT 1`,
+    [businessId, rawContact.phone]
+  );
+
+  return {
+    contact: {
+      ...rawContact,
+      tags
+    },
+    consents,
+    campaignHistory,
+    conversationId: convRows[0]?.id || null
+  };
+}
+
+export async function updateContact(businessId, contactId, { name, email, phone, status, tags = [], customFields = {} }) {
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const contact = store.contacts?.find(c => c.id === Number(contactId) && c.business_id === Number(businessId));
+    if (!contact) {
+      const error = new Error('Contact not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (name !== undefined) contact.name = name;
+    if (email !== undefined) contact.email = email;
+    if (status !== undefined) contact.status = status;
+    return contact;
+  }
+
+  const updates = [];
+  const params = [];
+
+  if (name !== undefined) {
+    updates.push('name = ?');
+    params.push(name);
+  }
+  if (email !== undefined) {
+    updates.push('email = ?');
+    params.push(email || null);
+  }
+  if (phone !== undefined) {
+    updates.push('phone = ?');
+    params.push(phone);
+  }
+  if (status !== undefined) {
+    updates.push('status = ?');
+    params.push(status);
+  }
+
+  if (updates.length > 0) {
+    params.push(businessId, contactId);
+    await executeQuery(
+      `UPDATE contacts SET ${updates.join(', ')}, updated_at = NOW() WHERE business_id = ? AND id = ?`,
+      params
+    );
+  }
+
+  // Handle tags if provided
+  if (Array.isArray(tags)) {
+    await executeQuery('DELETE FROM contact_tags WHERE contact_id = ?', [contactId]);
+    for (const tagName of tags) {
+      let tagRows = await executeQuery('SELECT id FROM tags WHERE business_id = ? AND name = ?', [businessId, tagName]);
+      let tagId;
+      if (tagRows.length > 0) {
+        tagId = tagRows[0].id;
+      } else {
+        const createTagRes = await executeQuery('INSERT INTO tags (business_id, name, color) VALUES (?, ?, ?)', [businessId, tagName, '#10b981']);
+        tagId = createTagRes.insertId;
+      }
+      await executeQuery('INSERT IGNORE INTO contact_tags (contact_id, tag_id) VALUES (?, ?)', [contactId, tagId]);
+    }
+  }
+
+  return getContactDetails(businessId, contactId);
+}
+
 export async function listTags(businessId) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
@@ -226,6 +376,8 @@ export async function listTags(businessId) {
 
 export default {
   listContacts,
+  getContactDetails,
+  updateContact,
   createContact,
   updateConsent,
   deleteContact,

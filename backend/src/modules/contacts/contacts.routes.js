@@ -8,9 +8,11 @@ const router = Router();
 router.use(authenticate, requireTenant);
 
 router.get('/', contactsController.list);
+router.get('/tags', contactsController.tags);
+router.get('/:id', contactsController.details);
+router.put('/:id', requireRole(['owner', 'admin', 'marketer']), contactsController.update);
 router.post('/', requireRole(['owner', 'admin', 'marketer']), contactsController.create);
 router.patch('/:id/consent', requireRole(['owner', 'admin', 'marketer']), contactsController.updateConsent);
 router.delete('/:id', requireRole(['owner', 'admin']), contactsController.remove);
-router.get('/tags', contactsController.tags);
 
 export default router;
