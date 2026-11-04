@@ -1,6 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid
+} from 'recharts';
 import api from '../services/api';
+
+const PIE_COLORS = {
+  Read: '#198754',      // WhatsApp Green
+  Delivered: '#25D366', // Light WhatsApp Green
+  Sent: '#0d6efd',      // Primary Blue
+  Failed: '#dc3545',    // Red
+  Pending: '#6c757d'    // Gray
+};
 
 export default function ContactDetail() {
   const { id } = useParams();
@@ -132,12 +153,50 @@ export default function ContactDetail() {
   const conversationId = data?.conversationId;
 
   // Avatar helper
-  const getAvatarLetter = (name, phone) => {
+  const getAvatarLetter = (name) => {
     const clean = String(name || '').trim();
     const match = clean.match(/[a-zA-Z]/);
     if (match) return match[0].toUpperCase();
     return <i className="bi bi-person-fill"></i>;
   };
+
+  // -------------------------------------------------------------
+  // Analytics & Graph Calculations
+  // -------------------------------------------------------------
+  const totalBroadcasts = campaignHistory.length;
+  const readCount = campaignHistory.filter(c => c.status === 'read').length;
+  const deliveredOnlyCount = campaignHistory.filter(c => c.status === 'delivered').length;
+  const sentOnlyCount = campaignHistory.filter(c => c.status === 'sent').length;
+  const failedCount = campaignHistory.filter(c => c.status === 'failed').length;
+
+  // Donut Pie Chart Data
+  const pieData = useMemo(() => {
+    const list = [
+      { name: 'Read', value: readCount, color: PIE_COLORS.Read },
+      { name: 'Delivered', value: deliveredOnlyCount, color: PIE_COLORS.Delivered },
+      { name: 'Sent (In Transit)', value: sentOnlyCount, color: PIE_COLORS.Sent },
+      { name: 'Failed', value: failedCount, color: PIE_COLORS.Failed }
+    ].filter(d => d.value > 0);
+    return list;
+  }, [readCount, deliveredOnlyCount, sentOnlyCount, failedCount]);
+
+  // Bar Chart Data (Engagement Funnel)
+  const barData = useMemo(() => {
+    return [
+      { name: 'Total Dispatched', count: totalBroadcasts, fill: '#0d6efd' },
+      { name: 'Delivered', count: readCount + deliveredOnlyCount, fill: '#25D366' },
+      { name: 'Read', count: readCount, fill: '#198754' },
+      { name: 'Failed / Bounced', count: failedCount, fill: '#dc3545' }
+    ];
+  }, [totalBroadcasts, readCount, deliveredOnlyCount, failedCount]);
+
+  const deliveryRate = totalBroadcasts > 0
+    ? Math.round(((readCount + deliveredOnlyCount) / totalBroadcasts) * 100)
+    : 0;
+
+  const readRate = (readCount + deliveredOnlyCount) > 0
+    ? Math.round((readCount / (readCount + deliveredOnlyCount)) * 100)
+    : 0;
 
   if (loading && !data) {
     return (
@@ -274,7 +333,7 @@ export default function ContactDetail() {
 
       {/* Main Grid Profile Section */}
       <div className="row g-4">
-        {/* Left Column: Contact Profile Card */}
+        {/* Left Column: Contact Profile Card & Engagement Metrics */}
         <div className="col-12 col-lg-4">
           <div className="cf-card mb-4">
             <div className="cf-card-body text-center p-4">
@@ -287,7 +346,7 @@ export default function ContactDetail() {
                   fontSize: '2rem'
                 }}
               >
-                {getAvatarLetter(contact?.name, contact?.phone)}
+                {getAvatarLetter(contact?.name)}
               </div>
 
               <h4 className="fw-bold text-dark mb-1">{contact?.name || 'Unnamed Contact'}</h4>
@@ -332,25 +391,22 @@ export default function ContactDetail() {
 
           {/* Quick Metrics */}
           <div className="cf-card">
-            <div className="cf-card-header">
-              <h6 className="mb-0 fw-bold">Engagement Stats</h6>
+            <div className="cf-card-header d-flex justify-content-between align-items-center">
+              <h6 className="mb-0 fw-bold">Engagement Rates</h6>
+              <span className="badge bg-light text-dark border">Cloud API Verified</span>
             </div>
             <div className="cf-card-body p-3">
               <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <span className="text-muted small">Campaigns Received</span>
-                <span className="fw-bold text-dark">{campaignHistory.length}</span>
+                <span className="text-muted small">Total Broadcasts</span>
+                <span className="fw-bold text-dark">{totalBroadcasts}</span>
               </div>
               <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <span className="text-muted small">Delivered Broadcasts</span>
-                <span className="fw-bold text-success">
-                  {campaignHistory.filter(c => c.status === 'delivered' || c.status === 'read').length}
-                </span>
+                <span className="text-muted small">Delivered Rate</span>
+                <span className="fw-bold text-success">{deliveryRate}%</span>
               </div>
               <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <span className="text-muted small">Read by Customer</span>
-                <span className="fw-bold text-warning">
-                  {campaignHistory.filter(c => c.status === 'read').length}
-                </span>
+                <span className="text-muted small">Read / Open Rate</span>
+                <span className="fw-bold text-warning">{readRate}%</span>
               </div>
               <div className="d-flex justify-content-between align-items-center py-2">
                 <span className="text-muted small">Last Activity</span>
@@ -488,62 +544,146 @@ export default function ContactDetail() {
                 </li>
               </ul>
 
-              {/* TAB 1: CRM Profile Overview */}
+              {/* ==========================================================
+                  TAB 1: CRM Profile Overview + Visual Charts
+                  ========================================================== */}
               {activeTab === 'overview' && (
-                <div className="cf-card">
-                  <div className="cf-card-header">
-                    <h5 className="mb-0 fw-bold">Customer CRM Information</h5>
+                <div>
+                  {/* Visual Graphs Section */}
+                  <div className="row g-3 mb-4">
+                    {/* Donut Pie Chart: Message Status Breakdown */}
+                    <div className="col-12 col-md-6">
+                      <div className="cf-card h-100">
+                        <div className="cf-card-header d-flex justify-content-between align-items-center">
+                          <h6 className="mb-0 fw-bold">Delivery Status Breakdown</h6>
+                          <span className="small text-muted">WhatsApp Webhooks</span>
+                        </div>
+                        <div className="cf-card-body d-flex align-items-center justify-content-center p-2">
+                          {pieData.length > 0 ? (
+                            <div style={{ width: '100%', height: 210 }}>
+                              <ResponsiveContainer>
+                                <PieChart>
+                                  <Pie
+                                    data={pieData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={75}
+                                    paddingAngle={4}
+                                    dataKey="value"
+                                  >
+                                    {pieData.map((entry, index) => (
+                                      <Cell key={`contact-pie-${index}`} fill={entry.color} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip />
+                                  <Legend verticalAlign="bottom" height={32} iconSize={10} />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-muted small">
+                              <i className="bi bi-pie-chart fs-3 d-block mb-1 text-secondary"></i>
+                              No campaign delivery data available yet
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bar Chart: Engagement Funnel */}
+                    <div className="col-12 col-md-6">
+                      <div className="cf-card h-100">
+                        <div className="cf-card-header d-flex justify-content-between align-items-center">
+                          <h6 className="mb-0 fw-bold">Message Engagement Funnel</h6>
+                          <span className="small text-muted">Conversion Counts</span>
+                        </div>
+                        <div className="cf-card-body d-flex align-items-center justify-content-center p-2">
+                          {totalBroadcasts > 0 ? (
+                            <div style={{ width: '100%', height: 210 }}>
+                              <ResponsiveContainer>
+                                <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} />
+                                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                  <Tooltip
+                                    contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}
+                                  />
+                                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                    {barData.map((entry, index) => (
+                                      <Cell key={`bar-cell-${index}`} fill={entry.fill} />
+                                    ))}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-muted small">
+                              <i className="bi bi-bar-chart fs-3 d-block mb-1 text-secondary"></i>
+                              No broadcast interactions recorded yet
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="cf-card-body">
-                    <div className="row g-4">
-                      <div className="col-sm-6">
-                        <div className="p-3 bg-light rounded-3">
-                          <span className="text-muted small">Full Name</span>
-                          <div className="fw-bold text-dark mt-1 fs-5">
-                            {contact?.name || 'N/A'}
+
+                  {/* Customer Information Cards */}
+                  <div className="cf-card">
+                    <div className="cf-card-header">
+                      <h5 className="mb-0 fw-bold">Customer CRM Information</h5>
+                    </div>
+                    <div className="cf-card-body">
+                      <div className="row g-4">
+                        <div className="col-sm-6">
+                          <div className="p-3 bg-light rounded-3">
+                            <span className="text-muted small">Full Name</span>
+                            <div className="fw-bold text-dark mt-1 fs-5">
+                              {contact?.name || 'N/A'}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="p-3 bg-light rounded-3">
-                          <span className="text-muted small">WhatsApp Phone Number</span>
-                          <div className="fw-bold text-dark mt-1 fs-5">
-                            <code>{contact?.phone}</code>
+                        <div className="col-sm-6">
+                          <div className="p-3 bg-light rounded-3">
+                            <span className="text-muted small">WhatsApp Phone Number</span>
+                            <div className="fw-bold text-dark mt-1 fs-5">
+                              <code>{contact?.phone}</code>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="p-3 bg-light rounded-3">
-                          <span className="text-muted small">Email Address</span>
-                          <div className="fw-semibold text-dark mt-1">
-                            {contact?.email || <span className="text-muted">Not provided</span>}
+                        <div className="col-sm-6">
+                          <div className="p-3 bg-light rounded-3">
+                            <span className="text-muted small">Email Address</span>
+                            <div className="fw-semibold text-dark mt-1">
+                              {contact?.email || <span className="text-muted">Not provided</span>}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="p-3 bg-light rounded-3">
-                          <span className="text-muted small">Opt-In Status & Consent</span>
-                          <div className="fw-semibold mt-1">
-                            {contact?.is_opted_in ? (
-                              <span className="text-success d-flex align-items-center gap-1">
-                                <i className="bi bi-check-circle-fill"></i> Opted-In (Promotional & Utility)
-                              </span>
-                            ) : (
-                              <span className="text-danger d-flex align-items-center gap-1">
-                                <i className="bi bi-slash-circle"></i> Unsubscribed / Opted-Out
-                              </span>
-                            )}
+                        <div className="col-sm-6">
+                          <div className="p-3 bg-light rounded-3">
+                            <span className="text-muted small">Opt-In Status & Consent</span>
+                            <div className="fw-semibold mt-1">
+                              {contact?.is_opted_in ? (
+                                <span className="text-success d-flex align-items-center gap-1">
+                                  <i className="bi bi-check-circle-fill"></i> Opted-In (Promotional & Utility)
+                                </span>
+                              ) : (
+                                <span className="text-danger d-flex align-items-center gap-1">
+                                  <i className="bi bi-slash-circle"></i> Unsubscribed / Opted-Out
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="col-12">
-                        <div className="p-3 bg-light rounded-3">
-                          <span className="text-muted small">System Information</span>
-                          <div className="row mt-2 small text-muted">
-                            <div className="col-sm-6">Record ID: #{contact?.id}</div>
-                            <div className="col-sm-6">Business Tenant ID: #{contact?.business_id}</div>
-                            <div className="col-sm-6 mt-1">Created At: {contact?.created_at ? new Date(contact.created_at).toLocaleString() : 'N/A'}</div>
-                            <div className="col-sm-6 mt-1">Last Updated: {contact?.updated_at ? new Date(contact.updated_at).toLocaleString() : 'N/A'}</div>
+                        <div className="col-12">
+                          <div className="p-3 bg-light rounded-3">
+                            <span className="text-muted small">System Information</span>
+                            <div className="row mt-2 small text-muted">
+                              <div className="col-sm-6">Record ID: #{contact?.id}</div>
+                              <div className="col-sm-6">Business Tenant ID: #{contact?.business_id}</div>
+                              <div className="col-sm-6 mt-1">Created At: {contact?.created_at ? new Date(contact.created_at).toLocaleString() : 'N/A'}</div>
+                              <div className="col-sm-6 mt-1">Last Updated: {contact?.updated_at ? new Date(contact.updated_at).toLocaleString() : 'N/A'}</div>
+                            </div>
                           </div>
                         </div>
                       </div>
