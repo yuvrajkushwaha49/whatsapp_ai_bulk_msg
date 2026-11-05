@@ -1,0 +1,284 @@
+{
+  "screenshots": {
+    "tab1": "D:\\Yuvi\\React_App\\Deleted\\aisency\\screenshots\\tab1_crm_profile_overview.png",
+    "tab2": "D:\\Yuvi\\React_App\\Deleted\\aisency\\screenshots\\tab2_campaign_broadcasts.png",
+    "tab3": "D:\\Yuvi\\React_App\\Deleted\\aisency\\screenshots\\tab3_consent_audit_trail.png"
+  },
+  "globalStyles": {
+    "body": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+      "fontSize": "12.16px",
+      "backgroundColor": "rgb(248, 250, 252)",
+      "color": "rgb(30, 41, 59)"
+    },
+    "headings": {
+      "tag": "H2",
+      "text": "Yuvraj Kushwaha",
+      "fontSize": "17.28px",
+      "fontWeight": "700",
+      "fontFamily": "Outfit, Inter, sans-serif",
+      "color": "rgb(33, 37, 41)"
+    },
+    "activeTab": {
+      "color": "rgb(25, 135, 84)",
+      "borderBottom": "0px none rgb(25, 135, 84)",
+      "fontWeight": "600",
+      "padding": "6.4px 19.2px"
+    },
+    "brandButtons": {
+      "bg": "rgb(25, 135, 84)",
+      "color": "rgb(255, 255, 255)",
+      "borderRadius": "3.2px",
+      "padding": "3.2px 6.4px"
+    }
+  },
+  "tab1Metrics": {
+    "chartsFound": 5,
+    "chartDimensions": [
+      {
+        "tag": "DIV",
+        "width": 341,
+        "height": 230
+      },
+      {
+        "tag": "svg",
+        "width": 341,
+        "height": 230
+      },
+      {
+        "tag": "svg",
+        "width": 10,
+        "height": 10
+      },
+      {
+        "tag": "DIV",
+        "width": 341,
+        "height": 230
+      },
+      {
+        "tag": "svg",
+        "width": 341,
+        "height": 230
+      }
+    ],
+    "cardsCount": 5,
+    "cardPaddings": [
+      {
+        "classes": "cf-card mb-4",
+        "padding": "0px",
+        "borderRadius": "16px",
+        "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px"
+      },
+      {
+        "classes": "cf-card",
+        "padding": "0px",
+        "borderRadius": "16px",
+        "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px"
+      },
+      {
+        "classes": "cf-card h-100 shadow-sm border-0",
+        "padding": "0px",
+        "borderRadius": "12px",
+        "boxShadow": "rgba(0, 0, 0, 0.075) 0px 1.6px 3.2px 0px"
+      },
+      {
+        "classes": "cf-card h-100 shadow-sm border-0",
+        "padding": "0px",
+        "borderRadius": "12px",
+        "boxShadow": "rgba(0, 0, 0, 0.075) 0px 1.6px 3.2px 0px"
+      },
+      {
+        "classes": "cf-card shadow-sm border-0",
+        "padding": "0px",
+        "borderRadius": "12px",
+        "boxShadow": "rgba(0, 0, 0, 0.075) 0px 1.6px 3.2px 0px"
+      }
+    ],
+    "badges": [
+      {
+        "text": "Live",
+        "bg": "rgb(25, 135, 84)",
+        "color": "rgb(255, 255, 255)",
+        "fontSize": "8.32px"
+      },
+      {
+        "text": "Active",
+        "bg": "rgb(209, 231, 221)",
+        "color": "rgb(25, 135, 84)",
+        "fontSize": "9.12px"
+      },
+      {
+        "text": "Live Tenant",
+        "bg": "rgb(209, 231, 221)",
+        "color": "rgb(25, 135, 84)",
+        "fontSize": "9.12px"
+      },
+      {
+        "text": "OWNER",
+        "bg": "rgb(226, 227, 229)",
+        "color": "rgb(108, 117, 125)",
+        "fontSize": "8.32px"
+      },
+      {
+        "text": "ACTIVE",
+        "bg": "rgb(209, 231, 221)",
+        "color": "rgb(25, 135, 84)",
+        "fontSize": "9.12px"
+      },
+      {
+        "text": "Opted In",
+        "bg": "rgb(209, 231, 221)",
+        "color": "rgb(25, 135, 84)",
+        "fontSize": "9.12px"
+      },
+      {
+        "text": "WhatsApp Consent Active",
+        "bg": "rgb(25, 135, 84)",
+        "color": "rgb(255, 255, 255)",
+        "fontSize": "9.12px"
+      },
+      {
+        "text": "Country: +91",
+        "bg": "rgb(248, 249, 250)",
+        "color": "rgb(33, 37, 41)",
+        "fontSize": "9.12px"
+      },
+      {
+        "text": "Weekend Shopper",
+        "bg": "rgb(32, 201, 151)",
+        "color": "rgb(255, 255, 255)",
+        "fontSize": "9.12px"
+      },
+      {
+        "text": "Cloud API Verified",
+        "bg": "rgb(248, 249, 250)",
+        "color": "rgb(33, 37, 41)",
+        "fontSize": "9.12px"
+      },
+      {
+        "text": "WhatsApp Webhooks",
+        "bg": "rgb(209, 231, 221)",
+        "color": "rgb(25, 135, 84)",
+        "fontSize": "9.216px"
+      },
+      {
+        "text": "Conversion Counts",
+        "bg": "rgb(207, 226, 255)",
+        "color": "rgb(13, 110, 253)",
+        "fontSize": "9.216px"
+      }
+    ]
+  },
+  "tab2Metrics": {
+    "tablePresent": true,
+    "rowsCount": 2,
+    "tableHeaders": [
+      "CAMPAIGN NAME",
+      "STATUS",
+      "SENT AT",
+      "DELIVERED AT",
+      "READ AT",
+      "ACTION"
+    ],
+    "rowSamples": [
+      [
+        "Test\nID: #4",
+        "READ",
+        "4:03:24 PM",
+        "4:03:30 PM",
+        "4:03:35 PM",
+        "Campaign"
+      ],
+      [
+        "Test\nID: #3",
+        "READ",
+        "11:43:57 AM",
+        "11:44:02 AM",
+        "11:45:26 AM",
+        "Campaign"
+      ]
+    ]
+  },
+  "tab3Metrics": {
+    "tablePresent": true,
+    "rowsCount": 4,
+    "tableHeaders": [
+      "CONSENT STATUS",
+      "SOURCE",
+      "PROOF / NOTES",
+      "LOGGED AT"
+    ],
+    "rowSamples": [
+      [
+        "OPTED IN",
+        "website_checkout",
+        "User checked explicit opt-in at checkout order #10892",
+        "10/31/2026, 11:45:57 AM"
+      ],
+      [
+        "OPTED IN",
+        "website_checkout",
+        "User checked explicit opt-in at checkout order #10892",
+        "10/31/2026, 11:45:05 AM"
+      ],
+      [
+        "OPTED IN",
+        "website_checkout",
+        "User checked explicit opt-in at checkout order #10892",
+        "10/31/2026, 11:40:09 AM"
+      ],
+      [
+        "OPTED IN",
+        "website_checkout",
+        "User checked explicit opt-in at checkout order #10892",
+        "10/31/2026, 11:39:42 AM"
+      ]
+    ]
+  },
+  "consoleLogs": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+    },
+    {
+      "type": "warn",
+      "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq)"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "warn",
+      "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition."
+    },
+    {
+      "type": "warn",
+      "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath."
+    }
+  ]
+}
