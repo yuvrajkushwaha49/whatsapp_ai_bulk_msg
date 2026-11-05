@@ -67,81 +67,32 @@ export default function Dashboard() {
     );
   }
 
-  // Fallback / Normalized Data for Charts matching design
-  const campaignPerformanceData = [
-    { name: 'test-01', sent: 10 },
-    { name: '01', sent: 5 },
-    { name: '02', sent: 5 },
-    { name: 'test_2', sent: 5 },
-    { name: 'TechCamp', sent: 4 },
-    { name: 'test3', sent: 4 },
-    { name: 'novia_life', sent: 4 },
-    { name: 'ashish sir', sent: 4 },
-    { name: 'abc1', sent: 4 },
-    { name: 'test3', sent: 3 }
-  ];
+  // Metrics & Data dynamically fetched from backend API
+  const totalSent = stats?.totalSent ?? 0;
+  const totalDelivered = stats?.totalDelivered ?? 0;
+  const totalRead = stats?.totalRead ?? 0;
+  const totalFailed = stats?.totalFailed ?? 0;
+  const deliveryRate = stats?.deliveryRate ?? (totalSent > 0 ? Number(((totalDelivered / totalSent) * 100).toFixed(1)) : 0);
 
-  const deliveryTrendData = [
-    { date: '2026-08-24', sent: 10, delivered: 0, read: 0 },
-    { date: '2026-08-26', sent: 10, delivered: 0, read: 0 },
-    { date: '2026-08-28', sent: 6, delivered: 0, read: 0 },
-    { date: '2026-08-29', sent: 6, delivered: 0, read: 0 },
-    { date: '2026-08-30', sent: 6, delivered: 0, read: 0 },
-    { date: '2026-08-31', sent: 1, delivered: 0, read: 0 },
-    { date: '2026-09-27', sent: 6, delivered: 0, read: 0 },
-    { date: '2026-09-28', sent: 3, delivered: 1, read: 1 },
-    { date: '2026-09-29', sent: 1, delivered: 1, read: 1 },
-    { date: '2026-09-30', sent: 2, delivered: 2, read: 2 },
-    { date: '2026-10-01', sent: 2, delivered: 2, read: 2 },
-    { date: '2026-10-06', sent: 7, delivered: 7, read: 7 },
-    { date: '2026-10-08', sent: 8, delivered: 8, read: 8 },
-    { date: '2026-10-09', sent: 10, delivered: 8, read: 7 },
-    { date: '2026-10-10', sent: 6, delivered: 3, read: 3 },
-    { date: '2026-10-13', sent: 4, delivered: 2, read: 2 },
-    { date: '2026-10-14', sent: 2, delivered: 1, read: 1 },
-    { date: '2026-10-17', sent: 1, delivered: 1, read: 1 },
-    { date: '2026-10-18', sent: 5, delivered: 4, read: 3 },
-    { date: '2026-10-19', sent: 6, delivered: 3, read: 3 },
-    { date: '2026-10-24', sent: 7, delivered: 4, read: 4 },
-    { date: '2026-10-28', sent: 4, delivered: 3, read: 3 },
-    { date: '2026-10-30', sent: 6, delivered: 2, read: 2 },
-    { date: '2026-11-03', sent: 12, delivered: 8, read: 8 }
-  ];
-
-  const contactGrowthData = [
-    { month: '2026-08', contacts: 4.0 },
-    { month: '2026-09', contacts: 1.5 },
-    { month: '2026-10', contacts: 5.0 },
-    { month: '2026-11', contacts: 2.0 }
-  ];
-
-  // Pie chart data in visual slice order matching image
-  const pieData = [
-    { name: 'Failed', value: 30, color: '#ef4444' },
-    { name: 'Sent', value: 130, color: '#3b82f6' },
-    { name: 'Read', value: 69, color: '#06b6d4' },
-    { name: 'Delivered', value: 71, color: '#10b981' }
-  ];
-
-  // Recent Campaigns matching user design
-  const recentCampaigns = [
-    { id: 1, name: 'test13', status: 'completed', sent: 3, delivered_pct: '66.7%' },
-    { id: 2, name: 'test13', status: 'completed', sent: 4, delivered_pct: '75%' },
-    { id: 3, name: 'test_2', status: 'completed', sent: 5, delivered_pct: '60%' },
-    { id: 4, name: 'ashish sir', status: 'completed', sent: 4, delivered_pct: '75%' },
-    { id: 5, name: 'Ram sir', status: 'completed', sent: 3, delivered_pct: '100%' }
-  ];
-
-  // Metrics from design
-  const totalSent = 130;
-  const totalDelivered = 71;
-  const totalRead = 69;
-  const totalFailed = 30;
-  const deliveryRate = '54.6';
   const sentPct = '100.0%';
-  const delPct = '54.6%';
-  const readPct = '53.1%';
-  const failPct = '23.1%';
+  const delPct = stats?.deliveryBreakdown?.delivered?.pct || (totalSent > 0 ? `${((totalDelivered / totalSent) * 100).toFixed(1)}%` : '0%');
+  const readPct = stats?.deliveryBreakdown?.read?.pct || (totalSent > 0 ? `${((totalRead / totalSent) * 100).toFixed(1)}%` : '0%');
+  const failPct = stats?.deliveryBreakdown?.failed?.pct || (totalSent > 0 ? `${((totalFailed / totalSent) * 100).toFixed(1)}%` : '0%');
+
+  const campaignPerformanceData = stats?.campaignPerformance || [];
+  const deliveryTrendData = stats?.deliveryTrend || [];
+  const contactGrowthData = stats?.contactGrowth || [];
+
+  // Pie chart data in visual slice order
+  const pieData = [
+    { name: 'Failed', value: totalFailed > 0 ? totalFailed : (totalSent === 0 ? 1 : 0), color: '#ef4444' },
+    { name: 'Sent', value: totalSent > 0 ? totalSent : 1, color: '#3b82f6' },
+    { name: 'Read', value: totalRead > 0 ? totalRead : (totalSent === 0 ? 1 : 0), color: '#06b6d4' },
+    { name: 'Delivered', value: totalDelivered > 0 ? totalDelivered : (totalSent === 0 ? 1 : 0), color: '#10b981' }
+  ];
+
+  // Recent Campaigns from backend
+  const recentCampaigns = stats?.recentCampaignsList || [];
 
   return (
     <div className="dashboard-container">
@@ -196,13 +147,13 @@ export default function Dashboard() {
                 <i className="bi bi-whatsapp"></i>
               </div>
               <div className="dashboard-waba-number">
-                {stats?.connectedAccount?.phone_number_id || '1485131921340925'}
+                {stats?.connectedAccount?.phone_number || stats?.connectedAccount?.phone_number_id || '1485131921340925'}
               </div>
               <div className="dashboard-waba-name">
                 {stats?.connectedAccount?.name || 'TechSky Media'}
               </div>
               <div className="dashboard-waba-badge">
-                connected
+                {stats?.connectedAccount?.status || 'connected'}
               </div>
               <div className="dashboard-waba-sync">
                 Templates synced {stats?.connectedAccount?.syncTime || '5 Nov, 2026, 12:22 PM'}
@@ -226,7 +177,7 @@ export default function Dashboard() {
                   </div>
                   <span className="metric-mini-label">Total Contacts</span>
                 </div>
-                <span className="metric-mini-value">12</span>
+                <span className="metric-mini-value">{stats?.totalContacts ?? 0}</span>
               </div>
 
               {/* 2. Total Campaigns */}
@@ -237,7 +188,7 @@ export default function Dashboard() {
                   </div>
                   <span className="metric-mini-label">Total Campaigns</span>
                 </div>
-                <span className="metric-mini-value">50</span>
+                <span className="metric-mini-value">{stats?.totalCampaigns ?? 0}</span>
               </div>
 
               {/* 3. Messages Sent Today */}
@@ -248,7 +199,7 @@ export default function Dashboard() {
                   </div>
                   <span className="metric-mini-label">Messages Sent Today</span>
                 </div>
-                <span className="metric-mini-value">0</span>
+                <span className="metric-mini-value">{stats?.sentToday ?? 0}</span>
               </div>
 
               {/* 4. Connected Numbers */}
@@ -259,7 +210,7 @@ export default function Dashboard() {
                   </div>
                   <span className="metric-mini-label">Connected Numbers</span>
                 </div>
-                <span className="metric-mini-value">1</span>
+                <span className="metric-mini-value">{stats?.connectedNumbers ?? 0}</span>
               </div>
 
               {/* 5. Delivered */}
@@ -270,7 +221,7 @@ export default function Dashboard() {
                   </div>
                   <span className="metric-mini-label">Delivered</span>
                 </div>
-                <span className="metric-mini-value">71</span>
+                <span className="metric-mini-value">{totalDelivered}</span>
               </div>
 
               {/* 6. Failed */}
@@ -281,7 +232,7 @@ export default function Dashboard() {
                   </div>
                   <span className="metric-mini-label">Failed</span>
                 </div>
-                <span className="metric-mini-value">30</span>
+                <span className="metric-mini-value">{totalFailed}</span>
               </div>
             </div>
 
@@ -602,7 +553,7 @@ export default function Dashboard() {
             const delPct = camp.delivered_pct || (camp.sent_count > 0 ? `${Math.round(((camp.delivered_count || 0) / camp.sent_count) * 100)}%` : '66.7%');
 
             return (
-              <div key={camp.id || idx} className="recent-campaign-row">
+              <div key={`camp-${camp.id ?? idx}-${idx}`} className="recent-campaign-row">
                 <div className="recent-campaign-name">{camp.name}</div>
                 <div>
                   <span className="recent-campaign-status">{camp.status || 'completed'}</span>
