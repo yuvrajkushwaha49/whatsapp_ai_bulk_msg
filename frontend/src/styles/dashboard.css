@@ -1,0 +1,601 @@
+/* =========================================================
+   CampaignFlow Dashboard Stylesheet - Exact Match to Design
+   ========================================================= */
+
+.dashboard-container {
+  padding-bottom: 2.5rem;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Auto-refresh toggle switch */
+.dashboard-switch-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #64748b;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.dashboard-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.dashboard-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.dashboard-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.25s;
+  border-radius: 20px;
+}
+
+.dashboard-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-switch input:checked + .dashboard-slider {
+  background-color: #22c55e;
+}
+
+.dashboard-switch input:checked + .dashboard-slider:before {
+  transform: translateX(16px);
+}
+
+.dashboard-select {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.38rem 1.8rem 0.38rem 0.85rem;
+  font-size: 0.84rem;
+  color: #334155;
+  cursor: pointer;
+  outline: none;
+  font-weight: 500;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 12px 10px;
+  appearance: none;
+}
+
+.dashboard-refresh-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #86efac;
+  background: #ffffff;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dashboard-refresh-btn:hover {
+  background: #f0fdf4;
+  border-color: #22c55e;
+}
+
+/* Top Section Layout */
+.dashboard-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-top-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-main-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .dashboard-main-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* WhatsApp Connection Box */
+.dashboard-waba-box {
+  background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 1.25rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dashboard-waba-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  box-shadow: 0 4px 10px rgba(37, 211, 102, 0.25);
+  margin-bottom: 0.85rem;
+}
+
+.dashboard-waba-number {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.15rem;
+  word-break: break-all;
+}
+
+.dashboard-waba-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 0.4rem;
+}
+
+.dashboard-waba-badge {
+  display: inline-block;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  margin-bottom: 0.85rem;
+  width: fit-content;
+}
+
+.dashboard-waba-sync {
+  font-size: 0.73rem;
+  color: #64748b;
+  margin-bottom: 1rem;
+}
+
+.dashboard-waba-btn {
+  background: #22c55e;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.25);
+}
+
+.dashboard-waba-btn:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+/* 2x3 Mini Metric Cards Grid */
+.dashboard-metrics-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dashboard-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 576px) {
+  .dashboard-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metric-mini-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.75rem 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s;
+}
+
+.metric-mini-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.metric-mini-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.metric-mini-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.metric-mini-label {
+  font-size: 0.82rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.metric-mini-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* Specific colors for mini metric cards */
+.metric-card-contacts {
+  border-left: 3.5px solid #3b82f6;
+}
+.metric-card-contacts .metric-mini-icon {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.metric-card-campaigns {
+  border-left: 3.5px solid #8b5cf6;
+}
+.metric-card-campaigns .metric-mini-icon {
+  background: #f5f3ff;
+  color: #8b5cf6;
+}
+.metric-card-campaigns .metric-mini-value {
+  color: #4338ca;
+}
+
+.metric-card-sent-today {
+  border-left: 3.5px solid #6366f1;
+}
+.metric-card-sent-today .metric-mini-icon {
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+.metric-card-numbers {
+  border-left: 3.5px solid #22c55e;
+}
+.metric-card-numbers .metric-mini-icon {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+.metric-card-numbers .metric-mini-value {
+  color: #15803d;
+}
+
+.metric-card-delivered {
+  border-left: 3.5px solid #10b981;
+}
+.metric-card-delivered .metric-mini-icon {
+  background: #ecfdf5;
+  color: #10b981;
+}
+.metric-card-delivered .metric-mini-value {
+  color: #047857;
+}
+
+.metric-card-failed {
+  border-left: 3.5px solid #ef4444;
+}
+.metric-card-failed .metric-mini-icon {
+  background: #fef2f2;
+  color: #ef4444;
+}
+.metric-card-failed .metric-mini-value {
+  color: #b91c1c;
+}
+
+.dashboard-sync-footer {
+  font-size: 0.73rem;
+  color: #94a3b8;
+  margin-top: 0.75rem;
+  padding-left: 0.25rem;
+}
+
+/* Dark Teal "DELIVERY" Card */
+.dashboard-delivery-card {
+  background: #0d5c52;
+  border-radius: 16px;
+  padding: 1.35rem 1.4rem;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 15px rgba(13, 92, 82, 0.22);
+}
+
+.delivery-card-header {
+  margin-bottom: 0.35rem;
+}
+
+.delivery-card-tag {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #99f6e4;
+}
+
+.delivery-card-main-stat {
+  font-size: 2.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #ffffff;
+  margin-top: 0.2rem;
+}
+
+.delivery-card-substat {
+  font-size: 0.75rem;
+  color: #ccfbf1;
+}
+
+.delivery-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.delivery-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.delivery-progress-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+}
+
+.delivery-progress-name {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.delivery-progress-count {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.delivery-progress-pct {
+  font-size: 0.7rem;
+  color: #99f6e4;
+  text-align: right;
+}
+
+.delivery-progress-bar-bg {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.delivery-progress-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.5s ease;
+}
+
+.delivery-card-footer {
+  font-size: 0.69rem;
+  color: #99f6e4;
+  opacity: 0.85;
+}
+
+/* 2x2 Charts Section */
+.dashboard-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-chart-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.chart-card-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.chart-legend-custom {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chart-legend-circle {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid;
+  display: inline-block;
+}
+
+.pie-legend-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.pie-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.35rem;
+}
+
+/* Recent Campaigns Card */
+.dashboard-campaigns-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.recent-campaigns-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-campaign-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.recent-campaign-row:last-child {
+  border-bottom: none;
+}
+
+.recent-campaign-row:hover {
+  background: #f8fafc;
+}
+
+.recent-campaign-name {
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: #1e293b;
+  flex: 1;
+}
+
+.recent-campaign-status {
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.recent-campaign-stats {
+  font-size: 0.82rem;
+  color: #475569;
+  flex: 1;
+  text-align: right;
+}
