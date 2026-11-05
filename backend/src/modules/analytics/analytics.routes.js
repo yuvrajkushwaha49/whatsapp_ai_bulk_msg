@@ -9,7 +9,7 @@ router.use(authenticate, requireTenant);
 
 router.get('/dashboard', async (req, res, next) => {
   try {
-    const stats = await analyticsService.getDashboardStats(req.businessId);
+    const stats = await analyticsService.getDashboardStats(req.businessId, req.query.timeRange);
     res.json({ success: true, data: stats });
   } catch (error) {
     next(error);

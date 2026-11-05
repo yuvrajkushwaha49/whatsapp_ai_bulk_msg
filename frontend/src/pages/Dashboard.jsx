@@ -74,7 +74,7 @@ export default function Dashboard() {
   const totalFailed = stats?.totalFailed ?? 0;
   const deliveryRate = stats?.deliveryRate ?? (totalSent > 0 ? Number(((totalDelivered / totalSent) * 100).toFixed(1)) : 0);
 
-  const sentPct = '100.0%';
+  const sentPct = totalSent > 0 ? '100.0%' : '0%';
   const delPct = stats?.deliveryBreakdown?.delivered?.pct || (totalSent > 0 ? `${((totalDelivered / totalSent) * 100).toFixed(1)}%` : '0%');
   const readPct = stats?.deliveryBreakdown?.read?.pct || (totalSent > 0 ? `${((totalRead / totalSent) * 100).toFixed(1)}%` : '0%');
   const failPct = stats?.deliveryBreakdown?.failed?.pct || (totalSent > 0 ? `${((totalFailed / totalSent) * 100).toFixed(1)}%` : '0%');
@@ -84,11 +84,14 @@ export default function Dashboard() {
   const contactGrowthData = stats?.contactGrowth || [];
 
   // Pie chart data in visual slice order
-  const pieData = [
-    { name: 'Failed', value: totalFailed > 0 ? totalFailed : (totalSent === 0 ? 1 : 0), color: '#ef4444' },
-    { name: 'Sent', value: totalSent > 0 ? totalSent : 1, color: '#3b82f6' },
-    { name: 'Read', value: totalRead > 0 ? totalRead : (totalSent === 0 ? 1 : 0), color: '#06b6d4' },
-    { name: 'Delivered', value: totalDelivered > 0 ? totalDelivered : (totalSent === 0 ? 1 : 0), color: '#10b981' }
+  const hasPieData = totalSent > 0 || totalDelivered > 0 || totalRead > 0 || totalFailed > 0;
+  const pieData = hasPieData ? [
+    { name: 'Failed', value: totalFailed, color: '#ef4444' },
+    { name: 'Sent', value: totalSent, color: '#3b82f6' },
+    { name: 'Read', value: totalRead, color: '#06b6d4' },
+    { name: 'Delivered', value: totalDelivered, color: '#10b981' }
+  ] : [
+    { name: 'No Activity', value: 1, color: '#e2e8f0' }
   ];
 
   // Recent Campaigns from backend
@@ -175,7 +178,9 @@ export default function Dashboard() {
                   <div className="metric-mini-icon">
                     <i className="bi bi-people-fill"></i>
                   </div>
-                  <span className="metric-mini-label">Total Contacts</span>
+                  <span className="metric-mini-label">
+                    {timeRange === 'All Time' ? 'Total Contacts' : 'New Contacts'}
+                  </span>
                 </div>
                 <span className="metric-mini-value">{stats?.totalContacts ?? 0}</span>
               </div>
@@ -258,7 +263,7 @@ export default function Dashboard() {
                 <span className="delivery-progress-count">{totalSent}</span>
               </div>
               <div className="delivery-progress-bar-bg">
-                <div className="delivery-progress-bar-fill" style={{ width: '100%', background: '#818cf8' }}></div>
+                <div className="delivery-progress-bar-fill" style={{ width: totalSent > 0 ? '100%' : '0%', background: '#818cf8' }}></div>
               </div>
               <div className="delivery-progress-pct">{sentPct}</div>
             </div>
@@ -282,7 +287,7 @@ export default function Dashboard() {
                 <span className="delivery-progress-count">{totalRead}</span>
               </div>
               <div className="delivery-progress-bar-bg">
-                <div className="delivery-progress-bar-fill" style={{ width: `${Math.min(Number(stats?.readRate || 53.1), 100)}%`, background: '#38bdf8' }}></div>
+                <div className="delivery-progress-bar-fill" style={{ width: `${Math.min(Number(stats?.readRate ?? 0), 100)}%`, background: '#38bdf8' }}></div>
               </div>
               <div className="delivery-progress-pct">{readPct}</div>
             </div>
@@ -294,7 +299,7 @@ export default function Dashboard() {
                 <span className="delivery-progress-count">{totalFailed}</span>
               </div>
               <div className="delivery-progress-bar-bg">
-                <div className="delivery-progress-bar-fill" style={{ width: `${Math.min(Number(stats?.failedRate || 23.1), 100)}%`, background: '#f87171' }}></div>
+                <div className="delivery-progress-bar-fill" style={{ width: `${Math.min(Number(stats?.failedRate ?? 0), 100)}%`, background: '#f87171' }}></div>
               </div>
               <div className="delivery-progress-pct">{failPct}</div>
             </div>
@@ -314,40 +319,46 @@ export default function Dashboard() {
             <h3 className="chart-card-title">Campaign Performance</h3>
           </div>
           <div style={{ width: '100%', height: 250 }}>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart
-                data={campaignPerformanceData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 25 }}
-                barCategoryGap="15%"
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="name"
-                  stroke="#94a3b8"
-                  tick={{ fontSize: 10, fill: '#64748b' }}
-                  interval={0}
-                  angle={-30}
-                  textAnchor="end"
-                  height={35}
-                />
-                <YAxis
-                  stroke="#94a3b8"
-                  tick={{ fontSize: 10, fill: '#64748b' }}
-                  domain={[0, 10]}
-                  ticks={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1e293b',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '12px'
-                  }}
-                />
-                <Bar isAnimationActive={false} dataKey="sent" fill="#6366f1" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {campaignPerformanceData.length === 0 ? (
+              <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted" style={{ minHeight: '220px' }}>
+                <i className="bi bi-bar-chart fs-1 text-secondary opacity-50 mb-2"></i>
+                <div className="small">No campaign activity for {timeRange}</div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart
+                  data={campaignPerformanceData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 25 }}
+                  barCategoryGap="15%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    interval={0}
+                    angle={-30}
+                    textAnchor="end"
+                    height={35}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    domain={[0, 'auto']}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1e293b',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <Bar isAnimationActive={false} dataKey="sent" fill="#6366f1" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -548,22 +559,29 @@ export default function Dashboard() {
         <h3 className="chart-card-title mb-3">Recent Campaigns</h3>
 
         <div className="recent-campaigns-list">
-          {recentCampaigns.map((camp, idx) => {
-            const sent = camp.sent_count ?? camp.sent ?? 3;
-            const delPct = camp.delivered_pct || (camp.sent_count > 0 ? `${Math.round(((camp.delivered_count || 0) / camp.sent_count) * 100)}%` : '66.7%');
+          {recentCampaigns.length === 0 ? (
+            <div className="text-center py-4 text-muted">
+              <i className="bi bi-calendar-x fs-3 d-block mb-2 text-secondary opacity-50"></i>
+              <span className="small">No campaigns launched in selected period ({timeRange})</span>
+            </div>
+          ) : (
+            recentCampaigns.map((camp, idx) => {
+              const sent = camp.sent_count ?? camp.sent ?? 0;
+              const delPct = camp.delivered_pct || (camp.sent_count > 0 ? `${Math.round(((camp.delivered_count || 0) / camp.sent_count) * 100)}%` : '0%');
 
-            return (
-              <div key={`camp-${camp.id ?? idx}-${idx}`} className="recent-campaign-row">
-                <div className="recent-campaign-name">{camp.name}</div>
-                <div>
-                  <span className="recent-campaign-status">{camp.status || 'completed'}</span>
+              return (
+                <div key={`camp-${camp.id ?? idx}-${idx}`} className="recent-campaign-row">
+                  <div className="recent-campaign-name">{camp.name}</div>
+                  <div>
+                    <span className="recent-campaign-status">{camp.status || 'completed'}</span>
+                  </div>
+                  <div className="recent-campaign-stats">
+                    {sent} sent · {delPct} delivered
+                  </div>
                 </div>
-                <div className="recent-campaign-stats">
-                  {sent} sent · {delPct} delivered
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </div>
