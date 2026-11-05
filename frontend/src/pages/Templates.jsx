@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import '../styles/templates.css';
 
@@ -758,9 +759,13 @@ export default function Templates() {
                     {/* Header: Name and Status */}
                     <div className="d-flex align-items-start justify-content-between mb-2">
                       <div className="d-flex flex-column">
-                        <span className="template-title text-truncate" title={tpl.name}>
+                        <Link
+                          to={`/templates/${tpl.id}`}
+                          className="template-title text-truncate text-decoration-none"
+                          title={tpl.name}
+                        >
                           {tpl.name}
-                        </span>
+                        </Link>
                       </div>
                       <span className={`badge-status ${statusClass} flex-shrink-0 ms-2`}>
                         <span className="status-dot"></span>
@@ -829,13 +834,13 @@ export default function Templates() {
 
                   {/* Actions Footer */}
                   <div className="pt-2 border-top d-flex align-items-center justify-content-between">
-                    <button
-                      onClick={() => setDetailTemplate(tpl)}
+                    <Link
+                      to={`/templates/${tpl.id}`}
                       className="btn btn-sm btn-outline-success d-flex align-items-center gap-1 shadow-xs"
                     >
-                      <i className="bi bi-phone"></i>
-                      <span>Inspect & Preview</span>
-                    </button>
+                      <i className="bi bi-eye"></i>
+                      <span>Details & Studio</span>
+                    </Link>
 
                     <div className="dropdown">
                       <button className="btn btn-sm btn-light border" data-bs-toggle="dropdown">
@@ -897,7 +902,9 @@ export default function Templates() {
                 return (
                   <tr key={tpl.id}>
                     <td>
-                      <div className="fw-bold text-dark">{tpl.name}</div>
+                      <Link to={`/templates/${tpl.id}`} className="fw-bold text-dark text-decoration-none font-monospace">
+                        {tpl.name}
+                      </Link>
                     </td>
                     <td>
                       <span className={`badge-category ${catClass}`}>
@@ -932,13 +939,13 @@ export default function Templates() {
                     </td>
                     <td className="text-end">
                       <div className="d-flex align-items-center justify-content-end gap-1">
-                        <button
-                          onClick={() => setDetailTemplate(tpl)}
+                        <Link
+                          to={`/templates/${tpl.id}`}
                           className="btn btn-sm btn-outline-success py-1 px-2"
-                          title="Inspect Preview"
+                          title="Open Details & Studio"
                         >
-                          <i className="bi bi-phone me-1"></i> Preview
-                        </button>
+                          <i className="bi bi-eye me-1"></i> Details
+                        </Link>
                         <button
                           onClick={() => handleCheckLiveStatus(tpl)}
                           className="btn btn-sm btn-outline-primary py-1 px-2"

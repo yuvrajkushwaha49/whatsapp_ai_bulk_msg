@@ -1113,7 +1113,13 @@ export async function getTemplate(businessId, templateId) {
       err.statusCode = 404;
       throw err;
     }
-    return tpl;
+    const account = store.whatsappAccounts?.find(a => a.id === tpl.whatsapp_account_id) || null;
+    const campaigns = store.campaigns?.filter(c => c.template_id === tpl.id || c.template_name === tpl.name) || [];
+    return {
+      ...tpl,
+      account,
+      campaigns
+    };
   }
 
   const rows = await executeQuery(
@@ -1128,7 +1134,23 @@ export async function getTemplate(businessId, templateId) {
 
   const tpl = rows[0];
   tpl.components = typeof tpl.components === 'string' ? JSON.parse(tpl.components) : tpl.components;
-  return tpl;
+
+  let account = null;
+  if (tpl.whatsapp_account_id) {
+    const accRows = await executeQuery('SELECT * FROM whatsapp_accounts WHERE id = ? LIMIT 1', [tpl.whatsapp_account_id]);
+    if (accRows && accRows[0]) account = accRows[0];
+  }
+
+  const campaigns = await executeQuery(
+    'SELECT id, name, status, total_recipients AS audience_count, sent_count, delivered_count, read_count, created_at FROM campaigns WHERE template_id = ? AND business_id = ? ORDER BY id DESC LIMIT 10',
+    [tpl.id, businessId]
+  ) || [];
+
+  return {
+    ...tpl,
+    account,
+    campaigns
+  };
 }
 
 /**
