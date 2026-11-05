@@ -17,35 +17,45 @@
   letter-spacing: -0.02em;
 }
 
-/* Stats Cards Grid - Single Line */
+/* Modern Status Strip - Guaranteed Single Line / No Awkward Wrap */
 .template-stats-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1.75rem;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1199px) {
   .template-stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    gap: 0.65rem;
+    scrollbar-width: thin;
+  }
+  .template-stat-card {
+    min-width: 185px;
+    flex: 0 0 auto;
   }
 }
 
 .template-stat-card {
   background: #ffffff;
-  border-radius: 14px;
-  padding: 1.05rem 1.15rem;
+  border-radius: 12px;
+  padding: 0.9rem 1.05rem;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 2px 6px rgba(0, 0, 0, 0.02);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  user-select: none;
 }
 
 .template-stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
   border-color: #cbd5e1;
 }
 
@@ -63,7 +73,7 @@
 .template-stat-card.active-filter {
   border-color: #25d366;
   background: #fcfdfd;
-  box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.25), 0 6px 16px rgba(37, 211, 102, 0.08);
+  box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.22), 0 4px 12px rgba(37, 211, 102, 0.06);
 }
 
 .template-stat-card.active-filter::before {
@@ -71,23 +81,23 @@
 }
 
 .template-stat-card .stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
 
 .template-stat-card:hover .stat-icon {
-  transform: scale(1.08);
+  transform: scale(1.06);
 }
 
 .template-stat-card .stat-count {
-  font-size: 1.75rem;
+  font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -95,21 +105,21 @@
 }
 
 .template-stat-card .stat-label {
-  font-size: 0.73rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 700;
   color: #64748b;
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .template-stat-card .stat-subtitle {
-  font-size: 0.7rem;
+  font-size: 0.69rem;
   color: #94a3b8;
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -235,13 +245,15 @@
   box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.15);
 }
 
-/* Template Item Card (Grid View) */
+/* =========================================================
+   Aisensy & WATI Style Template Cards & WhatsApp Bubble Preview
+   ========================================================= */
 .template-item-card {
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #e5e7eb;
-  padding: 1.35rem;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 1.15rem 1.2rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -252,46 +264,115 @@
 
 .template-item-card:hover {
   border-color: #25d366;
-  box-shadow: 0 10px 24px rgba(37, 211, 102, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04);
-  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(37, 211, 102, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+}
+
+.aisensy-card-header {
+  margin-bottom: 0.65rem;
+}
+
+.aisensy-tpl-name {
+  font-weight: 700;
+  font-size: 0.96rem;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.15s ease;
+  max-width: 100%;
+}
+
+.aisensy-tpl-name:hover {
+  color: #059669;
 }
 
 .template-title {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #0f172a;
   letter-spacing: -0.01em;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  background: #f8fafc;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   max-width: 100%;
 }
 
-/* Card WhatsApp Chat Preview Bubble */
+/* Authentic WhatsApp Chat Viewport */
+.aisensy-chat-viewport,
 .card-wa-bubble {
-  background-color: #f8fafc;
-  background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-  background-size: 12px 12px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  padding: 0.85rem 0.95rem;
+  background-color: #efeae2;
+  background-image: 
+    radial-gradient(#d6cebe 0.75px, transparent 0.75px),
+    linear-gradient(135deg, rgba(240, 235, 227, 0.95), rgba(230, 222, 214, 0.95));
+  background-size: 16px 16px, 100% 100%;
+  border-radius: 12px;
+  padding: 0.85rem 0.85rem 0.75rem;
   margin-bottom: 0.85rem;
   position: relative;
-  min-height: 85px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  border: 1px solid #e1d8cc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
+.aisensy-bubble,
 .card-wa-bubble-inner {
   background: #ffffff;
-  border-radius: 8px 8px 8px 2px;
-  padding: 0.65rem 0.8rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f1f5f9;
+  border-radius: 0 10px 10px 10px;
+  padding: 0.65rem 0.75rem 0.4rem;
+  box-shadow: 0 1px 2px rgba(11, 20, 26, 0.12);
+  position: relative;
   font-size: 0.84rem;
+  color: #111b21;
   line-height: 1.45;
-  color: #1e293b;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.aisensy-bubble-tail {
+  position: absolute;
+  top: 0;
+  left: -7px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 7px 9px 0;
+  border-color: transparent #ffffff transparent transparent;
+}
+
+.aisensy-bubble-header {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #111b21;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.aisensy-bubble-media {
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  border: 1px dashed #cbd5e1;
+}
+
+.aisensy-bubble-body {
+  color: #111b21;
+  font-size: 0.83rem;
+  line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 110px;
@@ -299,24 +380,85 @@
   position: relative;
 }
 
-.card-wa-bubble-inner::after {
+.aisensy-bubble-body.has-fade::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 24px;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95));
+  height: 22px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.98));
 }
 
+.aisensy-bubble-footer {
+  font-size: 0.72rem;
+  color: #667781;
+  margin-top: 0.35rem;
+  line-height: 1.3;
+}
+
+.aisensy-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+  font-size: 0.67rem;
+  color: #667781;
+}
+
+.aisensy-bubble-meta .wa-ticks {
+  color: #53bdeb;
+  font-size: 0.82rem;
+  font-weight: bold;
+}
+
+/* WhatsApp Interactive Buttons Below Bubble */
+.aisensy-action-buttons {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aisensy-action-btn {
+  background: #ffffff;
+  color: #00a884;
+  font-weight: 600;
+  font-size: 0.79rem;
+  text-align: center;
+  padding: 0.38rem 0.6rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(11, 20, 26, 0.08);
+  border: 1px solid #e9edef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.aisensy-action-btn:hover {
+  background: #f0fdf4;
+  color: #059669;
+  border-color: #86efac;
+}
+
+/* Variable highlight pill */
+.wa-var-pill,
 .card-var-highlight {
   background: #e0f2fe;
   color: #0284c7;
-  font-weight: 700;
-  padding: 0.1rem 0.35rem;
+  font-weight: 600;
+  padding: 0.08rem 0.35rem;
   border-radius: 4px;
-  font-family: monospace;
-  font-size: 0.8rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  border: 1px solid #bae6fd;
+  display: inline-block;
+  margin: 0 1px;
 }
 
 /* Live WhatsApp Phone Preview Chassis */
@@ -768,6 +910,31 @@
 
 .templates-table tbody tr:hover {
   background-color: #f8fafc;
+}
+
+/* Quick Test Modal Styles */
+.quick-test-preview {
+  background-color: #efeae2;
+  background-image: 
+    radial-gradient(#d5cdc1 0.75px, transparent 0.75px),
+    linear-gradient(135deg, rgba(240, 235, 227, 0.95), rgba(230, 222, 214, 0.95));
+  background-size: 16px 16px, 100% 100%;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #e1d8cc;
+  min-height: 160px;
+}
+
+.quick-test-bubble {
+  background: #ffffff;
+  border-radius: 0 10px 10px 10px;
+  padding: 0.85rem 1rem 0.65rem;
+  box-shadow: 0 1px 3px rgba(11, 20, 26, 0.14);
+  position: relative;
+  font-size: 0.88rem;
+  color: #111b21;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 /* Spin animation */

@@ -52,6 +52,13 @@ export default function Templates() {
   const [feedbackMsg, setFeedbackMsg] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
+  // Quick Test Send Modal State
+  const [quickTestTemplate, setQuickTestTemplate] = useState(null);
+  const [quickTestPhone, setQuickTestPhone] = useState('');
+  const [quickTestVars, setQuickTestVars] = useState({});
+  const [quickTestSending, setQuickTestSending] = useState(false);
+  const [quickTestResult, setQuickTestResult] = useState(null);
+
   // Create Form State
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState('MARKETING');
@@ -185,6 +192,73 @@ export default function Templates() {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleOpenQuickTest = (tpl) => {
+    setQuickTestTemplate(tpl);
+    setQuickTestResult(null);
+    setQuickTestPhone('');
+
+    // Parse components to extract variables
+    const comps = Array.isArray(tpl.components)
+      ? tpl.components
+      : (typeof tpl.components === 'string' ? JSON.parse(tpl.components || '[]') : []);
+    const bodyComp = comps.find(c => c.type === 'BODY' || c.type === 'body');
+    const matches = (bodyComp?.text || '').match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
+    const vars = Array.from(new Set(matches.map(m => m.replace(/[{}]/g, ''))));
+
+    const initialVars = {};
+    vars.forEach((v, idx) => {
+      initialVars[v] = idx === 0 ? 'Rahul Sharma' : `Sample ${idx + 1}`;
+    });
+    setQuickTestVars(initialVars);
+  };
+
+  const handleSendQuickTest = async (e) => {
+    e.preventDefault();
+    if (!quickTestPhone.trim()) {
+      setQuickTestResult({ success: false, message: 'Please enter a valid recipient WhatsApp number.' });
+      return;
+    }
+
+    try {
+      setQuickTestSending(true);
+      setQuickTestResult(null);
+
+      const parameters = Object.keys(quickTestVars).map(k => ({
+        type: 'text',
+        text: quickTestVars[k]
+      }));
+
+      const payload = {
+        phoneNumber: quickTestPhone.replace(/[^0-9]/g, ''),
+        templateName: quickTestTemplate.name,
+        language: quickTestTemplate.language || 'en',
+        parameters: parameters.length > 0 ? parameters : undefined,
+        accountId: quickTestTemplate.whatsapp_account_id || undefined
+      };
+
+      const res = await api.post('/whatsapp/send-test', payload);
+      if (res.data?.success) {
+        setQuickTestResult({
+          success: true,
+          message: `Test message successfully dispatched to +${quickTestPhone.replace(/[^0-9]/g, '')}! Message ID: ${res.data.data?.messageId || 'Delivered'}`
+        });
+      } else {
+        setQuickTestResult({
+          success: false,
+          message: res.data?.message || 'Failed to dispatch test message.'
+        });
+      }
+    } catch (err) {
+      console.error('Test message send failed', err);
+      setQuickTestResult({
+        success: false,
+        message: err.response?.data?.error?.message || err.message || 'Error sending test message.'
+      });
+    } finally {
+      setQuickTestSending(false);
+    }
   };
 
   // Variable extraction from Body text
@@ -739,9 +813,12 @@ export default function Templates() {
             const comps = Array.isArray(tpl.components)
               ? tpl.components
               : (typeof tpl.components === 'string' ? JSON.parse(tpl.components || '[]') : []);
+            const headerComp = comps.find(c => c.type === 'HEADER' || c.type === 'header');
             const bodyComp = comps.find(c => c.type === 'BODY' || c.type === 'body');
+            const footerComp = comps.find(c => c.type === 'FOOTER' || c.type === 'footer');
             const btnsComp = comps.find(c => c.type === 'BUTTONS' || c.type === 'buttons');
-            const buttonsCount = btnsComp?.buttons?.length || 0;
+            const buttonsList = btnsComp?.buttons || [];
+            const buttonsCount = buttonsList.length;
 
             const statusClass = tpl.status === 'APPROVED' ? 'badge-approved' :
               tpl.status === 'PENDING' ? 'badge-pending' :
@@ -758,15 +835,14 @@ export default function Templates() {
                   <div>
                     {/* Header: Name and Status */}
                     <div className="d-flex align-items-start justify-content-between mb-2">
-                      <div className="d-flex flex-column">
-                        <Link
-                          to={`/templates/${tpl.id}`}
-                          className="template-title text-truncate text-decoration-none"
-                          title={tpl.name}
-                        >
-                          {tpl.name}
-                        </Link>
-                      </div>
+                      <Link
+                        to={`/templates/${tpl.id}`}
+                        className="aisensy-tpl-name text-truncate"
+                        title={tpl.name}
+                      >
+                        <i className="bi bi-whatsapp text-success fs-6"></i>
+                        <span>{tpl.name}</span>
+                      </Link>
                       <span className={`badge-status ${statusClass} flex-shrink-0 ms-2`}>
                         <span className="status-dot"></span>
                         <span>{tpl.status}</span>
@@ -791,7 +867,7 @@ export default function Templates() {
                       )}
                       {acc && (
                         <span className="badge bg-light text-success border small text-truncate" style={{ maxWidth: '140px' }} title={acc.account_name}>
-                          <i className="bi bi-whatsapp me-1"></i>{acc.account_name}
+                          <i className="bi bi-person-badge me-1"></i>{acc.account_name}
                         </span>
                       )}
                     </div>
@@ -824,26 +900,79 @@ export default function Templates() {
                       </div>
                     )}
 
-                    {/* WhatsApp Bubble Preview */}
-                    <div className="card-wa-bubble">
-                      <div className="card-wa-bubble-inner">
-                        {renderHighlightedText(bodyComp?.text)}
+                    {/* Authentic WhatsApp Bubble Preview */}
+                    <div className="aisensy-chat-viewport">
+                      <div className="aisensy-bubble">
+                        <div className="aisensy-bubble-tail"></div>
+
+                        {/* Optional Header */}
+                        {headerComp && (
+                          <>
+                            {['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComp.format) ? (
+                              <div className="aisensy-bubble-media">
+                                <i className={`bi ${headerComp.format === 'IMAGE' ? 'bi-image' : headerComp.format === 'VIDEO' ? 'bi-play-circle' : 'bi-file-earmark-text'} text-primary`}></i>
+                                <span>WhatsApp {headerComp.format} Header</span>
+                              </div>
+                            ) : (
+                              headerComp.text && <div className="aisensy-bubble-header">{headerComp.text}</div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Message Body */}
+                        <div className="aisensy-bubble-body">
+                          {renderHighlightedText(bodyComp?.text)}
+                        </div>
+
+                        {/* Optional Footer */}
+                        {footerComp?.text && (
+                          <div className="aisensy-bubble-footer">{footerComp.text}</div>
+                        )}
+
+                        {/* Timestamp & Read Receipts */}
+                        <div className="aisensy-bubble-meta">
+                          <span>12:45 PM</span>
+                          <span className="wa-ticks">✓✓</span>
+                        </div>
                       </div>
+
+                      {/* Interactive Buttons Below Bubble */}
+                      {buttonsList.length > 0 && (
+                        <div className="aisensy-action-buttons">
+                          {buttonsList.map((btn, bIdx) => (
+                            <div key={bIdx} className="aisensy-action-btn">
+                              <i className={`bi ${btn.type === 'URL' ? 'bi-box-arrow-up-right' : btn.type === 'PHONE_NUMBER' ? 'bi-telephone-fill' : 'bi-reply-fill'}`}></i>
+                              <span>{btn.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="pt-2 border-top d-flex align-items-center justify-content-between">
+                  <div className="pt-2 border-top d-flex align-items-center justify-content-between gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-success d-flex align-items-center justify-content-center gap-1 flex-grow-1 shadow-xs"
+                      onClick={() => handleOpenQuickTest(tpl)}
+                      title="Send instant test message to your WhatsApp"
+                    >
+                      <i className="bi bi-send-fill" style={{ fontSize: '0.75rem' }}></i>
+                      <span>Quick Test</span>
+                    </button>
+
                     <Link
                       to={`/templates/${tpl.id}`}
-                      className="btn btn-sm btn-outline-success d-flex align-items-center gap-1 shadow-xs"
+                      className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 shadow-xs"
+                      title="Open full template studio & parameters"
                     >
-                      <i className="bi bi-eye"></i>
-                      <span>Details & Studio</span>
+                      <i className="bi bi-sliders"></i>
+                      <span>Studio</span>
                     </Link>
 
                     <div className="dropdown">
-                      <button className="btn btn-sm btn-light border" data-bs-toggle="dropdown">
+                      <button className="btn btn-sm btn-light border px-2" data-bs-toggle="dropdown" title="More options">
                         <i className="bi bi-three-dots-vertical"></i>
                       </button>
                       <ul className="dropdown-menu dropdown-menu-end shadow-sm">
@@ -855,10 +984,15 @@ export default function Templates() {
                         {tpl.meta_template_id && (
                           <li>
                             <button className="dropdown-item small" onClick={() => copyToClipboard(tpl.meta_template_id, tpl.id)}>
-                              <i className="bi bi-clipboard me-2 text-secondary"></i>Copy Meta Template ID
+                              <i className="bi bi-clipboard me-2 text-secondary"></i>Copy Meta ID
                             </button>
                           </li>
                         )}
+                        <li>
+                          <button className="dropdown-item small" onClick={() => copyToClipboard(tpl.name, `name-${tpl.id}`)}>
+                            <i className="bi bi-fonts me-2 text-secondary"></i>Copy Template Name
+                          </button>
+                        </li>
                         <li><hr className="dropdown-divider" /></li>
                         <li>
                           <button className="dropdown-item small text-danger" onClick={() => handleDeleteTemplate(tpl)}>
@@ -939,12 +1073,19 @@ export default function Templates() {
                     </td>
                     <td className="text-end">
                       <div className="d-flex align-items-center justify-content-end gap-1">
+                        <button
+                          onClick={() => handleOpenQuickTest(tpl)}
+                          className="btn btn-sm btn-success py-1 px-2"
+                          title="Quick Test Send"
+                        >
+                          <i className="bi bi-send-fill me-1"></i> Test
+                        </button>
                         <Link
                           to={`/templates/${tpl.id}`}
-                          className="btn btn-sm btn-outline-success py-1 px-2"
+                          className="btn btn-sm btn-outline-secondary py-1 px-2"
                           title="Open Details & Studio"
                         >
-                          <i className="bi bi-eye me-1"></i> Details
+                          <i className="bi bi-sliders me-1"></i> Studio
                         </Link>
                         <button
                           onClick={() => handleCheckLiveStatus(tpl)}
@@ -1423,6 +1564,122 @@ export default function Templates() {
                   Close Preview
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* QUICK TEST SEND MODAL (Aisensy / WATI Direct Dispatch)  */}
+      {/* ========================================================= */}
+      {quickTestTemplate && (
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(15,23,42,0.65)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+              <div className="modal-header bg-light border-bottom px-4 py-3">
+                <div className="d-flex align-items-center gap-2">
+                  <div className="stat-icon bg-success-subtle text-success border border-success-subtle p-2 rounded-3" style={{ width: '36px', height: '36px' }}>
+                    <i className="bi bi-send-fill fs-5"></i>
+                  </div>
+                  <div>
+                    <h5 className="modal-title fw-bold text-dark mb-0">Quick Test Send</h5>
+                    <p className="text-muted small mb-0">Dispatch live test to your personal WhatsApp</p>
+                  </div>
+                </div>
+                <button type="button" className="btn-close" onClick={() => setQuickTestTemplate(null)}></button>
+              </div>
+
+              <form onSubmit={handleSendQuickTest}>
+                <div className="modal-body p-4">
+                  {quickTestResult && (
+                    <div className={`alert alert-${quickTestResult.success ? 'success' : 'danger'} py-2 px-3 small d-flex align-items-center gap-2 mb-3 rounded-3`}>
+                      <i className={`bi ${quickTestResult.success ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-5 flex-shrink-0`}></i>
+                      <div>{quickTestResult.message}</div>
+                    </div>
+                  )}
+
+                  {/* Template Info Card */}
+                  <div className="card bg-light border p-3 rounded-3 mb-3">
+                    <div className="d-flex align-items-center justify-content-between mb-1">
+                      <span className="small text-muted">Selected Template:</span>
+                      <span className="badge bg-success-subtle text-success border border-success-subtle">
+                        {quickTestTemplate.status}
+                      </span>
+                    </div>
+                    <div className="fw-bold text-dark d-flex align-items-center gap-2">
+                      <i className="bi bi-whatsapp text-success"></i>
+                      <span>{quickTestTemplate.name}</span>
+                      <span className="badge bg-white text-secondary border small">({quickTestTemplate.language})</span>
+                    </div>
+                  </div>
+
+                  {/* Recipient Phone Number */}
+                  <div className="mb-3">
+                    <label className="form-label small fw-bold">
+                      Recipient WhatsApp Phone Number <span className="text-danger">*</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light text-muted">
+                        <i className="bi bi-whatsapp text-success me-1"></i> +
+                      </span>
+                      <input
+                        type="tel"
+                        className="form-control"
+                        placeholder="919876543210 (Country code + Phone number)"
+                        value={quickTestPhone}
+                        onChange={(e) => setQuickTestPhone(e.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <div className="form-text small text-muted">
+                      Include country code without "+" or spaces (e.g., 919876543210 for India).
+                    </div>
+                  </div>
+
+                  {/* Dynamic Variables Inputs */}
+                  {Object.keys(quickTestVars).length > 0 && (
+                    <div className="mb-3">
+                      <label className="form-label small fw-bold mb-2">
+                        Template Dynamic Variables
+                      </label>
+                      <div className="d-flex flex-column gap-2 bg-light p-3 rounded-3 border">
+                        {Object.keys(quickTestVars).map(vName => (
+                          <div key={vName} className="row g-2 align-items-center">
+                            <div className="col-4">
+                              <span className="wa-var-pill w-100 text-truncate text-center">
+                                &#123;&#123;{vName}&#125;&#125;
+                              </span>
+                            </div>
+                            <div className="col-8">
+                              <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                placeholder={`Value for {{${vName}}}`}
+                                value={quickTestVars[vName] || ''}
+                                onChange={(e) => setQuickTestVars({
+                                  ...quickTestVars,
+                                  [vName]: e.target.value
+                                })}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setQuickTestTemplate(null)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-success btn-sm d-flex align-items-center gap-2 shadow-xs" disabled={quickTestSending}>
+                    <i className={`bi ${quickTestSending ? 'bi-arrow-repeat spin-icon' : 'bi-send-fill'}`}></i>
+                    <span>{quickTestSending ? 'Dispatching...' : 'Send Live Test'}</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
