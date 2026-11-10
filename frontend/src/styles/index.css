@@ -172,12 +172,13 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 
 .sidebar-menu {
   flex: 1;
-  padding: 0.85rem 0.85rem;
+  padding: 0.85rem 0.85rem 210px;
   overflow-y: auto;
   list-style: none;
   margin: 0;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-menu::-webkit-scrollbar {
@@ -689,12 +690,6 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 .aiwavo-mini-badge {
   display: none;
 }
-.sidebar-pro-mini {
-  display: none;
-}
-.sidebar-pro-full {
-  display: block;
-}
 
 /* Responsive and Collapse Adjustments */
 @media (min-width: 992px) {
@@ -803,42 +798,16 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     font-weight: 700;
   }
 
-  /* Small Navbar: Pro Plan Mini Card */
+  /* Small Navbar: Pro Plan Card smoothly slides out to the left */
   .app-wrapper.sidebar-collapsed .sidebar-pro-card {
-    margin: 0.5rem 0.4rem 0.85rem;
-    padding: 0.55rem 0.3rem;
-    border-radius: 12px;
-    text-align: center;
+    transform: translateX(-300px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
-  .app-wrapper.sidebar-collapsed .sidebar-pro-full {
-    display: none !important;
-  }
-  .app-wrapper.sidebar-collapsed .sidebar-pro-mini {
-    display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .app-wrapper.sidebar-collapsed .sidebar-pro-mini-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    text-decoration: none;
-    color: #ffffff;
-    padding: 0.35rem 0.25rem;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-  }
-  .app-wrapper.sidebar-collapsed .sidebar-pro-mini-btn:hover {
-    background: rgba(16, 185, 129, 0.2);
-  }
-  .app-wrapper.sidebar-collapsed .sidebar-pro-mini-label {
-    font-size: 0.62rem;
-    font-weight: 800;
-    color: #f59e0b;
-    letter-spacing: 0.05em;
+
+  .app-wrapper.sidebar-collapsed .sidebar-menu {
+    padding: 0.65rem 0.35rem 1rem;
   }
 }
 
