@@ -107,6 +107,28 @@ export default function Contacts() {
     }
   };
 
+  const totalContacts = contacts.length;
+  const optedInCount = contacts.filter((c) => Boolean(c.is_opted_in)).length;
+  const unsubscribedCount = contacts.filter((c) => !Boolean(c.is_opted_in)).length;
+  const suppressedCount = contacts.filter((c) => !Boolean(c.is_opted_in) || c.status !== 'active').length;
+
+  const getAvatarStyle = (name) => {
+    const firstLetter = (name || 'A').trim()[0]?.toUpperCase() || 'A';
+    const palette = [
+      { bg: '#dcfce7', text: '#16a34a' }, // green
+      { bg: '#f3e8ff', text: '#9333ea' }, // purple
+      { bg: '#e0f2fe', text: '#0284c7' }, // blue
+      { bg: '#ffedd5', text: '#ea580c' }, // orange
+      { bg: '#fce7f3', text: '#db2777' }, // pink
+      { bg: '#fef3c7', text: '#d97706' }  // amber
+    ];
+    const charCode = firstLetter.charCodeAt(0);
+    return {
+      letter: firstLetter,
+      style: palette[charCode % palette.length]
+    };
+  };
+
   return (
     <div>
       <AiwavoHeader
@@ -115,202 +137,300 @@ export default function Contacts() {
         onToggleSidebar={onToggleSidebar}
       />
 
-      <div className="p-4">
-        {/* Action Toolbar */}
-        <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-4">
-          <Link to="/contacts/groups" className="btn btn-outline-success d-flex align-items-center gap-2">
-            <i className="bi bi-folder-fill"></i>
-            <span>Contact Groups</span>
-          </Link>
-          <Link to="/imports" className="btn btn-outline-secondary d-flex align-items-center gap-2">
-            <i className="bi bi-file-earmark-arrow-up"></i>
-            <span>Import CSV</span>
-          </Link>
-          <button 
-            onClick={() => setShowAddModal(true)} 
-            className="btn btn-cf-primary d-flex align-items-center gap-2"
-          >
-            <i className="bi bi-person-plus-fill"></i>
-            <span>Add Contact</span>
-          </button>
+      <div className="cnt-page-container">
+        {/* Feedback Alert */}
+        {feedbackMsg.text && (
+          <div className={`alert alert-${feedbackMsg.type} alert-dismissible fade show mb-4 shadow-sm`} role="alert">
+            <div className="d-flex align-items-center gap-2">
+              <i className={`bi ${feedbackMsg.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-5`}></i>
+              <div>{feedbackMsg.text}</div>
+            </div>
+            <button type="button" className="btn-close" onClick={() => setFeedbackMsg({ type: '', text: '' })}></button>
+          </div>
+        )}
+
+        {/* 1. Manage Your Contacts Hero Banner (Matching Reference Image) */}
+        <div className="cnt-hero-banner">
+          <div className="cnt-hero-left">
+            <div className="cnt-hero-icon">
+              <i className="bi bi-people-fill"></i>
+            </div>
+            <div>
+              <h1 className="cnt-hero-title">Manage Your Contacts</h1>
+              <p className="cnt-hero-subtitle">
+                Add, import and manage your verified WhatsApp contacts with consent records.
+              </p>
+            </div>
+          </div>
+
+          <div className="cnt-hero-actions">
+            <Link to="/contacts/groups" className="cnt-hero-btn-green-outline" title="Manage Contact Groups">
+              <i className="bi bi-folder-fill"></i>
+              <span>Contact Groups</span>
+            </Link>
+
+            <Link to="/imports" className="cnt-hero-btn-outline" title="Bulk Import Contacts from CSV / Excel">
+              <i className="bi bi-file-earmark-text"></i>
+              <span>Import CSV</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="cnt-hero-btn-green-solid"
+              title="Add Single Contact"
+            >
+              <i className="bi bi-person-plus-fill"></i>
+              <span>Add Contact</span>
+            </button>
+          </div>
         </div>
 
-      {feedbackMsg.text && (
-        <div className={`alert alert-${feedbackMsg.type} alert-dismissible fade show mb-4`} role="alert">
-          {feedbackMsg.text}
-          <button type="button" className="btn-close" onClick={() => setFeedbackMsg({ type: '', text: '' })}></button>
-        </div>
-      )}
-
-      {/* Filter and Search Bar */}
-      <div className="cf-card mb-4">
-        <div className="cf-card-body">
-          <form onSubmit={handleSearchSubmit} className="row g-3">
-            <div className="col-12 col-md-5">
-              <div className="input-group">
-                <span className="input-group-text bg-white border-end-0">
-                  <i className="bi bi-search text-muted"></i>
-                </span>
-                <input
-                  type="text"
-                  className="form-control border-start-0 ps-0"
-                  placeholder="Search by phone, customer name, or email..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+        {/* 2. Four KPI Metric Cards (Matching Reference Image) */}
+        <div className="cnt-kpi-grid">
+          {/* Card 1: Total Contacts */}
+          <div className="cnt-kpi-card">
+            <div className="cnt-kpi-icon-circle" style={{ background: '#ecfdf5', color: '#10b981' }}>
+              <i className="bi bi-people-fill"></i>
+            </div>
+            <div className="cnt-kpi-info">
+              <div className="cnt-kpi-val-row">
+                <span className="cnt-kpi-value">{totalContacts.toLocaleString()}</span>
+                <span className="cnt-kpi-trend">↑ +6.2%</span>
               </div>
+              <span className="cnt-kpi-label">Total Contacts</span>
+            </div>
+          </div>
+
+          {/* Card 2: Opted-in Contacts */}
+          <div className="cnt-kpi-card">
+            <div className="cnt-kpi-icon-circle" style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
+              <i className="bi bi-people-fill"></i>
+            </div>
+            <div className="cnt-kpi-info">
+              <div className="cnt-kpi-val-row">
+                <span className="cnt-kpi-value">{optedInCount.toLocaleString()}</span>
+              </div>
+              <span className="cnt-kpi-label">Opted-in Contacts</span>
+            </div>
+          </div>
+
+          {/* Card 3: Unsubscribed */}
+          <div className="cnt-kpi-card">
+            <div className="cnt-kpi-icon-circle" style={{ background: '#eff6ff', color: '#3b82f6' }}>
+              <i className="bi bi-person-slash"></i>
+            </div>
+            <div className="cnt-kpi-info">
+              <div className="cnt-kpi-val-row">
+                <span className="cnt-kpi-value">{unsubscribedCount.toLocaleString()}</span>
+              </div>
+              <span className="cnt-kpi-label">Unsubscribed</span>
+            </div>
+          </div>
+
+          {/* Card 4: Suppressed (Do Not Contact) */}
+          <div className="cnt-kpi-card">
+            <div className="cnt-kpi-icon-circle" style={{ background: '#fef2f2', color: '#ef4444' }}>
+              <i className="bi bi-shield-x"></i>
+            </div>
+            <div className="cnt-kpi-info">
+              <div className="cnt-kpi-val-row">
+                <span className="cnt-kpi-value">{suppressedCount.toLocaleString()}</span>
+              </div>
+              <span className="cnt-kpi-label">Suppressed (Do Not Contact)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Search and Filter Bar (Matching Reference Image) */}
+        <div className="cnt-search-card">
+          <form onSubmit={handleSearchSubmit} className="cnt-filter-form">
+            <div className="cnt-search-input-wrap">
+              <i className="bi bi-search text-muted"></i>
+              <input
+                type="text"
+                placeholder="Search by phone, customer name, or email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
 
-            <div className="col-6 col-md-3">
-              <select 
-                className="form-select"
-                value={selectedTag}
-                onChange={(e) => setSelectedTag(e.target.value)}
-              >
-                <option value="">All Segment Tags</option>
-                {tags.map(t => (
-                  <option key={t.id} value={t.name}>{t.name}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              className="cnt-select"
+              value={selectedTag}
+              onChange={(e) => setSelectedTag(e.target.value)}
+            >
+              <option value="">All Segment Tags</option>
+              {tags.map((t) => (
+                <option key={t.id || t.name} value={t.name}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
 
-            <div className="col-6 col-md-2">
-              <select 
-                className="form-select"
-                value={optedInFilter}
-                onChange={(e) => setOptedInFilter(e.target.value)}
-              >
-                <option value="">All Consent States</option>
-                <option value="true">Opted In Only</option>
-                <option value="false">Unsubscribed Only</option>
-              </select>
-            </div>
+            <select
+              className="cnt-select"
+              value={optedInFilter}
+              onChange={(e) => setOptedInFilter(e.target.value)}
+            >
+              <option value="">All Consent Status</option>
+              <option value="true">Opted In Only</option>
+              <option value="false">Unsubscribed Only</option>
+            </select>
 
-            <div className="col-12 col-md-2">
-              <button type="submit" className="btn btn-dark w-100">
-                Filter
-              </button>
-            </div>
+            <button type="submit" className="cnt-btn-filter">
+              <i className="bi bi-funnel-fill"></i>
+              <span>Filter</span>
+            </button>
           </form>
         </div>
-      </div>
 
-      {/* Contacts Data Table */}
-      <div className="cf-card">
-        <div className="cf-card-header">
-          <h5 className="mb-0">Contacts ({contacts.length})</h5>
-          <span className="small text-muted">Strictly scoped to your workspace</span>
-        </div>
-        <div className="table-responsive">
-          <table className="table cf-table">
-            <thead>
-              <tr>
-                <th>Customer / Name</th>
-                <th>Phone (E.164)</th>
-                <th>Tags</th>
-                <th>Consent Status</th>
-                <th>Marketing Eligibility</th>
-                <th className="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="text-center py-5">
-                    <div className="spinner-border text-success" role="status"></div>
-                  </td>
-                </tr>
-              ) : contacts.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="text-center py-5 text-muted">
-                    No contacts found matching your search. Add contacts manually or upload a CSV!
-                  </td>
-                </tr>
-              ) : (
-                contacts.map((c) => {
-                  const isOptedIn = Boolean(c.is_opted_in);
+        {/* 4. Contacts Data Table Card (Matching Reference Image) */}
+        <div className="cnt-table-card mb-4">
+          <div className="cnt-table-header-row">
+            <h5 className="cnt-table-title">Contacts ({contacts.length})</h5>
+            <span className="cnt-table-subtext">Strictly scoped to your workspace</span>
+          </div>
 
-                  return (
-                    <tr key={c.id}>
-                      <td>
-                        <div className="fw-semibold text-dark">{c.name || 'Anonymous Customer'}</div>
-                        <div className="small text-muted">{c.email || 'No email provided'}</div>
-                      </td>
-                      <td>
-                        <code className="text-dark fw-bold">{c.phone}</code>
-                      </td>
-                      <td>
-                        <div className="d-flex flex-wrap gap-1">
-                          {c.tags && c.tags.length > 0 ? (
-                            c.tags.map(t => (
-                              <span 
-                                key={t.id || t.name} 
-                                className="badge"
-                                style={{ backgroundColor: `${t.color || '#0d6efd'}20`, color: t.color || '#0d6efd' }}
-                              >
-                                {t.name}
-                              </span>
-                            ))
+          <div className="table-responsive">
+            <table className="cnt-table">
+              <thead>
+                <tr>
+                  <th>Customer / Name</th>
+                  <th>Phone (E.164)</th>
+                  <th>Tags</th>
+                  <th>Consent Status</th>
+                  <th>Marketing Eligibility</th>
+                  <th className="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-5">
+                      <div className="spinner-border text-success" role="status"></div>
+                      <div className="text-muted small mt-2">Loading contacts...</div>
+                    </td>
+                  </tr>
+                ) : contacts.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-5 text-muted">
+                      No contacts found matching your search. Add contacts manually or upload a CSV!
+                    </td>
+                  </tr>
+                ) : (
+                  contacts.map((c) => {
+                    const isOptedIn = Boolean(c.is_opted_in);
+                    const { letter, style: avatarStyle } = getAvatarStyle(c.name);
+
+                    return (
+                      <tr key={c.id}>
+                        <td>
+                          <div className="cnt-customer-col">
+                            <div
+                              className="cnt-avatar-circle"
+                              style={{ backgroundColor: avatarStyle.bg, color: avatarStyle.text }}
+                            >
+                              {letter}
+                            </div>
+                            <div>
+                              <div className="cnt-customer-name">
+                                {c.name || 'Anonymous Customer'}
+                              </div>
+                              <div className="cnt-customer-email">
+                                {c.email || 'No email provided'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="cnt-phone-val">
+                            +{String(c.phone || '').replace(/^\+/, '')}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="d-flex flex-wrap gap-1">
+                            {c.tags && c.tags.length > 0 ? (
+                              c.tags.map((t) => (
+                                <span
+                                  key={t.id || t.name}
+                                  className="badge"
+                                  style={{
+                                    backgroundColor: `${t.color || '#0d6efd'}20`,
+                                    color: t.color || '#0d6efd',
+                                    fontWeight: 600,
+                                    borderRadius: '6px'
+                                  }}
+                                >
+                                  {t.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-muted small">No tags</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          {isOptedIn ? (
+                            <span className="cnt-pill-opted">
+                              <i className="bi bi-check-circle"></i> OPTED IN
+                            </span>
                           ) : (
-                            <span className="text-muted small">No tags</span>
+                            <span className="cnt-pill-unsub">
+                              <i className="bi bi-slash-circle"></i> UNSUBSCRIBED
+                            </span>
                           )}
-                        </div>
-                      </td>
-                      <td>
-                        {isOptedIn ? (
-                          <span className="badge-status badge-approved">
-                            <i className="bi bi-shield-check me-1"></i> Opted In
-                          </span>
-                        ) : (
-                          <span className="badge-status badge-unsubscribed">
-                            <i className="bi bi-shield-slash me-1"></i> Unsubscribed
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {isOptedIn && c.status === 'active' ? (
-                          <span className="text-success small fw-semibold">
-                            <i className="bi bi-check-circle-fill me-1"></i> Eligible for Broadcast
-                          </span>
-                        ) : (
-                          <span className="text-danger small fw-semibold">
-                            <i className="bi bi-x-circle-fill me-1"></i> Suppressed (No Sends)
-                          </span>
-                        )}
-                      </td>
-                      <td className="text-end">
-                        <div className="btn-group btn-group-sm">
-                          <Link
-                            to={`/contacts/${c.id}`}
-                            className="btn btn-outline-primary"
-                            title="View Contact Profile & History"
-                          >
-                            <i className="bi bi-eye"></i>
-                          </Link>
-                          <button
-                            onClick={() => handleToggleConsent(c.id, isOptedIn)}
-                            className={`btn ${isOptedIn ? 'btn-outline-warning' : 'btn-outline-success'}`}
-                            title={isOptedIn ? 'Mark as Unsubscribed' : 'Restore Consent'}
-                          >
-                            {isOptedIn ? 'Opt-Out' : 'Opt-In'}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(c.id)}
-                            className="btn btn-outline-danger"
-                            title="Delete Contact"
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        </td>
+                        <td>
+                          {isOptedIn && c.status === 'active' ? (
+                            <span className="cnt-eligibility-eligible">
+                              <i className="bi bi-circle-fill" style={{ fontSize: '7px' }}></i>
+                              Eligible for Broadcast
+                            </span>
+                          ) : (
+                            <span className="cnt-eligibility-suppressed">
+                              <i className="bi bi-circle-fill" style={{ fontSize: '7px' }}></i>
+                              Suppressed (No Send)
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-end">
+                          <div className="cnt-actions-wrap">
+                            <Link
+                              to={`/contacts/${c.id}`}
+                              className="cnt-btn-view"
+                              title="View Contact Profile & History"
+                            >
+                              <i className="bi bi-eye"></i>
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleConsent(c.id, isOptedIn)}
+                              className={isOptedIn ? 'cnt-btn-optout' : 'cnt-btn-optin'}
+                              title={isOptedIn ? 'Mark as Unsubscribed' : 'Restore Consent'}
+                            >
+                              {isOptedIn ? 'Opt-Out' : 'Opt-In'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(c.id)}
+                              className="cnt-btn-delete"
+                              title="Delete Contact"
+                            >
+                              <i className="bi bi-trash3"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
       {/* Add Contact Modal */}
       {showAddModal && (
