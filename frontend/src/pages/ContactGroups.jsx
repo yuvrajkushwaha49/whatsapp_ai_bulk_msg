@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import '../styles/dashboard.css';
 
 const PRESET_COLORS = [
   '#0d6efd', // Blue
@@ -230,26 +231,34 @@ export default function ContactGroups() {
         onToggleSidebar={onToggleSidebar}
       />
 
-      <div className="p-4">
-        {/* Action Toolbar */}
-        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
-          <Link to="/contacts" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
-            <i className="bi bi-arrow-left"></i>
-            <span>Back to Contacts</span>
-          </Link>
-
-          <div className="d-flex align-items-center gap-2">
+      <div className="cg-page-container">
+        {/* Top Hero Banner */}
+        <div className="cg-hero-banner">
+          <div className="cg-hero-left">
+            <div className="cg-hero-icon">
+              <i className="bi bi-people-fill"></i>
+            </div>
+            <div>
+              <h1 className="cg-hero-title">Organize Your Contacts</h1>
+              <p className="cg-hero-subtitle">
+                Create and manage targeted contact groups for bulk WhatsApp broadcasts and automations.
+              </p>
+            </div>
+          </div>
+          <div className="cg-hero-actions">
             <button
+              type="button"
               onClick={fetchGroups}
-              className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
+              className="cg-hero-btn-refresh"
               title="Refresh groups list"
             >
               <i className="bi bi-arrow-clockwise"></i>
               <span>Refresh</span>
             </button>
             <button
+              type="button"
               onClick={openCreateModal}
-              className="btn btn-cf-primary btn-sm d-flex align-items-center gap-1 shadow-sm"
+              className="cg-hero-btn-create"
             >
               <i className="bi bi-plus-lg"></i>
               <span>Create New Group</span>
@@ -257,172 +266,157 @@ export default function ContactGroups() {
           </div>
         </div>
 
-      {/* Search & Statistics Bar */}
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-md-4">
-          <div className="cf-card p-3 d-flex align-items-center gap-3">
-            <div className="rounded-3 p-3 bg-primary-subtle text-primary">
-              <i className="bi bi-folder-fill fs-3"></i>
+        {/* 3 Stats Cards Row */}
+        <div className="cg-stats-grid">
+          <div className="cg-stat-card">
+            <div className="cg-stat-icon-wrap cg-stat-icon-blue">
+              <i className="bi bi-folder-fill"></i>
             </div>
             <div>
-              <div className="text-muted small">Total Groups</div>
-              <div className="fs-4 fw-bold text-dark">{groups.length}</div>
+              <div className="cg-stat-label">Total Groups</div>
+              <div className="cg-stat-value">{groups.length}</div>
             </div>
           </div>
-        </div>
-        <div className="col-12 col-md-4">
-          <div className="cf-card p-3 d-flex align-items-center gap-3">
-            <div className="rounded-3 p-3 bg-success-subtle text-success">
-              <i className="bi bi-people-fill fs-3"></i>
+
+          <div className="cg-stat-card">
+            <div className="cg-stat-icon-wrap cg-stat-icon-green">
+              <i className="bi bi-people-fill"></i>
             </div>
             <div>
-              <div className="text-muted small">Total Group Memberships</div>
-              <div className="fs-4 fw-bold text-success">
+              <div className="cg-stat-label">Total Group Members</div>
+              <div className="cg-stat-value">
                 {groups.reduce((acc, g) => acc + (g.member_count || 0), 0)}
               </div>
             </div>
           </div>
-        </div>
-        <div className="col-12 col-md-4">
-          <div className="cf-card p-3 d-flex align-items-center gap-3">
-            <div className="rounded-3 p-3 bg-info-subtle text-info">
-              <i className="bi bi-send-check-fill fs-3"></i>
+
+          <div className="cg-stat-card">
+            <div className="cg-stat-icon-wrap cg-stat-icon-cyan">
+              <i className="bi bi-send-fill"></i>
             </div>
             <div>
-              <div className="text-muted small">Broadcast Ready</div>
-              <div className="fs-4 fw-bold text-info">100%</div>
+              <div className="cg-stat-label">Broadcast Ready</div>
+              <div className="cg-stat-value text-green">100%</div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Groups Grid with Search Bar */}
-      <div className="cf-card mb-4">
-        <div className="cf-card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-          <div className="d-flex align-items-center gap-2">
-            <h5 className="mb-0 fw-bold">All Contact Groups ({filteredGroups.length})</h5>
+        {/* Groups Grid with Search Bar */}
+        <div className="cg-card">
+          <div className="cg-card-header">
+            <h2 className="cg-card-title">All Contact Groups ({filteredGroups.length})</h2>
+
+            <div className="cg-search-box">
+              <i className="bi bi-search cg-search-icon"></i>
+              <input
+                type="text"
+                className="cg-search-input"
+                placeholder="Search groups..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="input-group input-group-sm" style={{ maxWidth: '300px' }}>
-            <span className="input-group-text bg-white border-end-0">
-              <i className="bi bi-search text-muted"></i>
-            </span>
-            <input
-              type="text"
-              className="form-control border-start-0"
-              placeholder="Search groups..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="cf-card-body p-4">
-          {loading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-success" role="status"></div>
-              <div className="text-muted small mt-2">Loading contact groups...</div>
-            </div>
-          ) : filteredGroups.length === 0 ? (
-            <div className="text-center py-5 text-muted">
-              <i className="bi bi-folder2-open fs-1 text-secondary d-block mb-2"></i>
-              <h5>No Contact Groups Found</h5>
-              <p className="small mb-3">Group your contacts to easily target them in marketing campaigns.</p>
-              <button onClick={openCreateModal} className="btn btn-cf-primary btn-sm">
-                <i className="bi bi-plus-lg me-1"></i> Create Your First Group
-              </button>
-            </div>
-          ) : (
-            <div className="row g-3">
-              {filteredGroups.map(group => (
-                <div key={group.id} className="col-12 col-md-6 col-lg-4">
-                  <div
-                    className="card h-100 border shadow-xs transition-all"
-                    style={{
-                      borderRadius: '12px',
-                      borderLeft: `5px solid ${group.color || '#0d6efd'}`
-                    }}
-                  >
-                    <div className="card-body p-3 d-flex flex-column justify-content-between">
-                      <div>
-                        <div className="d-flex align-items-center justify-content-between mb-2">
-                          <h6 className="fw-bold text-dark mb-0 text-truncate" title={group.name}>
+          <div>
+            {loading ? (
+              <div className="text-center py-5">
+                <div className="spinner-border text-success" role="status"></div>
+                <div className="text-muted small mt-2">Loading contact groups...</div>
+              </div>
+            ) : filteredGroups.length === 0 ? (
+              <div className="text-center py-5 text-muted">
+                <i className="bi bi-folder2-open fs-1 text-secondary d-block mb-2"></i>
+                <h5>No Contact Groups Found</h5>
+                <p className="small mb-3">Group your contacts to easily target them in marketing campaigns.</p>
+                <button onClick={openCreateModal} className="cg-hero-btn-create">
+                  <i className="bi bi-plus-lg me-1"></i> Create Your First Group
+                </button>
+              </div>
+            ) : (
+              <div className="cg-groups-grid">
+                {filteredGroups.map(group => (
+                  <div key={group.id} className="cg-group-item-card">
+                    <div className="cg-group-top">
+                      <div className="cg-group-avatar">
+                        <i className="bi bi-people-fill"></i>
+                      </div>
+                      <div className="cg-group-info">
+                        <div className="cg-group-name-row">
+                          <h3 className="cg-group-name text-truncate" title={group.name}>
                             {group.name}
-                          </h6>
-                          <span
-                            className="badge rounded-pill"
-                            style={{
-                              backgroundColor: `${group.color || '#0d6efd'}15`,
-                              color: group.color || '#0d6efd',
-                              fontSize: '0.75rem'
-                            }}
-                          >
-                            <i className="bi bi-person-fill me-1"></i>
-                            {group.member_count || 0} Contacts
+                          </h3>
+                          <span className="cg-group-badge">
+                            <i className="bi bi-person-fill"></i>
+                            <span>{group.member_count || 0} {group.member_count === 1 ? 'Contact' : 'Contacts'}</span>
                           </span>
                         </div>
-                        <p className="text-muted small mb-3" style={{ minHeight: '38px', fontSize: '0.82rem' }}>
+                        <p className="cg-group-desc">
                           {group.description || 'No description provided.'}
                         </p>
                       </div>
+                    </div>
 
-                      <div className="d-flex align-items-center justify-content-between border-top pt-2 mt-2">
+                    <div className="cg-group-bottom">
+                      <button
+                        type="button"
+                        onClick={() => openGroupDetail(group.id)}
+                        className="cg-btn-manage"
+                      >
+                        <i className="bi bi-people"></i>
+                        <span>Manage ({group.member_count || 0})</span>
+                      </button>
+
+                      <div className="cg-group-actions-right">
                         <button
-                          onClick={() => openGroupDetail(group.id)}
-                          className="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
+                          type="button"
+                          onClick={() => openEditModal(group)}
+                          className="cg-btn-edit"
+                          title="Edit Group"
                         >
-                          <i className="bi bi-people"></i>
-                          <span>Manage ({group.member_count || 0})</span>
+                          <i className="bi bi-pencil"></i>
                         </button>
-
-                        <div className="btn-group btn-group-sm">
-                          <button
-                            onClick={() => openEditModal(group)}
-                            className="btn btn-outline-secondary"
-                            title="Edit Group"
-                          >
-                            <i className="bi bi-pencil"></i>
-                          </button>
-                          <button
-                            onClick={() => setDeletingGroup(group)}
-                            className="btn btn-outline-danger"
-                            title="Delete Group"
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingGroup(group)}
+                          className="cg-btn-delete"
+                          title="Delete Group"
+                        >
+                          <i className="bi bi-trash3"></i>
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
       {/* Selected Group Drawer / Detail Section */}
       {activeGroupDetail && (
-        <div className="cf-card mb-4 border-success">
-          <div className="cf-card-header bg-success-subtle py-3 d-flex justify-content-between align-items-center">
+        <div className="cg-card">
+          <div className="d-flex justify-content-between align-items-center mb-3">
             <div className="d-flex align-items-center gap-2">
               <span
                 className="rounded-circle d-inline-block"
-                style={{ width: '14px', height: '14px', backgroundColor: activeGroupDetail.group.color }}
+                style={{ width: '14px', height: '14px', backgroundColor: activeGroupDetail.group.color || '#00a859' }}
               ></span>
-              <h5 className="mb-0 fw-bold text-dark">
+              <h3 className="cg-card-title mb-0">
                 {activeGroupDetail.group.name} ({activeGroupDetail.members.length} Members)
-              </h5>
+              </h3>
             </div>
             <div className="d-flex align-items-center gap-2">
               <button
+                type="button"
                 onClick={openAddMembersModal}
-                className="btn btn-sm btn-success d-flex align-items-center gap-1"
+                className="cg-hero-btn-create py-2 px-3"
               >
                 <i className="bi bi-person-plus-fill"></i>
                 <span>Add Contacts to Group</span>
               </button>
               <button
+                type="button"
                 onClick={() => setActiveGroupDetail(null)}
                 className="btn-close"
                 title="Close member view"
