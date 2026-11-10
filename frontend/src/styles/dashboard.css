@@ -810,8 +810,6 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   position: relative;
   z-index: 2;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-pro-header {

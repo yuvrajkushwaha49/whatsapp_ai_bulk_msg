@@ -75,7 +75,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
         </svg>
       </div>
 
-      {/* Brand Header */}
+      {/* Brand Header (Sticky at top of sidebar) */}
       <div className="sidebar-brand">
         <div
           className="sidebar-brand-inner d-flex align-items-center gap-2"
@@ -106,82 +106,85 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
         </button>
       </div>
 
-      {/* Menu List */}
-      <ul className="sidebar-menu">
-        {menuItems.map((item) => (
-          <li key={item.to} className="sidebar-item">
-            <NavLink
-              to={item.to}
-              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              onClick={handleLinkClick}
-              title={!isOpen ? item.name : undefined}
-            >
-              <div className="sidebar-link-icon-wrap">
-                <i className={`bi ${item.icon}`}></i>
+      {/* Scrollable Body: Menu items and Pro Plan card scroll together */}
+      <div className="sidebar-body">
+        {/* Menu List */}
+        <ul className="sidebar-menu">
+          {menuItems.map((item) => (
+            <li key={item.to} className="sidebar-item">
+              <NavLink
+                to={item.to}
+                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                onClick={handleLinkClick}
+                title={!isOpen ? item.name : undefined}
+              >
+                <div className="sidebar-link-icon-wrap">
+                  <i className={`bi ${item.icon}`}></i>
+                  {item.badge && (
+                    <span className="badge aiwavo-mini-badge">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="sidebar-link-full-text">{item.name}</span>
+                <span className="sidebar-link-mini-text">{item.shortName}</span>
+
+                {item.hasChevron && (
+                  <i className="bi bi-chevron-down ms-auto sidebar-chevron"></i>
+                )}
                 {item.badge && (
-                  <span className="badge aiwavo-mini-badge">
+                  <span className="badge ms-auto aiwavo-queue-badge sidebar-link-full-badge">
                     {item.badge}
                   </span>
                 )}
-              </div>
-              <span className="sidebar-link-full-text">{item.name}</span>
-              <span className="sidebar-link-mini-text">{item.shortName}</span>
+              </NavLink>
+            </li>
+          ))}
 
-              {item.hasChevron && (
-                <i className="bi bi-chevron-down ms-auto sidebar-chevron"></i>
-              )}
-              {item.badge && (
-                <span className="badge ms-auto aiwavo-queue-badge sidebar-link-full-badge">
-                  {item.badge}
-                </span>
-              )}
+          {isSuperAdmin && isSuperAdmin() && (
+            <li className="sidebar-item">
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                onClick={handleLinkClick}
+                title={!isOpen ? 'Super Admin' : undefined}
+              >
+                <div className="sidebar-link-icon-wrap">
+                  <i className="bi bi-shield-lock-fill text-warning"></i>
+                </div>
+                <span className="sidebar-link-full-text text-warning">Super Admin</span>
+                <span className="sidebar-link-mini-text text-warning">Admin</span>
+              </NavLink>
+            </li>
+          )}
+        </ul>
+
+        {/* Pro Plan Card (Scrolls together with Navbar items) */}
+        <div className="sidebar-pro-card">
+          {/* Full View when Expanded */}
+          <div className="sidebar-pro-full">
+            <div className="sidebar-pro-header">
+              <i className="bi bi-crown-fill sidebar-pro-crown"></i>
+              <span>Pro Plan</span>
+            </div>
+            <div className="sidebar-pro-valid">Valid till: 31 Dec 2026</div>
+            <div className="sidebar-pro-progress-bg">
+              <div className="sidebar-pro-progress-fill" style={{ width: '82.4%' }}></div>
+            </div>
+            <div className="sidebar-pro-text">82,400 / 100,000 Messages</div>
+            <NavLink to="/billing" className="sidebar-pro-btn" onClick={handleLinkClick}>
+              <span>Upgrade Plan</span>
+              <i className="bi bi-arrow-right"></i>
             </NavLink>
-          </li>
-        ))}
+          </div>
 
-        {isSuperAdmin && isSuperAdmin() && (
-          <li className="sidebar-item">
-            <NavLink
-              to="/admin"
-              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              onClick={handleLinkClick}
-              title={!isOpen ? 'Super Admin' : undefined}
-            >
-              <div className="sidebar-link-icon-wrap">
-                <i className="bi bi-shield-lock-fill text-warning"></i>
-              </div>
-              <span className="sidebar-link-full-text text-warning">Super Admin</span>
-              <span className="sidebar-link-mini-text text-warning">Admin</span>
+          {/* Mini View when Collapsed */}
+          <div className="sidebar-pro-mini" title="Pro Plan (82,400 / 100,000 Messages)">
+            <NavLink to="/billing" className="sidebar-pro-mini-btn" onClick={handleLinkClick}>
+              <i className="bi bi-crown-fill sidebar-pro-crown"></i>
+              <span className="sidebar-pro-mini-label">PRO</span>
             </NavLink>
-          </li>
-        )}
-      </ul>
-
-      {/* Bottom Pro Plan Card */}
-      <div className="sidebar-pro-card">
-        {/* Full View when Expanded */}
-        <div className="sidebar-pro-full">
-          <div className="sidebar-pro-header">
-            <i className="bi bi-crown-fill sidebar-pro-crown"></i>
-            <span>Pro Plan</span>
           </div>
-          <div className="sidebar-pro-valid">Valid till: 31 Dec 2026</div>
-          <div className="sidebar-pro-progress-bg">
-            <div className="sidebar-pro-progress-fill" style={{ width: '82.4%' }}></div>
-          </div>
-          <div className="sidebar-pro-text">82,400 / 100,000 Messages</div>
-          <NavLink to="/billing" className="sidebar-pro-btn" onClick={handleLinkClick}>
-            <span>Upgrade Plan</span>
-            <i className="bi bi-arrow-right"></i>
-          </NavLink>
-        </div>
-
-        {/* Mini View when Collapsed */}
-        <div className="sidebar-pro-mini" title="Pro Plan (82,400 / 100,000 Messages)">
-          <NavLink to="/billing" className="sidebar-pro-mini-btn" onClick={handleLinkClick}>
-            <i className="bi bi-crown-fill sidebar-pro-crown"></i>
-            <span className="sidebar-pro-mini-label">PRO</span>
-          </NavLink>
         </div>
       </div>
     </aside>
