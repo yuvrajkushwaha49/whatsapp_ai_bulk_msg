@@ -78,7 +78,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-right: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45);
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Background Wave Graphic inside Sidebar */
@@ -147,28 +147,41 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   margin-top: 2px;
 }
 
-/* Close/collapse button in sidebar header */
+/* Close/collapse button in sidebar header (Positioned on the edge: half green, half white) */
 .sidebar-close-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  position: absolute;
+  right: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #00a859 0%, #00a859 50%, #ffffff 50%, #ffffff 100%);
+  border: 1.5px solid #00a859;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
+  z-index: 1055;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 0;
+  outline: none;
 }
 
 .sidebar-close-btn:hover {
-  background: rgba(16, 185, 129, 0.2);
-  color: #ffffff;
-  border-color: rgba(16, 185, 129, 0.4);
-  transform: scale(1.05);
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 4px 14px rgba(0, 168, 89, 0.45);
+}
+
+.sidebar-close-btn i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #061612;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 /* Scrollable Navigation Body (Menu + Pro Card scroll together, scrollbar hidden) */
@@ -727,36 +740,36 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     max-width: calc(100vw - 86px);
   }
 
-  /* Small Navbar: Brand Header (WhatsApp Icon & Close BTN side-by-side in same row) */
+  /* Small Navbar: Brand Header (Icon centered, Close BTN on edge in front of Icon) */
   .app-wrapper.sidebar-collapsed .sidebar-brand {
-    padding: 1.15rem 0.65rem 1rem;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 0.4rem;
+    padding: 1.15rem 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
   }
   .app-wrapper.sidebar-collapsed .sidebar-brand-inner {
     display: flex;
     align-items: center;
+    justify-content: center;
   }
   .app-wrapper.sidebar-collapsed .sidebar-brand-text {
     display: none !important;
   }
   .app-wrapper.sidebar-collapsed .sidebar-brand-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 1.15rem;
-    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    font-size: 1.25rem;
+    margin: 0 auto;
   }
   .app-wrapper.sidebar-collapsed .sidebar-close-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 0.9rem;
-    margin: 0 !important;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: absolute;
+    right: -13px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+    width: 26px;
+    height: 26px;
   }
 
   /* Small Navbar: Scrollable Body */
