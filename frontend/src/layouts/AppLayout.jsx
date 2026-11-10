@@ -61,16 +61,10 @@ export default function AppLayout() {
 
       {/* Main Content Area */}
       <div className="main-content">
-        {!isDashboard && (
-          <Navbar
-            onToggleSidebar={toggleSidebar}
-            sidebarOpen={sidebarOpen}
-          />
-        )}
         <main
           className={`content-container ${
             isInbox ? 'inbox-container-reset' : ''
-          } ${isDashboard ? 'p-0 border-0 bg-transparent' : ''}`}
+          } p-0 border-0 bg-transparent`}
         >
           <Outlet context={{ onToggleSidebar: toggleSidebar, sidebarOpen }} />
         </main>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   ResponsiveContainer,
   PieChart,
@@ -14,6 +14,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 
 const PIE_COLORS = {
   Sent: '#0d6efd',
@@ -26,6 +27,8 @@ const PIE_COLORS = {
 export default function CampaignDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -323,99 +326,70 @@ export default function CampaignDetail() {
       )}
 
       {/* Top Header & Breadcrumbs */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <div className="d-flex align-items-center gap-2 mb-1">
-            <Link to="/campaigns" className="text-muted text-decoration-none small">
-              <i className="bi bi-arrow-left me-1"></i> Campaigns
-            </Link>
-            <span className="text-muted small">/</span>
-            <span className="text-muted small fw-semibold">#{campaign?.id}</span>
-            <span className={`badge-status badge-${campaign?.status} ms-1`}>
-              {campaign?.status?.toUpperCase()}
-            </span>
-          </div>
-          <div className="d-flex align-items-center gap-3">
-            <h2 className="brand-font mb-0 text-dark fw-bold">{campaign?.name}</h2>
-            {campaign?.purpose && (
-              <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
-                {campaign.purpose}
-              </span>
-            )}
-          </div>
-          <div className="d-flex align-items-center gap-3 mt-1 text-muted small">
-            <span>
-              <i className="bi bi-whatsapp text-success me-1"></i>
-              Account: <strong className="text-dark">{campaign?.account_name || 'Primary WhatsApp'}</strong>{' '}
-              {campaign?.account_phone && <span className="text-muted">({campaign.account_phone})</span>}
-            </span>
-            <span>•</span>
-            <span>
-              <i className="bi bi-file-earmark-text text-primary me-1"></i>
-              Template: <code className="text-dark fw-semibold">{campaign?.template_name}</code>
-            </span>
-            <span>•</span>
-            <span>
-              <i className="bi bi-calendar-event me-1"></i>
-              Created: {campaign?.created_at ? new Date(campaign.created_at).toLocaleString() : 'N/A'}
-            </span>
-          </div>
-        </div>
+      <AiwavoHeader
+        title={`Campaign: ${campaign?.name || `#${campaign?.id}`}`}
+        subtitle={`Account: ${campaign?.account_name || 'Primary WhatsApp'} • Template: ${campaign?.template_name || 'N/A'}`}
+        badge={<span className={`badge-status badge-${campaign?.status} ms-2`}>{campaign?.status?.toUpperCase()}</span>}
+        onToggleSidebar={onToggleSidebar}
+      >
+        <Link to="/campaigns" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
+          <i className="bi bi-arrow-left"></i>
+          <span>Campaigns</span>
+        </Link>
 
-        {/* Action Buttons */}
-        <div className="d-flex flex-wrap align-items-center gap-2">
-          {campaign?.status === 'draft' && (
-            <button
-              onClick={handleStartCampaign}
-              disabled={actionLoading}
-              className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm"
-            >
-              <i className="bi bi-play-fill fs-6"></i>
-              <span>{actionLoading ? 'Starting...' : 'Send Broadcast'}</span>
-            </button>
-          )}
-
-          {campaign?.status === 'running' && (
-            <button
-              onClick={handlePauseCampaign}
-              disabled={actionLoading}
-              className="btn btn-warning btn-sm d-flex align-items-center gap-1"
-            >
-              <i className="bi bi-pause-fill fs-6"></i>
-              <span>Pause</span>
-            </button>
-          )}
-
-          {['running', 'scheduled', 'draft'].includes(campaign?.status) && (
-            <button
-              onClick={handleCancelCampaign}
-              disabled={actionLoading}
-              className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-            >
-              <i className="bi bi-stop-fill fs-6"></i>
-              <span>Cancel</span>
-            </button>
-          )}
-
+        {campaign?.status === 'draft' && (
           <button
-            onClick={handleExportCSV}
-            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
-            title="Download CSV report of all recipients"
+            onClick={handleStartCampaign}
+            disabled={actionLoading}
+            className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm"
           >
-            <i className="bi bi-download"></i>
-            <span>Export CSV</span>
+            <i className="bi bi-play-fill fs-6"></i>
+            <span>{actionLoading ? 'Starting...' : 'Send Broadcast'}</span>
           </button>
+        )}
 
+        {campaign?.status === 'running' && (
           <button
-            onClick={() => fetchCampaignDetails()}
-            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
-            title="Refresh analytics and webhooks"
+            onClick={handlePauseCampaign}
+            disabled={actionLoading}
+            className="btn btn-warning btn-sm d-flex align-items-center gap-1"
           >
-            <i className="bi bi-arrow-clockwise"></i>
-            <span>Refresh</span>
+            <i className="bi bi-pause-fill fs-6"></i>
+            <span>Pause</span>
           </button>
-        </div>
-      </div>
+        )}
+
+        {['running', 'scheduled', 'draft'].includes(campaign?.status) && (
+          <button
+            onClick={handleCancelCampaign}
+            disabled={actionLoading}
+            className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+          >
+            <i className="bi bi-stop-fill fs-6"></i>
+            <span>Cancel</span>
+          </button>
+        )}
+
+        <button
+          onClick={handleExportCSV}
+          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+          title="Download CSV report of all recipients"
+        >
+          <i className="bi bi-download"></i>
+          <span>Export CSV</span>
+        </button>
+
+        <button
+          onClick={() => fetchCampaignDetails()}
+          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+          title="Refresh analytics and webhooks"
+        >
+          <i className="bi bi-arrow-clockwise"></i>
+          <span>Refresh</span>
+        </button>
+      </AiwavoHeader>
+
+      <div className="p-4">
 
       {/* KPI Stats Cards */}
       <div className="row g-3 mb-4">
@@ -986,6 +960,7 @@ export default function CampaignDetail() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

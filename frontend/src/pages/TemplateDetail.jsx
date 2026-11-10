@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 import '../styles/templates.css';
 
 export default function TemplateDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
 
   const [template, setTemplate] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -254,31 +257,29 @@ export default function TemplateDetail() {
   const isRejected = template.status === 'REJECTED';
 
   return (
-    <div className="container-fluid py-4 px-md-4">
-      {/* Breadcrumb Navigation */}
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <nav aria-label="breadcrumb">
-          <ol className="breadcrumb small mb-0">
-            <li className="breadcrumb-item">
-              <Link to="/templates" className="text-decoration-none text-muted d-flex align-items-center gap-1">
-                <i className="bi bi-arrow-left text-success"></i>
-                <span>WhatsApp Templates</span>
-              </Link>
-            </li>
-            <li className="breadcrumb-item active text-dark fw-bold font-monospace" aria-current="page">
-              {template.name}
-            </li>
-          </ol>
-        </nav>
+    <div>
+      <AiwavoHeader
+        title={`Template: ${template.name}`}
+        subtitle={`${template.category || 'MARKETING'} • ${template.language} • Status: ${template.status}`}
+        badge={<span className={`badge-status ${statusClass} ms-2`}>{template.status}</span>}
+        onToggleSidebar={onToggleSidebar}
+      >
+        <Link to="/templates" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
+          <i className="bi bi-arrow-left"></i>
+          <span>Templates Studio</span>
+        </Link>
+        <button
+          onClick={handleCheckLiveStatus}
+          disabled={refreshingStatus}
+          className="btn btn-outline-success btn-sm d-flex align-items-center gap-1 shadow-xs bg-white"
+        >
+          <i className={`bi bi-arrow-repeat ${refreshingStatus ? 'spin-icon' : ''}`}></i>
+          <span>Check Status</span>
+        </button>
+      </AiwavoHeader>
 
-        <div className="d-flex align-items-center gap-2">
-          <span className="badge bg-light text-secondary border small">
-            <i className="bi bi-shield-check text-success me-1"></i> Meta Cloud API v21.0
-          </span>
-        </div>
-      </div>
-
-      {/* Main Hero Card */}
+      <div className="p-4">
+        {/* Main Hero Card */}
       <div className="template-detail-hero mb-4">
         <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
           <div>
@@ -1238,6 +1239,7 @@ export default function TemplateDetail() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

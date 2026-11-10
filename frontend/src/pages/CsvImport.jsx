@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 
 const SAMPLE_CSV = `phone,name,email,tag,consent
 9811122233,Ananya Gupta,ananya@test.com,VIP Customer,yes
@@ -10,6 +12,8 @@ const SAMPLE_CSV = `phone,name,email,tag,consent
 9877700011,Karan Johar,karan@test.com,Unverified Lead,no`;
 
 export default function CsvImport() {
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [step, setStep] = useState(1);
   const [csvText, setCsvText] = useState('');
   const [fileName, setFileName] = useState('contacts.csv');
@@ -130,11 +134,11 @@ export default function CsvImport() {
 
   return (
     <div>
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <h2 className="brand-font mb-1">CSV Audience Importer</h2>
-          <p className="text-muted mb-0">Bulk contact ingestion with E.164 normalization, intra-file deduplication & consent checks</p>
-        </div>
+      <AiwavoHeader
+        title="Excel Manager"
+        subtitle="Bulk contact ingestion with E.164 normalization, intra-file deduplication & consent checks"
+        onToggleSidebar={onToggleSidebar}
+      >
         <button
           type="button"
           onClick={handleDownloadSampleCsv}
@@ -144,7 +148,9 @@ export default function CsvImport() {
           <i className="bi bi-cloud-arrow-down-fill fs-5"></i>
           <span>Download Sample CSV Template</span>
         </button>
-      </div>
+      </AiwavoHeader>
+
+      <div className="p-4">
 
       {/* Wizard Stepper */}
       <div className="wizard-stepper">
@@ -484,6 +490,7 @@ export default function CsvImport() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
   );

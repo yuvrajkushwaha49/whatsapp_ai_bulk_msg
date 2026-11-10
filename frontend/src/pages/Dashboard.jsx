@@ -34,7 +34,8 @@ function DashboardSkeleton() {
       </div>
 
       {/* Row 1: Top Row */}
-      <div className="aiwavo-top-row">
+      <div className="aiwavo-dashboard-body">
+        <div className="aiwavo-top-row">
         {/* Welcome Card Skeleton */}
         <div className="aiwavo-welcome-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
           <div className="d-flex align-items-center mb-3">
@@ -168,6 +169,7 @@ function DashboardSkeleton() {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -343,7 +345,8 @@ export default function Dashboard() {
       </div>
 
       {/* ================= Row 1: Welcome Banner & Quick Actions ================= */}
-      <div className="aiwavo-top-row">
+      <div className="aiwavo-dashboard-body">
+        <div className="aiwavo-top-row">
         {/* Welcome Card */}
         <div className="aiwavo-welcome-card">
           <i className="bi bi-whatsapp aiwavo-welcome-watermark"></i>
@@ -977,6 +980,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

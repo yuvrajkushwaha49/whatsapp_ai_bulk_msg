@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 
 export default function AiAssistant() {
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [formData, setFormData] = useState({
     businessDescription: 'Acme Retail - Premium Fashion & Ethnic Wear',
     productOrService: 'Diwali Festive Kurta & Saree Collection',
@@ -38,12 +42,13 @@ export default function AiAssistant() {
 
   return (
     <div>
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <h2 className="brand-font mb-1">AI Campaign Copy Generator</h2>
-          <p className="text-muted mb-0">Generate high-converting WhatsApp promotional messages in Hindi, Hinglish, and English</p>
-        </div>
-      </div>
+      <AiwavoHeader
+        title="AI Campaign Assistant"
+        subtitle="Generate high-converting WhatsApp promotional messages in Hindi, Hinglish, and English"
+        onToggleSidebar={onToggleSidebar}
+      />
+
+      <div className="p-4">
 
       <div className="row g-4">
         {/* Input Form */}
@@ -195,6 +200,7 @@ export default function AiAssistant() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

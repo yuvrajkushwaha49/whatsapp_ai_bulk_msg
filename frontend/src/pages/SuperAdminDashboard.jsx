@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 
 export default function SuperAdminDashboard() {
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'meta_integration' | 'meta_monitoring' | 'whatsapp_accounts'
   const [stats, setStats] = useState(null);
   const [businesses, setBusinesses] = useState([]);
@@ -367,22 +371,22 @@ export default function SuperAdminDashboard() {
 
   return (
     <div>
-      {/* Top Header */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <span className="badge bg-warning text-dark mb-1">Super Administrator Control Panel</span>
-          <h2 className="brand-font mb-0">Platform Overview & Meta SaaS Governance</h2>
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          <button
-            onClick={() => { fetchAdminData(); fetchPlatformMetaConfig(); fetchMonitoring(); fetchMatrixData(); }}
-            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
-          >
-            <i className="bi bi-arrow-clockwise"></i>
-            <span>Refresh All</span>
-          </button>
-        </div>
-      </div>
+      <AiwavoHeader
+        title="SuperAdmin Console"
+        subtitle="Platform Overview, Meta SaaS Governance & Multi-Tenant Allocations"
+        badge={<span className="badge bg-warning text-dark">Super Admin</span>}
+        onToggleSidebar={onToggleSidebar}
+      >
+        <button
+          onClick={() => { fetchAdminData(); fetchPlatformMetaConfig(); fetchMonitoring(); fetchMatrixData(); }}
+          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
+        >
+          <i className="bi bi-arrow-clockwise"></i>
+          <span>Refresh All</span>
+        </button>
+      </AiwavoHeader>
+
+      <div className="p-4">
 
       {feedback.text && (
         <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4 shadow-sm`} role="alert">
@@ -1951,6 +1955,7 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

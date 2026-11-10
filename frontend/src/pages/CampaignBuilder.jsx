@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 
 export default function CampaignBuilder() {
   const navigate = useNavigate();
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -544,12 +547,18 @@ export default function CampaignBuilder() {
 
   return (
     <div>
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <h2 className="brand-font mb-1">Create Marketing Campaign</h2>
-          <p className="text-muted mb-0">Official WhatsApp broadcast wizard with multi-account rotation & compliance checks</p>
-        </div>
-      </div>
+      <AiwavoHeader
+        title="Create Campaign"
+        subtitle="Official WhatsApp broadcast wizard with multi-account rotation & compliance checks"
+        onToggleSidebar={onToggleSidebar}
+      >
+        <Link to="/campaigns" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+          <i className="bi bi-arrow-left"></i>
+          <span>Back to Campaigns</span>
+        </Link>
+      </AiwavoHeader>
+
+      <div className="p-4">
 
       {/* Stepper */}
       <div className="wizard-stepper">
@@ -1898,6 +1907,7 @@ export default function CampaignBuilder() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 import '../styles/templates.css';
 
 const LANGUAGES = [
@@ -28,6 +29,8 @@ function formatErrorString(err, fallback = 'An unexpected error occurred') {
 }
 
 export default function Templates() {
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [templates, setTemplates] = useState([]);
   const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, rejected: 0, paused_or_disabled: 0 });
   const [loading, setLoading] = useState(true);
@@ -473,47 +476,32 @@ export default function Templates() {
   };
 
   return (
-    <div className="container-fluid py-4 px-md-4">
-      {/* Hero & Action Bar */}
-      <div className="templates-hero d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-          <div className="d-flex align-items-center gap-2 mb-1">
-            <span className="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1">
-              <i className="bi bi-patch-check-fill me-1"></i> Meta Graph v21.0 Cloud API
-            </span>
-            <span className="badge bg-light text-secondary border small">
-              {templates.length} Templates Synced
-            </span>
-          </div>
-          <h2 className="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-            <i className="bi bi-card-checklist text-success"></i>
-            <span>WhatsApp Templates Studio</span>
-          </h2>
-          <p className="text-muted small mb-0">
-            Create, test, synchronize, and monitor Meta-approved broadcast message templates in real-time.
-          </p>
-        </div>
+    <div>
+      <AiwavoHeader
+        title="Message Templates"
+        subtitle="Create, test, synchronize, and monitor Meta-approved broadcast message templates in real-time."
+        onToggleSidebar={onToggleSidebar}
+      >
+        <button
+          onClick={handleSyncFromMeta}
+          disabled={syncing}
+          className="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs bg-white"
+          title="Sync latest template approval statuses directly from Meta Cloud API"
+        >
+          <i className={`bi bi-arrow-repeat ${syncing ? 'spin-icon' : ''}`}></i>
+          <span>{syncing ? 'Syncing...' : 'Sync from Meta'}</span>
+        </button>
 
-        <div className="d-flex align-items-center gap-2">
-          <button
-            onClick={handleSyncFromMeta}
-            disabled={syncing}
-            className="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs bg-white"
-            title="Sync latest template approval statuses directly from Meta Cloud API"
-          >
-            <i className={`bi bi-arrow-repeat ${syncing ? 'spin-icon' : ''}`}></i>
-            <span>{syncing ? 'Syncing...' : 'Sync from Meta'}</span>
-          </button>
+        <button
+          onClick={() => { setShowCreateModal(true); setFormError(''); }}
+          className="btn btn-success d-flex align-items-center gap-2 shadow-sm"
+        >
+          <i className="bi bi-plus-circle-fill"></i>
+          <span>+ Create Template</span>
+        </button>
+      </AiwavoHeader>
 
-          <button
-            onClick={() => { setShowCreateModal(true); setFormError(''); }}
-            className="btn btn-success d-flex align-items-center gap-2 shadow-sm"
-          >
-            <i className="bi bi-plus-circle-fill"></i>
-            <span>+ Create Template</span>
-          </button>
-        </div>
-      </div>
+      <div className="p-4">
 
       {/* Feedback Banner */}
       {feedbackMsg && (
@@ -1684,6 +1672,7 @@ export default function Templates() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,19 +1,24 @@
 import React from 'react';
+import { useOutletContext } from 'react-router-dom';
+import AiwavoHeader from '../components/AiwavoHeader';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Settings() {
   const { business } = useAuth();
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const webhookUrl = `${window.location.origin}/api/webhooks/whatsapp`;
   const verifyToken = 'campaignflow_meta_verify_token_xyz';
 
   return (
     <div>
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <h2 className="brand-font mb-1">Workspace Settings</h2>
-          <p className="text-muted mb-0">Platform configuration, tenant profile & Meta Webhook callback</p>
-        </div>
-      </div>
+      <AiwavoHeader
+        title="Settings"
+        subtitle="Platform configuration, tenant profile & Meta Webhook callback"
+        onToggleSidebar={onToggleSidebar}
+      />
+
+      <div className="p-4">
 
       <div className="row g-4">
         {/* Workspace Profile */}
@@ -95,6 +100,7 @@ export default function Settings() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 import { useAuth } from '../hooks/useAuth';
 
 export default function TeamManagement() {
   const { user } = useAuth();
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -68,18 +72,20 @@ export default function TeamManagement() {
 
   return (
     <div>
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <h2 className="brand-font mb-1">Team & Role-Based Access</h2>
-          <p className="text-muted mb-0">Manage workspace collaborators and granular RBAC permissions</p>
-        </div>
+      <AiwavoHeader
+        title="Team & Users"
+        subtitle="Manage workspace collaborators and granular RBAC permissions"
+        onToggleSidebar={onToggleSidebar}
+      >
         {['owner', 'admin', 'superadmin'].includes(user?.role) && (
           <button onClick={() => setShowInviteModal(true)} className="btn btn-cf-primary d-flex align-items-center gap-2">
             <i className="bi bi-person-plus-fill"></i>
             <span>Invite Team Member</span>
           </button>
         )}
-      </div>
+      </AiwavoHeader>
+
+      <div className="p-4">
 
       {feedback.text && (
         <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4`} role="alert">
@@ -295,6 +301,7 @@ export default function TeamManagement() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

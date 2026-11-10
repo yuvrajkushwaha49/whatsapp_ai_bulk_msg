@@ -4,10 +4,14 @@
    ========================================================= */
 
 .aiwavo-dashboard-container {
-  padding: 1.5rem 2rem 3rem 2rem;
+  padding: 0;
   background-color: #f8fafc;
   min-height: 100vh;
   color: #0f172a;
+}
+
+.aiwavo-dashboard-body {
+  padding: 0 2rem 3rem 2rem;
 }
 
 /* ================= Top Header ================= */
@@ -15,12 +19,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: -1.5rem -2rem 1.75rem -2rem;
-  padding: 1.25rem 2rem;
+  margin-bottom: 1.5rem;
+  padding: 1.15rem 2rem;
   background-color: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   flex-wrap: wrap;
   gap: 1rem;
+  width: 100%;
 }
 
 .aiwavo-header-left {
@@ -280,20 +285,45 @@
 }
 
 /* Action Button Themes */
-.action-send { background: #ecfdf5; }
-.action-send .aiwavo-action-icon-wrap { color: #10b981; }
+.action-send {
+  background: #ecfdf5;
+}
 
-.action-campaign { background: #f5f3ff; }
-.action-campaign .aiwavo-action-icon-wrap { color: #8b5cf6; }
+.action-send .aiwavo-action-icon-wrap {
+  color: #10b981;
+}
 
-.action-excel { background: #eff6ff; }
-.action-excel .aiwavo-action-icon-wrap { color: #3b82f6; }
+.action-campaign {
+  background: #f5f3ff;
+}
 
-.action-automation { background: #fff7ed; }
-.action-automation .aiwavo-action-icon-wrap { color: #f97316; }
+.action-campaign .aiwavo-action-icon-wrap {
+  color: #8b5cf6;
+}
 
-.action-whatsapp { background: #ecfdf5; }
-.action-whatsapp .aiwavo-action-icon-wrap { color: #10b981; }
+.action-excel {
+  background: #eff6ff;
+}
+
+.action-excel .aiwavo-action-icon-wrap {
+  color: #3b82f6;
+}
+
+.action-automation {
+  background: #fff7ed;
+}
+
+.action-automation .aiwavo-action-icon-wrap {
+  color: #f97316;
+}
+
+.action-whatsapp {
+  background: #ecfdf5;
+}
+
+.action-whatsapp .aiwavo-action-icon-wrap {
+  color: #10b981;
+}
 
 /* ================= Row 2: 5 KPI Metric Cards ================= */
 .aiwavo-kpi-grid {
@@ -374,11 +404,30 @@
 }
 
 /* KPI Icon Variations */
-.kpi-icon-contacts { background: #dcfce7; color: #10b981; }
-.kpi-icon-messages { background: #dcfce7; color: #10b981; }
-.kpi-icon-campaigns { background: #f3e8ff; color: #9333ea; }
-.kpi-icon-automations { background: #ffedd5; color: #ea580c; }
-.kpi-icon-failed { background: #fee2e2; color: #ef4444; }
+.kpi-icon-contacts {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.kpi-icon-messages {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.kpi-icon-campaigns {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.kpi-icon-automations {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.kpi-icon-failed {
+  background: #fee2e2;
+  color: #ef4444;
+}
 
 /* ================= Row 3: 3 Analytics / Chart Cards ================= */
 .aiwavo-charts-row {
@@ -592,11 +641,30 @@
   flex-shrink: 0;
 }
 
-.aiwavo-item-icon.icon-whatsapp { background: #dcfce7; color: #10b981; }
-.aiwavo-item-icon.icon-whatsapp-gray { background: #f1f5f9; color: #64748b; }
-.aiwavo-item-icon.icon-play { background: #dcfce7; color: #10b981; }
-.aiwavo-item-icon.icon-pause { background: #f1f5f9; color: #475569; }
-.aiwavo-item-icon.icon-purple { background: #f3e8ff; color: #9333ea; }
+.aiwavo-item-icon.icon-whatsapp {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.aiwavo-item-icon.icon-whatsapp-gray {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.aiwavo-item-icon.icon-play {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.aiwavo-item-icon.icon-pause {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.aiwavo-item-icon.icon-purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
 
 .aiwavo-item-info {
   display: flex;
@@ -885,12 +953,10 @@
 
 /* ================= Dashboard Skeleton Loading Effects ================= */
 .aiwavo-skeleton {
-  background: linear-gradient(
-    90deg,
-    #eef2f6 0%,
-    #e2e8f0 50%,
-    #eef2f6 100%
-  );
+  background: linear-gradient(90deg,
+      #eef2f6 0%,
+      #e2e8f0 50%,
+      #eef2f6 100%);
   background-size: 200% 100%;
   animation: aiwavoSkeletonShimmer 1.5s infinite ease-in-out;
   border-radius: 6px;
@@ -901,6 +967,7 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -924,12 +991,15 @@
   .aiwavo-kpi-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+
   .aiwavo-charts-row {
     grid-template-columns: 1fr;
   }
+
   .aiwavo-sections-row {
     grid-template-columns: 1fr;
   }
+
   .aiwavo-bottom-row {
     grid-template-columns: 1fr;
   }
@@ -937,18 +1007,26 @@
 
 @media (max-width: 768px) {
   .aiwavo-dashboard-container {
-    padding: 1rem;
+    padding: 0;
   }
+
+  .aiwavo-dashboard-body {
+    padding: 0 1rem 2rem 1rem;
+  }
+
   .aiwavo-header {
-    margin: -1rem -1rem 1.25rem -1rem;
+    margin-bottom: 1.25rem;
     padding: 1rem;
   }
+
   .aiwavo-top-row {
     grid-template-columns: 1fr;
   }
+
   .aiwavo-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .aiwavo-actions-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -958,6 +1036,7 @@
   .aiwavo-kpi-grid {
     grid-template-columns: 1fr;
   }
+
   .aiwavo-actions-grid {
     grid-template-columns: repeat(2, 1fr);
   }

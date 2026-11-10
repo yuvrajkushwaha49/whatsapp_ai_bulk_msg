@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 
 export default function Billing() {
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [plans, setPlans] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
@@ -49,12 +53,13 @@ export default function Billing() {
 
   return (
     <div>
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <h2 className="brand-font mb-1">Subscription & Usage Quotas</h2>
-          <p className="text-muted mb-0">Manage workspace tiers, contact limits, and monthly broadcast allowances</p>
-        </div>
-      </div>
+      <AiwavoHeader
+        title="Billing & Plans"
+        subtitle="Manage workspace tiers, contact limits, and monthly broadcast allowances"
+        onToggleSidebar={onToggleSidebar}
+      />
+
+      <div className="p-4">
 
       {feedback.text && (
         <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4`} role="alert">
@@ -179,6 +184,7 @@ export default function Billing() {
             Official WhatsApp utility and marketing conversation fees are billed directly through your linked Meta Payment Method as per Meta rate cards.
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

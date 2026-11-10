@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 
 const PRESET_COLORS = [
   '#0d6efd', // Blue
@@ -14,6 +15,8 @@ const PRESET_COLORS = [
 ];
 
 export default function ContactGroups() {
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -221,39 +224,33 @@ export default function ContactGroups() {
       )}
 
       {/* Top Header */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <div className="d-flex align-items-center gap-2 mb-1">
-            <Link to="/contacts" className="text-muted text-decoration-none small">
-              <i className="bi bi-arrow-left me-1"></i> Audience & Contacts
-            </Link>
-            <span className="text-muted small">/</span>
-            <span className="text-muted small fw-semibold">Groups</span>
-          </div>
-          <h2 className="brand-font mb-0 text-dark fw-bold">Contact Groups & Segments</h2>
-          <span className="text-muted small">
-            Organize contacts into targeted groups for bulk WhatsApp broadcasts and automations
-          </span>
-        </div>
+      <AiwavoHeader
+        title="Contact Groups"
+        subtitle="Organize contacts into targeted groups for bulk WhatsApp broadcasts and automations"
+        onToggleSidebar={onToggleSidebar}
+      >
+        <Link to="/contacts" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
+          <i className="bi bi-arrow-left"></i>
+          <span>Back to Contacts</span>
+        </Link>
+        <button
+          onClick={fetchGroups}
+          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
+          title="Refresh groups list"
+        >
+          <i className="bi bi-arrow-clockwise"></i>
+          <span>Refresh</span>
+        </button>
+        <button
+          onClick={openCreateModal}
+          className="btn btn-cf-primary btn-sm d-flex align-items-center gap-1 shadow-sm"
+        >
+          <i className="bi bi-plus-lg"></i>
+          <span>Create New Group</span>
+        </button>
+      </AiwavoHeader>
 
-        <div className="d-flex align-items-center gap-2">
-          <button
-            onClick={fetchGroups}
-            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
-            title="Refresh groups list"
-          >
-            <i className="bi bi-arrow-clockwise"></i>
-            <span>Refresh</span>
-          </button>
-          <button
-            onClick={openCreateModal}
-            className="btn btn-cf-primary btn-sm d-flex align-items-center gap-1 shadow-sm"
-          >
-            <i className="bi bi-plus-lg"></i>
-            <span>Create New Group</span>
-          </button>
-        </div>
-      </div>
+      <div className="p-4">
 
       {/* Search & Statistics Bar */}
       <div className="row g-3 mb-4">
@@ -716,6 +713,7 @@ export default function ContactGroups() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

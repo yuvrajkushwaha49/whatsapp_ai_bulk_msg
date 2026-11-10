@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import AiwavoHeader from '../components/AiwavoHeader';
 
 export default function CampaignList() {
+  const outletContext = useOutletContext();
+  const onToggleSidebar = outletContext?.onToggleSidebar;
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,16 +46,18 @@ export default function CampaignList() {
 
   return (
     <div>
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-        <div>
-          <h2 className="brand-font mb-1">Marketing Campaigns</h2>
-          <p className="text-muted mb-0">Track broadcast status, delivery webhooks, and recipient engagement</p>
-        </div>
+      <AiwavoHeader
+        title="Marketing Campaigns"
+        subtitle="Track broadcast status, delivery webhooks, and recipient engagement"
+        onToggleSidebar={onToggleSidebar}
+      >
         <Link to="/campaigns/new" className="btn btn-cf-primary d-flex align-items-center gap-2">
           <i className="bi bi-plus-lg"></i>
           <span>Create Campaign</span>
         </Link>
-      </div>
+      </AiwavoHeader>
+
+      <div className="p-4">
 
       <div className="cf-card">
         <div className="cf-card-header">
@@ -143,6 +148,7 @@ export default function CampaignList() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
   );
