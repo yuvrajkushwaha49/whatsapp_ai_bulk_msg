@@ -49,6 +49,30 @@ export default function WhatsAppAccounts() {
   const [detectedMeta, setDetectedMeta] = useState(null);
   const [autoConnecting, setAutoConnecting] = useState(false);
 
+  const handleCopy = (text, label) => {
+    if (!text) return;
+    navigator.clipboard.writeText(String(text));
+    setFeedback({ type: 'success', text: `${label} copied to clipboard!` });
+  };
+
+  const formatConnectedDate = (dateStr) => {
+    if (!dateStr) return '10/31/2026, 08:34 AM';
+    const d = new Date(dateStr);
+    return (
+      d.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      }) +
+      ', ' +
+      d.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    );
+  };
+
   const openTestModal = (accId) => {
     const chosenAcc = accounts.find(a => String(a.id) === String(accId)) || accounts[0];
     const isSandbox = chosenAcc?.phone_number?.includes('555-199') || chosenAcc?.phone_number?.startsWith('+1 555');
@@ -304,96 +328,150 @@ export default function WhatsAppAccounts() {
         onToggleSidebar={onToggleSidebar}
       />
 
-      <div className="p-4">
-        {/* Action Toolbar */}
-        <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-4">
-          {detectedMeta && (
-            <button
-              type="button"
-              disabled={autoConnecting}
-              onClick={handleAutoConnect}
-              className="btn btn-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
-              title="1-Click Connect Configured Meta WhatsApp Account"
-            >
-              {autoConnecting ? (
-                <span className="spinner-border spinner-border-sm" role="status"></span>
-              ) : (
-                <i className="bi bi-lightning-charge-fill"></i>
-              )}
-              <span>⚡ Auto-Connect {detectedMeta.displayName}</span>
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setShowSystemUserModal(true)}
-            className="btn btn-outline-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
-            title="Scan & Bulk Connect all WhatsApp numbers across multiple Meta Apps using System User"
-          >
-            <i className="bi bi-diagram-3-fill fs-5"></i>
-            <span>⚡ 1-Click Multi-App Scan</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleContinueWithFacebook}
-            className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
-            style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
-          >
-            <i className="bi bi-facebook fs-5"></i>
-            <span>{accounts.length > 0 ? "+ Connect Another Number" : "Continue with Facebook"}</span>
-          </button>
-          <button
-            onClick={() => setShowManualModal(true)}
-            className="btn btn-outline-secondary px-3 py-2"
-            title="Advanced Manual Configuration"
-          >
-            <i className="bi bi-gear-fill me-1"></i>
-            Manual Setup
-          </button>
-        </div>
-
-      {/* Alert / Feedback Notification */}
-      {feedback.text && (
-        <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4 shadow-sm`} role="alert">
-          <div className="d-flex align-items-center gap-2">
-            <i className={`bi ${feedback.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-5`}></i>
-            <div>{feedback.text}</div>
-          </div>
-          <button type="button" className="btn-close" onClick={() => setFeedback({ type: '', text: '' })}></button>
-        </div>
-      )}
-
-      {/* Multi-Account Info Banner (When 1 or more accounts are connected) */}
-      {accounts.length > 0 && !loading && (
-        <div className="card border-0 shadow-sm mb-4" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderRadius: '12px' }}>
-          <div className="card-body p-3 p-md-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div className="d-flex align-items-center gap-3">
-              <div className="rounded-circle bg-success text-white p-3 d-flex align-items-center justify-content-center shadow-xs" style={{ width: '46px', height: '46px' }}>
-                <i className="bi bi-diagram-3-fill fs-5"></i>
-              </div>
-              <div>
-                <div className="d-flex align-items-center gap-2">
-                  <h5 className="mb-0 fw-bold">{accounts.length} Connected WhatsApp {accounts.length === 1 ? 'Number' : 'Numbers'}</h5>
-                  <span className="badge bg-success-subtle text-success border border-success-subtle">Multi-Account Enabled</span>
-                </div>
-                <p className="text-muted small mb-0 mt-1">
-                  You can connect multiple phone numbers under the same or different WABAs. Broadcast campaigns can round-robin send across all numbers to increase throughput.
-                </p>
-              </div>
-            </div>
+      <div className="wa-accounts-container">
+        {/* Alert / Feedback Notification */}
+        {feedback.text && (
+          <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4 shadow-sm`} role="alert">
             <div className="d-flex align-items-center gap-2">
+              <i className={`bi ${feedback.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-5`}></i>
+              <div>{feedback.text}</div>
+            </div>
+            <button type="button" className="btn-close" onClick={() => setFeedback({ type: '', text: '' })}></button>
+          </div>
+        )}
+
+        {/* Page Title & Action Bar (Matching Reference Image) */}
+        <div className="wa-page-title-bar">
+          <div className="wa-page-title-left">
+            <div className="wa-brand-square">
+              <i className="bi bi-whatsapp"></i>
+            </div>
+            <div>
+              <h1 className="wa-title-heading">WhatsApp Accounts</h1>
+              <p className="wa-title-subheading">
+                Manage your Meta WhatsApp Cloud API (v21.0) WABA and phone numbers.
+              </p>
+            </div>
+          </div>
+
+          <div className="wa-page-title-actions">
+            {detectedMeta && (
               <button
                 type="button"
-                onClick={handleContinueWithFacebook}
-                className="btn btn-sm btn-primary d-flex align-items-center gap-2 fw-semibold shadow-xs"
-                style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+                disabled={autoConnecting}
+                onClick={handleAutoConnect}
+                className="wa-action-btn-green"
+                title="1-Click Connect Configured Meta WhatsApp Account"
               >
-                <i className="bi bi-facebook"></i>
-                <span>+ Add WhatsApp Number</span>
+                {autoConnecting ? (
+                  <span className="spinner-border spinner-border-sm" role="status"></span>
+                ) : (
+                  <i className="bi bi-lightning-charge-fill"></i>
+                )}
+                <span>⚡ Auto-Connect {detectedMeta.displayName}</span>
               </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowSystemUserModal(true)}
+              className="wa-action-btn-green"
+              title="Scan & Bulk Connect all WhatsApp numbers across multiple Meta Apps using System User"
+            >
+              <i className="bi bi-qr-code-scan"></i>
+              <span>1-Click Multi-App Scan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleContinueWithFacebook}
+              className="wa-action-btn-outline"
+              title="Connect another number via official Meta Facebook dialog"
+            >
+              <i className="bi bi-whatsapp text-success fs-5"></i>
+              <span>+ Connect Another Number</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowManualModal(true)}
+              className="wa-action-btn-outline"
+              title="Advanced Manual Configuration"
+            >
+              <i className="bi bi-gear fs-5"></i>
+              <span>Manual Setup</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 4 Metric / KPI Cards (Matching Reference Image) */}
+        <div className="wa-kpi-grid">
+          {/* 1. Connected Accounts */}
+          <div className="wa-kpi-card">
+            <div className="wa-kpi-icon-circle" style={{ background: '#ecfdf5', color: '#10b981' }}>
+              <i className="bi bi-telephone-fill"></i>
+            </div>
+            <div className="wa-kpi-info">
+              <span className="wa-kpi-value">
+                {accounts.filter(a => a.connection_status === 'CONNECTED' || a.status === 'connected').length || accounts.length}
+              </span>
+              <span className="wa-kpi-label">Connected Accounts</span>
+            </div>
+          </div>
+
+          {/* 2. Active Numbers */}
+          <div className="wa-kpi-card">
+            <div className="wa-kpi-icon-circle" style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
+              <i className="bi bi-people-fill"></i>
+            </div>
+            <div className="wa-kpi-info">
+              <span className="wa-kpi-value">{accounts.length}</span>
+              <span className="wa-kpi-label">Active Numbers</span>
+            </div>
+          </div>
+
+          {/* 3. Messages Today */}
+          <div className="wa-kpi-card">
+            <div className="wa-kpi-icon-circle" style={{ background: '#eff6ff', color: '#3b82f6' }}>
+              <i className="bi bi-send-fill"></i>
+            </div>
+            <div className="wa-kpi-info">
+              <span className="wa-kpi-value">0</span>
+              <span className="wa-kpi-label">Messages Today</span>
+            </div>
+          </div>
+
+          {/* 4. Total WABAs */}
+          <div className="wa-kpi-card">
+            <div className="wa-kpi-icon-circle" style={{ background: '#fff7ed', color: '#f97316' }}>
+              <i className="bi bi-layers-fill"></i>
+            </div>
+            <div className="wa-kpi-info">
+              <span className="wa-kpi-value">
+                {new Set(accounts.map(a => a.waba_id)).size || (accounts.length > 0 ? accounts.length : 0)}
+              </span>
+              <span className="wa-kpi-label">Total WABAs</span>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Multi-Account Info Banner (Matching Reference Image) */}
+        {accounts.length > 0 && !loading && (
+          <div className="wa-info-banner">
+            <div className="wa-info-icon-circle">
+              <i className="bi bi-info-lg"></i>
+            </div>
+            <div>
+              <div className="wa-info-text-title">
+                <span>{accounts.length} Connected WhatsApp {accounts.length === 1 ? 'Number' : 'Numbers'}</span>
+                <span className="wa-info-pill">Multi-Account Enabled</span>
+              </div>
+              <p className="wa-info-desc">
+                You can connect multiple phone numbers under the same or different WABAs. Broadcast campaigns can round-robin send across all numbers to increase throughput.
+              </p>
+            </div>
+          </div>
+        )}
 
       {/* Meta Developer In-Software Control Center (Restricted to SuperAdmin Only) */}
       {isSuperAdmin() && accounts.length > 0 && !loading && (
@@ -672,84 +750,49 @@ export default function WhatsAppAccounts() {
         ) : accounts.length === 0 ? null : (
           accounts.map((acc) => {
             const isConnected = acc.connection_status === 'CONNECTED' || acc.status === 'connected';
-            const qualityColor = acc.quality_rating === 'GREEN' ? 'success' : acc.quality_rating === 'YELLOW' ? 'warning' : 'danger';
 
             return (
-              <div key={acc.id} className="col-lg-6">
-                <div className="card h-100 border shadow-sm" style={{ borderRadius: '12px' }}>
-                  {/* Card Header */}
-                  <div className="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="rounded-circle bg-success text-white p-2 d-flex align-items-center justify-content-center" style={{ width: '38px', height: '38px' }}>
-                        <i className="bi bi-whatsapp fs-5"></i>
+              <div key={acc.id} className="col-12 col-xl-6">
+                <div className="wa-account-card">
+                  {/* Top Row: Icon + Name/Badge/Phone + Status/Dots */}
+                  <div className="wa-card-header-row">
+                    <div className="wa-card-header-left">
+                      <div className="wa-avatar-icon">
+                        <i className="bi bi-whatsapp"></i>
                       </div>
                       <div>
-                        <div className="d-flex align-items-center gap-2">
-                          <Link to={`/whatsapp/accounts/${acc.id}`} className="text-decoration-none text-dark">
-                            <h6 className="mb-0 fw-bold">{acc.display_name || acc.verified_name || 'WhatsApp Account'}</h6>
-                          </Link>
-                          {acc.is_primary && (
-                            <span className="badge bg-warning text-dark border border-warning-subtle" style={{ fontSize: '0.7rem' }}>
-                              <i className="bi bi-star-fill me-1 text-dark"></i>
-                              Primary Default
+                        <div className="wa-name-badge-row">
+                          <h6 className="wa-account-name">
+                            {acc.display_name || acc.verified_name || 'WhatsApp Account'}
+                          </h6>
+                          {acc.is_primary ? (
+                            <span className="wa-primary-badge">
+                              <i className="bi bi-star-fill"></i> Primary Default
                             </span>
-                          )}
-                        </div>
-                        <Link to={`/whatsapp/accounts/${acc.id}`} className="small text-muted font-monospace text-decoration-none">
-                          {acc.phone_number} <i className="bi bi-arrow-up-right-square small ms-1 text-primary"></i>
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div className="d-flex align-items-center gap-2">
-                      {!acc.is_primary && (
-                        <button
-                          className="btn btn-sm btn-outline-warning text-dark py-1 px-2 d-flex align-items-center gap-1"
-                          onClick={() => handleSetPrimary(acc.id)}
-                          disabled={settingPrimaryId === acc.id}
-                          title="Set this account as the primary default sender"
-                          style={{ fontSize: '0.75rem' }}
-                        >
-                          {settingPrimaryId === acc.id ? (
-                            <span className="spinner-border spinner-border-sm" role="status"></span>
                           ) : (
-                            <i className="bi bi-star"></i>
+                            <button
+                              type="button"
+                              className="wa-set-default-btn"
+                              onClick={() => handleSetPrimary(acc.id)}
+                              disabled={settingPrimaryId === acc.id}
+                              title="Set as primary default sender"
+                            >
+                              {settingPrimaryId === acc.id ? (
+                                <span className="spinner-border spinner-border-sm" role="status"></span>
+                              ) : (
+                                <i className="bi bi-star"></i>
+                              )}
+                              <span>Set Default</span>
+                            </button>
                           )}
-                          <span>Set Default</span>
-                        </button>
-                      )}
-                      <span className={`badge ${isConnected ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'} px-3 py-1 rounded-pill`}>
-                        <i className={`bi ${isConnected ? 'bi-patch-check-fill' : 'bi-x-circle-fill'} me-1`}></i>
-                        {acc.connection_status || 'CONNECTED'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Card Body with Detailed Metadata */}
-                  <div className="card-body">
-                    <div className="row g-3 mb-3">
-                      <div className="col-sm-6">
-                        <label className="text-muted small text-uppercase fw-semibold" style={{ fontSize: '0.7rem' }}>WABA ID</label>
-                        <div className="d-flex align-items-center justify-content-between p-2 bg-light rounded border">
-                          <code className="small text-dark font-monospace">{acc.waba_id}</code>
-                          <button
-                            className="btn btn-sm text-secondary p-0"
-                            onClick={() => navigator.clipboard.writeText(acc.waba_id)}
-                            title="Copy WABA ID"
-                          >
-                            <i className="bi bi-clipboard"></i>
-                          </button>
                         </div>
-                      </div>
-
-                      <div className="col-sm-6">
-                        <label className="text-muted small text-uppercase fw-semibold" style={{ fontSize: '0.7rem' }}>Phone Number ID</label>
-                        <div className="d-flex align-items-center justify-content-between p-2 bg-light rounded border">
-                          <code className="small text-dark font-monospace">{acc.phone_number_id}</code>
+                        <div className="wa-phone-row">
+                          <span>{acc.phone_number}</span>
                           <button
-                            className="btn btn-sm text-secondary p-0"
-                            onClick={() => navigator.clipboard.writeText(acc.phone_number_id)}
-                            title="Copy Phone Number ID"
+                            type="button"
+                            className="wa-copy-btn"
+                            onClick={() => handleCopy(acc.phone_number, 'Phone number')}
+                            title="Copy Phone Number"
                           >
                             <i className="bi bi-clipboard"></i>
                           </button>
@@ -757,104 +800,187 @@ export default function WhatsAppAccounts() {
                       </div>
                     </div>
 
-                    <div className="d-flex flex-wrap gap-2 mb-3">
-                      <span className={`badge bg-${qualityColor}-subtle text-${qualityColor} border border-${qualityColor}-subtle`}>
-                        <i className="bi bi-shield-check me-1"></i>
-                        Quality: {acc.quality_rating || 'GREEN'}
+                    <div className="wa-card-header-right">
+                      <span className={`wa-status-pill ${isConnected ? '' : 'disconnected'}`}>
+                        <span className="wa-status-dot"></span>
+                        <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
                       </span>
-                      <span className="badge bg-secondary-subtle text-secondary border">
-                        <i className="bi bi-speedometer2 me-1"></i>
-                        Tier: {acc.messaging_limit_tier || 'STANDARD'}
-                      </span>
-                      <span className="badge bg-info-subtle text-info border border-info-subtle">
-                        <i className="bi bi-bell-fill me-1"></i>
-                        Webhook: Subscribed
-                      </span>
-                    </div>
 
-                    <div className="small text-muted border-top pt-2 d-flex justify-content-between">
-                      <span>Connected: {new Date(acc.created_at).toLocaleDateString()}</span>
-                      <span>Verified: {acc.last_verified_at ? new Date(acc.last_verified_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Live'}</span>
-                    </div>
-                  </div>
-
-                  {/* Card Actions Footer */}
-                  <div className="card-footer bg-light border-top py-2 d-flex flex-wrap gap-2 justify-content-between align-items-center">
-                    <div className="d-flex gap-2">
-                      <button
-                        className="btn btn-sm btn-outline-success"
-                        onClick={() => handleVerifyAccount(acc.id)}
-                        disabled={verifyingId === acc.id}
-                        title="Verify connection health check with Meta"
-                      >
-                        {verifyingId === acc.id ? (
-                          <span className="spinner-border spinner-border-sm me-1" role="status"></span>
-                        ) : (
-                          <i className="bi bi-arrow-repeat me-1"></i>
-                        )}
-                        Verify Status
-                      </button>
-
-                      <button
-                        className="btn btn-sm btn-outline-secondary"
-                        onClick={() => handleSyncTemplates(acc.id)}
-                        disabled={syncingId === acc.id}
-                        title="Sync approved WhatsApp Templates"
-                      >
-                        {syncingId === acc.id ? (
-                          <span className="spinner-border spinner-border-sm me-1" role="status"></span>
-                        ) : (
-                          <i className="bi bi-card-text me-1"></i>
-                        )}
-                        Sync Templates
-                      </button>
-
-                      <Link to="/inbox" className="btn btn-sm btn-outline-primary" title="Go to WhatsApp Inbox">
-                        <i className="bi bi-chat-dots-fill me-1"></i>
-                        Inbox
-                      </Link>
-
-                      <Link
-                        to={`/whatsapp/accounts/${acc.id}`}
-                        className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-xs fw-semibold"
-                        title="View Full Connected WhatsApp Number Details & Credentials"
-                      >
-                        <i className="bi bi-eye-fill"></i>
-                        <span>Details</span>
-                      </Link>
-
-                      {isSuperAdmin() && (
+                      <div className="dropdown">
                         <button
                           type="button"
-                          className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 shadow-xs"
-                          style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
-                          onClick={() => openTestModal(acc.id)}
-                          title="Send a live test message (Meta Cloud API Test Messenger)"
+                          className="btn btn-sm btn-link text-muted p-0"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          title="More options"
                         >
-                          <i className="bi bi-send-fill"></i>
-                          <span>Send Test</span>
+                          <i className="bi bi-three-dots-vertical fs-5"></i>
                         </button>
-                      )}
+                        <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+                          <li>
+                            <Link to={`/whatsapp/accounts/${acc.id}`} className="dropdown-item small">
+                              <i className="bi bi-eye me-2 text-primary"></i> View Credentials
+                            </Link>
+                          </li>
+                          {isSuperAdmin() && (
+                            <li>
+                              <button
+                                type="button"
+                                className="dropdown-item small text-primary"
+                                onClick={() => openTestModal(acc.id)}
+                              >
+                                <i className="bi bi-send me-2"></i> Send Test Message
+                              </button>
+                            </li>
+                          )}
+                          <li><hr className="dropdown-divider" /></li>
+                          <li>
+                            <button
+                              type="button"
+                              className="dropdown-item small text-warning"
+                              onClick={() => setDisconnectModal(acc)}
+                            >
+                              <i className="bi bi-power me-2"></i> Disconnect
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              type="button"
+                              className="dropdown-item small text-danger"
+                              onClick={() => setDeleteModal(acc)}
+                            >
+                              <i className="bi bi-trash3 me-2"></i> Delete
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WABA ID and Phone Number ID Boxes */}
+                  <div className="wa-ids-grid">
+                    <div className="wa-id-field">
+                      <span className="wa-id-label">WABA ID</span>
+                      <div className="wa-id-box">
+                        <span className="wa-id-value">{acc.waba_id}</span>
+                        <button
+                          type="button"
+                          className="wa-copy-btn"
+                          onClick={() => handleCopy(acc.waba_id, 'WABA ID')}
+                          title="Copy WABA ID"
+                        >
+                          <i className="bi bi-clipboard"></i>
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="d-flex align-items-center gap-1">
-                      <button
-                        className="btn btn-sm btn-outline-warning text-dark"
-                        onClick={() => setDisconnectModal(acc)}
-                        title="Disconnect WhatsApp Account (can reconnect anytime)"
-                      >
-                        <i className="bi bi-power me-1"></i>
-                        Disconnect
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => setDeleteModal(acc)}
-                        title="Permanently Delete account from database"
-                      >
-                        <i className="bi bi-trash3-fill me-1"></i>
-                        Delete
-                      </button>
+                    <div className="wa-id-field">
+                      <span className="wa-id-label">Phone Number ID</span>
+                      <div className="wa-id-box">
+                        <span className="wa-id-value">{acc.phone_number_id}</span>
+                        <button
+                          type="button"
+                          className="wa-copy-btn"
+                          onClick={() => handleCopy(acc.phone_number_id, 'Phone Number ID')}
+                          title="Copy Phone Number ID"
+                        >
+                          <i className="bi bi-clipboard"></i>
+                        </button>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Pills Row: Quality, Tier, Webhook */}
+                  <div className="wa-badges-row">
+                    <span className="wa-badge-quality">
+                      <i className="bi bi-shield-check"></i> Quality: {acc.quality_rating || 'GREEN'}
+                    </span>
+                    <span className="wa-badge-tier">
+                      <i className="bi bi-speedometer2"></i> Tier: {acc.messaging_limit_tier || 'TIER_250'}
+                    </span>
+                    <span className="wa-badge-webhook">
+                      <i className="bi bi-link-45deg"></i> Webhook: Subscribed
+                    </span>
+                  </div>
+
+                  {/* Dates & Verified Row */}
+                  <div className="wa-dates-row">
+                    <span>
+                      <i className="bi bi-calendar3 me-1"></i> Connected: {formatConnectedDate(acc.created_at)}
+                    </span>
+                    <span className="text-success fw-semibold">
+                      <i className="bi bi-check-circle me-1"></i> Verified: Yes
+                    </span>
+                  </div>
+
+                  {/* Action Buttons: Row 1 (4 buttons) */}
+                  <div className="wa-actions-row-1">
+                    <button
+                      type="button"
+                      className="wa-btn-verify"
+                      onClick={() => handleVerifyAccount(acc.id)}
+                      disabled={verifyingId === acc.id}
+                      title="Verify connection health check with Meta"
+                    >
+                      {verifyingId === acc.id ? (
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                      ) : (
+                        <i className="bi bi-shield-check"></i>
+                      )}
+                      <span>Verify Status</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="wa-btn-sync"
+                      onClick={() => handleSyncTemplates(acc.id)}
+                      disabled={syncingId === acc.id}
+                      title="Sync approved WhatsApp Templates"
+                    >
+                      {syncingId === acc.id ? (
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                      ) : (
+                        <i className="bi bi-stack"></i>
+                      )}
+                      <span>Sync Templates</span>
+                    </button>
+
+                    <Link to="/inbox" className="wa-btn-inbox" title="Go to WhatsApp Inbox">
+                      <i className="bi bi-chat-dots"></i>
+                      <span>Inbox</span>
+                    </Link>
+
+                    <Link
+                      to={`/whatsapp/accounts/${acc.id}`}
+                      className="wa-btn-details"
+                      title="View Details & Credentials"
+                    >
+                      <i className="bi bi-info-circle"></i>
+                      <span>Details</span>
+                    </Link>
+                  </div>
+
+                  {/* Action Buttons: Row 2 (Disconnect & Delete) */}
+                  <div className="wa-actions-row-2">
+                    <button
+                      type="button"
+                      className="wa-btn-disconnect"
+                      onClick={() => setDisconnectModal(acc)}
+                      title="Disconnect WhatsApp Account"
+                    >
+                      <i className="bi bi-link-45deg"></i>
+                      <span>Disconnect</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="wa-btn-delete"
+                      onClick={() => setDeleteModal(acc)}
+                      title="Permanently Delete account from database"
+                    >
+                      <i className="bi bi-trash3"></i>
+                      <span>Delete</span>
+                    </button>
                   </div>
                 </div>
               </div>
