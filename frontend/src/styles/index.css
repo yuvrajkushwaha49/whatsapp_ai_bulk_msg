@@ -147,31 +147,31 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   margin-top: 2px;
 }
 
-/* Close/collapse button in sidebar header (Positioned on the edge: half green, half white) */
+/* Close/collapse button in sidebar header (Positioned on the edge: half green, half white square) */
 .sidebar-close-btn {
   position: absolute;
-  right: -13px;
+  right: -14px;
   top: 50%;
   transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   background: linear-gradient(90deg, #00a859 0%, #00a859 50%, #ffffff 50%, #ffffff 100%);
-  border: 1.5px solid #00a859;
+  border: 1.5px solid #044e3b;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 1055;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.15);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   padding: 0;
   outline: none;
 }
 
 .sidebar-close-btn:hover {
-  transform: translateY(-50%) scale(1.15);
-  box-shadow: 0 4px 14px rgba(0, 168, 89, 0.45);
+  transform: translateY(-50%) scale(1.12);
+  box-shadow: 0 5px 16px rgba(0, 168, 89, 0.45);
 }
 
 .sidebar-close-btn i {
@@ -179,7 +179,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   align-items: center;
   justify-content: center;
   color: #061612;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 900;
   line-height: 1;
 }
@@ -764,12 +764,13 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   }
   .app-wrapper.sidebar-collapsed .sidebar-close-btn {
     position: absolute;
-    right: -13px;
+    right: -14px;
     top: 50%;
     transform: translateY(-50%);
     margin: 0;
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
   }
 
   /* Small Navbar: Scrollable Body */
