@@ -799,18 +799,23 @@
 
 /* ================= Left Sidebar AIWAVO Polish ================= */
 .sidebar-pro-card {
-  margin: 1rem;
+  margin: 0.85rem 0.85rem 1rem;
   padding: 1rem 1.15rem;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.2) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 14px;
+  background: rgba(4, 23, 19, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 16px;
   color: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  position: relative;
+  z-index: 2;
 }
 
 .sidebar-pro-header {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   font-weight: 700;
   font-size: 0.95rem;
   color: #ffffff;
@@ -819,58 +824,60 @@
 
 .sidebar-pro-crown {
   color: #f59e0b;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
 }
 
 .sidebar-pro-valid {
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: #7e9e95;
   margin-bottom: 0.75rem;
 }
 
 .sidebar-pro-progress-bg {
   width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.15);
+  height: 7px;
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 9999px;
   overflow: hidden;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
 }
 
 .sidebar-pro-progress-fill {
   height: 100%;
-  background: #10b981;
+  background: #00e676;
   border-radius: 9999px;
 }
 
 .sidebar-pro-text {
   font-size: 0.72rem;
-  color: #cbd5e1;
+  color: #d1dcd7;
   font-weight: 600;
   margin-bottom: 0.75rem;
 }
 
 .sidebar-pro-btn {
   width: 100%;
-  padding: 0.45rem 0.75rem;
-  background: #10b981;
+  padding: 0.52rem 0.75rem;
+  background: #00a859;
   color: #ffffff;
   border: none;
-  border-radius: 8px;
-  font-size: 0.78rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 168, 89, 0.3);
 }
 
 .sidebar-pro-btn:hover {
-  background: #059669;
+  background: #00934e;
   color: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 168, 89, 0.4);
 }
 
 /* ================= Responsive Breakpoints ================= */

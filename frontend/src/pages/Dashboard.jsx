@@ -20,6 +20,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
+  const sidebarOpen = outletContext?.sidebarOpen;
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -134,11 +135,12 @@ export default function Dashboard() {
             {onToggleSidebar && (
               <button
                 type="button"
-                className="aiwavo-mobile-toggle d-lg-none"
+                className="aiwavo-sidebar-toggle-btn me-2"
                 onClick={onToggleSidebar}
                 aria-label="Toggle navigation"
+                title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
               >
-                <i className="bi bi-list fs-5"></i>
+                <i className={`bi ${sidebarOpen ? 'bi-layout-sidebar-inset' : 'bi-list'} fs-5`}></i>
               </button>
             )}
             <h1 className="aiwavo-header-title">Dashboard</h1>

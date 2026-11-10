@@ -1,16 +1,17 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 
-export default function Navbar({ onToggleSidebar }) {
+export default function Navbar({ onToggleSidebar, sidebarOpen }) {
   const { user, business, logout, isSuperAdmin } = useAuth();
 
   return (
     <header className="top-navbar">
       <div className="d-flex align-items-center gap-3">
         <button 
-          className="btn btn-sm btn-outline-secondary d-lg-none" 
+          className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center navbar-sidebar-toggle" 
           onClick={onToggleSidebar}
           aria-label="Toggle navigation"
+          title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
           <i className="bi bi-list fs-5"></i>
         </button>

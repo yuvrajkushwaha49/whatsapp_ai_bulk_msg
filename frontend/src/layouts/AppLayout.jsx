@@ -1,21 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 
 export default function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('cf_sidebar_open');
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    return typeof window !== 'undefined' ? window.innerWidth >= 992 : true;
+  });
+
   const location = useLocation();
   const isInbox = location.pathname.startsWith('/inbox');
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
 
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem('cf_sidebar_open', String(next));
+      return next;
+    });
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    localStorage.setItem('cf_sidebar_open', 'false');
+  };
+
+  const openSidebar = () => {
+    setSidebarOpen(true);
+    localStorage.setItem('cf_sidebar_open', 'true');
+  };
+
+  // Close sidebar on mobile route navigation
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 992) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname]);
+
   return (
-    <div className="app-wrapper">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className={`app-wrapper ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+      {/* Mobile Backdrop overlay */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-backdrop d-lg-none"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Floating Toggle Pill when Sidebar is closed */}
+      {!sidebarOpen && (
+        <button
+          type="button"
+          className="sidebar-floating-toggle"
+          onClick={openSidebar}
+          title="Open Sidebar"
+          aria-label="Open Sidebar"
+        >
+          <i className="bi bi-chevron-right"></i>
+        </button>
+      )}
+
+      {/* Sidebar Component */}
+      <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+
+      {/* Main Content Area */}
       <div className="main-content">
-        {!isDashboard && <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />}
-        <main className={`content-container ${isInbox ? 'inbox-container-reset' : ''} ${isDashboard ? 'p-0 border-0 bg-transparent' : ''}`}>
-          <Outlet context={{ onToggleSidebar: () => setSidebarOpen(!sidebarOpen) }} />
+        {!isDashboard && (
+          <Navbar
+            onToggleSidebar={toggleSidebar}
+            sidebarOpen={sidebarOpen}
+          />
+        )}
+        <main
+          className={`content-container ${
+            isInbox ? 'inbox-container-reset' : ''
+          } ${isDashboard ? 'p-0 border-0 bg-transparent' : ''}`}
+        >
+          <Outlet context={{ onToggleSidebar: toggleSidebar, sidebarOpen }} />
         </main>
       </div>
     </div>
