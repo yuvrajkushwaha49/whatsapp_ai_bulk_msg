@@ -157,21 +157,32 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
         )}
       </ul>
 
-      {/* Bottom Pro Plan Card (Slides smoothly with Navbar) */}
+      {/* Bottom Pro Plan Card */}
       <div className="sidebar-pro-card">
-        <div className="sidebar-pro-header">
-          <i className="bi bi-crown-fill sidebar-pro-crown"></i>
-          <span>Pro Plan</span>
+        {/* Full View when Expanded */}
+        <div className="sidebar-pro-full">
+          <div className="sidebar-pro-header">
+            <i className="bi bi-crown-fill sidebar-pro-crown"></i>
+            <span>Pro Plan</span>
+          </div>
+          <div className="sidebar-pro-valid">Valid till: 31 Dec 2026</div>
+          <div className="sidebar-pro-progress-bg">
+            <div className="sidebar-pro-progress-fill" style={{ width: '82.4%' }}></div>
+          </div>
+          <div className="sidebar-pro-text">82,400 / 100,000 Messages</div>
+          <NavLink to="/billing" className="sidebar-pro-btn" onClick={handleLinkClick}>
+            <span>Upgrade Plan</span>
+            <i className="bi bi-arrow-right"></i>
+          </NavLink>
         </div>
-        <div className="sidebar-pro-valid">Valid till: 31 Dec 2026</div>
-        <div className="sidebar-pro-progress-bg">
-          <div className="sidebar-pro-progress-fill" style={{ width: '82.4%' }}></div>
+
+        {/* Mini View when Collapsed */}
+        <div className="sidebar-pro-mini" title="Pro Plan (82,400 / 100,000 Messages)">
+          <NavLink to="/billing" className="sidebar-pro-mini-btn" onClick={handleLinkClick}>
+            <i className="bi bi-crown-fill sidebar-pro-crown"></i>
+            <span className="sidebar-pro-mini-label">PRO</span>
+          </NavLink>
         </div>
-        <div className="sidebar-pro-text">82,400 / 100,000 Messages</div>
-        <NavLink to="/billing" className="sidebar-pro-btn" onClick={handleLinkClick}>
-          <span>Upgrade Plan</span>
-          <i className="bi bi-arrow-right"></i>
-        </NavLink>
       </div>
     </aside>
   );

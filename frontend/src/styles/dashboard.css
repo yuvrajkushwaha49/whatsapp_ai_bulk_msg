@@ -799,25 +799,19 @@
 
 /* ================= Left Sidebar AIWAVO Polish ================= */
 .sidebar-pro-card {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  width: 236px;
+  margin: 0.85rem 0.85rem 1rem;
   padding: 1rem 1.15rem;
-  background: rgba(4, 23, 19, 0.75);
+  background: rgba(4, 23, 19, 0.72);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(16, 185, 129, 0.28);
   border-radius: 16px;
   color: #ffffff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  z-index: 5;
-  transform: translateX(0);
-  opacity: 1;
-  visibility: visible;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, visibility 0.3s;
-  pointer-events: auto;
-  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-pro-header {
@@ -828,7 +822,6 @@
   font-size: 0.95rem;
   color: #ffffff;
   margin-bottom: 0.2rem;
-  white-space: nowrap;
 }
 
 .sidebar-pro-crown {
@@ -840,7 +833,6 @@
   font-size: 0.72rem;
   color: #7e9e95;
   margin-bottom: 0.75rem;
-  white-space: nowrap;
 }
 
 .sidebar-pro-progress-bg {
@@ -863,7 +855,6 @@
   color: #d1dcd7;
   font-weight: 600;
   margin-bottom: 0.75rem;
-  white-space: nowrap;
 }
 
 .sidebar-pro-btn {
@@ -883,7 +874,6 @@
   text-decoration: none;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(0, 168, 89, 0.3);
-  white-space: nowrap;
 }
 
 .sidebar-pro-btn:hover {
