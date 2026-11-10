@@ -589,38 +589,45 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="aiwavo-list-container">
-            {automationsList.map((auto, idx) => (
-              <div key={`auto-${auto.id || idx}`} className="aiwavo-list-item">
-                <div className="aiwavo-list-left">
-                  <div
-                    className={`aiwavo-item-icon ${
-                      auto.icon === 'play' ? 'icon-play' : 'icon-pause'
-                    }`}
-                  >
-                    <i
-                      className={`bi ${
-                        auto.icon === 'play' ? 'bi-play-fill' : 'bi-pause-fill'
-                      }`}
-                    ></i>
-                  </div>
-                  <div className="aiwavo-item-info">
-                    <span className="aiwavo-item-name">{auto.name}</span>
-                  </div>
-                </div>
-                <div className="aiwavo-list-right">
-                  <span
-                    className={`aiwavo-status-pill ${
-                      auto.status === 'Running' ? 'status-running' : 'status-paused'
-                    }`}
-                  >
-                    {auto.status}
-                  </span>
-                  <button type="button" className="aiwavo-more-btn" title="Options">
-                    <i className="bi bi-three-dots-vertical"></i>
-                  </button>
-                </div>
+            {automationsList.length === 0 ? (
+              <div className="text-center py-4 text-muted">
+                <i className="bi bi-diagram-3 fs-3 d-block mb-1 text-secondary opacity-50"></i>
+                <span className="small">No automations configured yet</span>
               </div>
-            ))}
+            ) : (
+              automationsList.map((auto, idx) => (
+                <div key={`auto-${auto.id || idx}`} className="aiwavo-list-item">
+                  <div className="aiwavo-list-left">
+                    <div
+                      className={`aiwavo-item-icon ${
+                        auto.icon === 'play' ? 'icon-play' : 'icon-pause'
+                      }`}
+                    >
+                      <i
+                        className={`bi ${
+                          auto.icon === 'play' ? 'bi-play-fill' : 'bi-pause-fill'
+                        }`}
+                      ></i>
+                    </div>
+                    <div className="aiwavo-item-info">
+                      <span className="aiwavo-item-name">{auto.name}</span>
+                    </div>
+                  </div>
+                  <div className="aiwavo-list-right">
+                    <span
+                      className={`aiwavo-status-pill ${
+                        auto.status === 'Running' ? 'status-running' : 'status-paused'
+                      }`}
+                    >
+                      {auto.status}
+                    </span>
+                    <button type="button" className="aiwavo-more-btn" title="Options">
+                      <i className="bi bi-three-dots-vertical"></i>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -636,32 +643,39 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="aiwavo-list-container">
-            {scheduledCampaigns.map((camp, idx) => {
-              const iconClass =
-                camp.icon === 'gift'
-                  ? 'bi-gift-fill'
-                  : camp.icon === 'tag'
-                  ? 'bi-tag-fill'
-                  : 'bi-bell-fill';
-              return (
-                <div key={`sched-${camp.id || idx}`} className="aiwavo-list-item">
-                  <div className="aiwavo-list-left">
-                    <div className="aiwavo-item-icon icon-purple">
-                      <i className={`bi ${iconClass}`}></i>
+            {scheduledCampaigns.length === 0 ? (
+              <div className="text-center py-4 text-muted">
+                <i className="bi bi-calendar-x fs-3 d-block mb-1 text-secondary opacity-50"></i>
+                <span className="small">No scheduled campaigns</span>
+              </div>
+            ) : (
+              scheduledCampaigns.map((camp, idx) => {
+                const iconClass =
+                  camp.icon === 'gift'
+                    ? 'bi-gift-fill'
+                    : camp.icon === 'tag'
+                    ? 'bi-tag-fill'
+                    : 'bi-bell-fill';
+                return (
+                  <div key={`sched-${camp.id || idx}`} className="aiwavo-list-item">
+                    <div className="aiwavo-list-left">
+                      <div className="aiwavo-item-icon icon-purple">
+                        <i className={`bi ${iconClass}`}></i>
+                      </div>
+                      <div className="aiwavo-item-info">
+                        <span className="aiwavo-item-name">{camp.name}</span>
+                      </div>
                     </div>
-                    <div className="aiwavo-item-info">
-                      <span className="aiwavo-item-name">{camp.name}</span>
+                    <div className="aiwavo-list-right">
+                      <span className="aiwavo-item-subtext text-nowrap">
+                        <i className="bi bi-calendar3 me-1"></i>
+                        {camp.date}
+                      </span>
                     </div>
                   </div>
-                  <div className="aiwavo-list-right">
-                    <span className="aiwavo-item-subtext text-nowrap">
-                      <i className="bi bi-calendar3 me-1"></i>
-                      {camp.date}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </div>

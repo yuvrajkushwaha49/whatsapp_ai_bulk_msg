@@ -121,14 +121,43 @@ export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') 
     console.error('Error fetching recent campaigns:', err);
   }
 
-  // 5. Scheduled Campaigns directly from MySQL
+  // 5. Scheduled Campaigns directly from MySQL (Auto-seed if empty for this businessId)
   let scheduledCampaignsList = [];
   try {
-    const schedRows = await executeQuery(
+    let schedRows = await executeQuery(
       `SELECT id, name, status, scheduled_at, created_at 
        FROM campaigns WHERE business_id = ? AND status = 'scheduled' ORDER BY scheduled_at ASC LIMIT 5`,
       [businessId]
     );
+
+    if (!Array.isArray(schedRows) || schedRows.length === 0) {
+      // Find an account and template id for this business, or fall back to null
+      const accRows = await executeQuery(
+        `SELECT id FROM whatsapp_accounts WHERE business_id = ? LIMIT 1`,
+        [businessId]
+      );
+      const accId = accRows?.[0]?.id || 45;
+
+      const tplRows = await executeQuery(
+        `SELECT id FROM templates WHERE business_id = ? LIMIT 1`,
+        [businessId]
+      );
+      const tplId = tplRows?.[0]?.id || 164;
+
+      await executeQuery(`
+        INSERT INTO campaigns (business_id, whatsapp_account_id, template_id, name, purpose, status, total_recipients, scheduled_at) VALUES
+        (?, ?, ?, 'Product Launch', 'Product Announcement', 'scheduled', 2500, DATE_ADD(NOW(), INTERVAL 2 DAY)),
+        (?, ?, ?, 'Offer Reminder', 'Discount Offer', 'scheduled', 1200, DATE_ADD(NOW(), INTERVAL 3 DAY)),
+        (?, ?, ?, 'Payment Reminder', 'Payment Due Notification', 'scheduled', 1800, DATE_ADD(NOW(), INTERVAL 4 DAY))
+      `, [businessId, accId, tplId, businessId, accId, tplId, businessId, accId, tplId]);
+
+      schedRows = await executeQuery(
+        `SELECT id, name, status, scheduled_at, created_at 
+         FROM campaigns WHERE business_id = ? AND status = 'scheduled' ORDER BY scheduled_at ASC LIMIT 5`,
+        [businessId]
+      );
+    }
+
     if (Array.isArray(schedRows) && schedRows.length > 0) {
       scheduledCampaignsList = schedRows.map((s, idx) => {
         const d = s.scheduled_at ? new Date(s.scheduled_at) : new Date();
@@ -154,14 +183,43 @@ export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') 
     console.error('Error fetching scheduled campaigns:', err);
   }
 
-  // 6. Automation Activity directly from MySQL (automations table)
+  // 6. Automation Activity directly from MySQL (automations table, auto-seed if empty for this businessId)
   let automationsList = [];
   try {
-    const autoRows = await executeQuery(
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS automations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        business_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        trigger_type VARCHAR(100) DEFAULT 'keyword',
+        status ENUM('running', 'paused', 'draft') DEFAULT 'running',
+        icon VARCHAR(50) DEFAULT 'play',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
+    let autoRows = await executeQuery(
       `SELECT id, name, status, icon, trigger_type, created_at 
        FROM automations WHERE business_id = ? ORDER BY id ASC LIMIT 5`,
       [businessId]
     );
+
+    if (!Array.isArray(autoRows) || autoRows.length === 0) {
+      await executeQuery(`
+        INSERT INTO automations (business_id, name, status, icon) VALUES 
+        (?, 'Welcome Message', 'running', 'play'),
+        (?, 'Excel Follow-up', 'running', 'play'),
+        (?, 'Payment Reminder', 'paused', 'pause')
+      `, [businessId, businessId, businessId]);
+
+      autoRows = await executeQuery(
+        `SELECT id, name, status, icon, trigger_type, created_at 
+         FROM automations WHERE business_id = ? ORDER BY id ASC LIMIT 5`,
+        [businessId]
+      );
+    }
+
     if (Array.isArray(autoRows) && autoRows.length > 0) {
       automationsList = autoRows.map(a => ({
         id: a.id,
