@@ -24,7 +24,7 @@ export const inboxApi = {
   updateContact: (id, data) => api.patch(`/whatsapp/conversations/${id}/contact`, data),
 
   // Analytics & Reference Data
-  getStats: () => api.get('/whatsapp/inbox/stats'),
+  getStats: (params = {}) => api.get('/whatsapp/inbox/stats', { params }),
   getApprovedTemplates: () => api.get('/whatsapp/templates'),
   getTeamMembers: () => api.get('/users')
 };

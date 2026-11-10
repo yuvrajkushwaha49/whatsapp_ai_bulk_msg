@@ -11,6 +11,10 @@ export default function Inbox() {
   // Multi-Account Selection State
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState('all');
+  const selectedAccountIdRef = useRef(selectedAccountId);
+  useEffect(() => {
+    selectedAccountIdRef.current = selectedAccountId;
+  }, [selectedAccountId]);
 
   // State
   const [conversations, setConversations] = useState([]);
@@ -84,8 +88,8 @@ export default function Inbox() {
 
     // Gentle background sync every 25 seconds
     const interval = setInterval(() => {
-      loadConversations(false);
-      loadStats();
+      loadConversations(false, selectedAccountIdRef.current);
+      loadStats(selectedAccountIdRef.current);
     }, 25000);
 
     return () => {
@@ -100,7 +104,8 @@ export default function Inbox() {
 
   // 2. Fetch conversations smoothly when filter, debounced search, or account changes
   useEffect(() => {
-    loadConversations(conversations.length === 0);
+    loadConversations(conversations.length === 0, selectedAccountId);
+    loadStats(selectedAccountId);
   }, [filter, debouncedSearch, selectedAccountId]);
 
   // Join conversation socket room on selection
@@ -150,20 +155,26 @@ export default function Inbox() {
     }
   };
 
-  const loadConversations = async (showLoading = false) => {
+  const loadConversations = async (showLoading = false, accId = selectedAccountIdRef.current) => {
     if (showLoading) setLoadingConversations(true);
     try {
       const res = await inboxApi.getConversations({
         filter,
         search: debouncedSearch,
-        accountId: selectedAccountId
+        accountId: accId
       });
       if (res.data?.success) {
-        setConversations(res.data.data || []);
+        let items = res.data.data || [];
+        // Guard to ensure if a specific account is selected, ONLY its conversations are shown
+        if (accId && accId !== 'all') {
+          items = items.filter(c => String(c.whatsapp_account_id) === String(accId));
+        }
+        setConversations(items);
+
         // If selected conversation was updated, sync its metadata without triggering refetch loops
         const current = selectedConversationRef.current;
         if (current) {
-          const updatedSelected = res.data.data.find(c => c.id === current.id);
+          const updatedSelected = items.find(c => c.id === current.id);
           if (updatedSelected) {
             if (
               current.unread_count !== updatedSelected.unread_count ||
@@ -173,6 +184,9 @@ export default function Inbox() {
             ) {
               setSelectedConversation(prev => ({ ...prev, ...updatedSelected }));
             }
+          } else {
+            // Selected conversation does not belong to the selected account!
+            setSelectedConversation(items.length > 0 ? items[0] : null);
           }
         }
       }
@@ -183,9 +197,9 @@ export default function Inbox() {
     }
   };
 
-  const loadStats = async () => {
+  const loadStats = async (accId = selectedAccountIdRef.current) => {
     try {
-      const res = await inboxApi.getStats();
+      const res = await inboxApi.getStats({ accountId: accId });
       if (res.data?.success) {
         setStats(res.data.data);
       }
@@ -287,6 +301,11 @@ export default function Inbox() {
         const item = updated.splice(idx, 1)[0];
         return [item, ...updated];
       } else if (conversation) {
+        if (selectedAccountIdRef.current && selectedAccountIdRef.current !== 'all') {
+          if (String(conversation.whatsapp_account_id) !== String(selectedAccountIdRef.current)) {
+            return prev;
+          }
+        }
         return [conversation, ...prev];
       }
       return prev;
@@ -670,8 +689,8 @@ export default function Inbox() {
                 className="btn btn-sm btn-light border-0 rounded-circle d-flex align-items-center justify-content-center text-secondary"
                 style={{ width: '32px', height: '32px' }}
                 onClick={() => {
-                  loadConversations(true);
-                  loadStats();
+                  loadConversations(true, selectedAccountIdRef.current);
+                  loadStats(selectedAccountIdRef.current);
                 }}
                 title="Refresh Conversations"
               >
@@ -686,7 +705,13 @@ export default function Inbox() {
                 <select
                   className="inbox-account-select"
                   value={selectedAccountId}
-                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  onChange={(e) => {
+                    const newAccId = e.target.value;
+                    setSelectedAccountId(newAccId);
+                    selectedAccountIdRef.current = newAccId;
+                    loadConversations(true, newAccId);
+                    loadStats(newAccId);
+                  }}
                 >
                   <option value="all">All WhatsApp Channels ({accounts.length})</option>
                   {accounts.map(acc => (

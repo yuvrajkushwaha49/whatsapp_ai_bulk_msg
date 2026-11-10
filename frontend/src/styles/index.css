@@ -4,7 +4,8 @@
    ========================================================================== */
 
 :root {
-  --cf-primary: #25D366; /* WhatsApp Brand Green */
+  --cf-primary: #25D366;
+  /* WhatsApp Brand Green */
   --cf-primary-dark: #128C7E;
   --cf-primary-light: #dcf8c6;
   --cf-accent: #075E54;
@@ -24,7 +25,8 @@
 }
 
 html {
-  font-size: 80% !important; /* Global 20% font-size reduction across entire application */
+  font-size: 80% !important;
+  /* Global 20% font-size reduction across entire application */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -40,14 +42,43 @@ body {
   overflow-x: hidden;
 }
 
-h1, .h1 { font-size: 1.65rem; }
-h2, .h2 { font-size: 1.35rem; }
-h3, .h3 { font-size: 1.15rem; }
-h4, .h4 { font-size: 1.02rem; }
-h5, .h5 { font-size: 0.92rem; }
-h6, .h6 { font-size: 0.82rem; }
+h1,
+.h1 {
+  font-size: 1.65rem;
+}
 
-h1, h2, h3, h4, h5, h6, .brand-font {
+h2,
+.h2 {
+  font-size: 1.35rem;
+}
+
+h3,
+.h3 {
+  font-size: 1.15rem;
+}
+
+h4,
+.h4 {
+  font-size: 1.02rem;
+}
+
+h5,
+.h5 {
+  font-size: 0.92rem;
+}
+
+h6,
+.h6 {
+  font-size: 0.82rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.brand-font {
   font-family: 'Outfit', 'Inter', sans-serif;
   font-weight: 600;
   color: var(--cf-dark);
@@ -63,7 +94,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 .sidebar {
   width: 260px;
   background-color: #061612;
-  background-image: 
+  background-image:
     radial-gradient(circle at 85% 15%, rgba(16, 185, 129, 0.1) 0%, transparent 55%),
     radial-gradient(circle at 10% 85%, rgba(5, 150, 105, 0.22) 0%, transparent 60%),
     linear-gradient(180deg, #071714 0%, #061613 45%, #03100e 100%);
@@ -156,7 +187,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #00a859 0%, #00a859 50%, #ffffff 50%, #ffffff 100%);
+  background: #044e3b;
   border: 1.5px solid #044e3b;
   display: flex;
   align-items: center;
@@ -178,7 +209,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #061612;
+  color: #ffffff;
   font-size: 0.82rem;
   font-weight: 900;
   line-height: 1;
@@ -193,12 +224,15 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   flex-direction: column;
   position: relative;
   z-index: 2;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
 }
 
 .sidebar-body::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
   width: 0;
   height: 0;
 }
@@ -365,8 +399,13 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 }
 
 @keyframes fadeInBackdrop {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .sidebar-heading {
@@ -528,7 +567,8 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   transition: all 0.2s ease;
 }
 
-.btn-cf-primary:hover, .btn-cf-primary:focus {
+.btn-cf-primary:hover,
+.btn-cf-primary:focus {
   background: linear-gradient(135deg, #22bf5b 0%, #0d6f64 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
@@ -545,13 +585,40 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   letter-spacing: 0.03em;
 }
 
-.badge-approved { background-color: #d1fae5; color: #065f46; }
-.badge-pending { background-color: #fef3c7; color: #92400e; }
-.badge-rejected { background-color: #fee2e2; color: #991b1b; }
-.badge-completed { background-color: #e0e7ff; color: #3730a3; }
-.badge-running { background-color: #dcfce7; color: #166534; }
-.badge-active { background-color: #dcf8c6; color: #075e54; }
-.badge-unsubscribed { background-color: #f1f5f9; color: #64748b; }
+.badge-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-completed {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge-running {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge-active {
+  background-color: #dcf8c6;
+  color: #075e54;
+}
+
+.badge-unsubscribed {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
 
 /* Custom Tables */
 .cf-table {
@@ -704,15 +771,19 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   align-items: center;
   justify-content: center;
 }
+
 .sidebar-link-mini-text {
   display: none;
 }
+
 .aiwavo-mini-badge {
   display: none;
 }
+
 .sidebar-pro-mini {
   display: none;
 }
+
 .sidebar-pro-full {
   display: block;
 }
@@ -723,6 +794,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     width: 260px;
     transform: translateX(0);
   }
+
   .app-wrapper.sidebar-open .main-content {
     margin-left: 260px;
     width: calc(100vw - 260px);
@@ -734,6 +806,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     width: 86px;
     transform: translateX(0);
   }
+
   .app-wrapper.sidebar-collapsed .main-content {
     margin-left: 86px;
     width: calc(100vw - 86px);
@@ -748,20 +821,24 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     justify-content: center;
     position: relative;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-brand-inner {
     display: flex;
     align-items: center;
     justify-content: center;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-brand-text {
     display: none !important;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-brand-icon {
     width: 38px;
     height: 38px;
     font-size: 1.25rem;
     margin: 0 auto;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-close-btn {
     position: absolute;
     right: -14px;
@@ -777,6 +854,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   .app-wrapper.sidebar-collapsed .sidebar-body {
     scrollbar-width: none;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-body::-webkit-scrollbar {
     display: none;
   }
@@ -785,9 +863,11 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   .app-wrapper.sidebar-collapsed .sidebar-menu {
     padding: 0.65rem 0.35rem 0.35rem;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-item {
     margin-bottom: 0.45rem;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-link {
     flex-direction: column;
     align-items: center;
@@ -798,21 +878,25 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     text-align: center;
     width: 100%;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-link-icon-wrap {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-link i {
     font-size: 1.25rem;
     margin: 0;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-link-full-text,
   .app-wrapper.sidebar-collapsed .sidebar-chevron,
   .app-wrapper.sidebar-collapsed .sidebar-link-full-badge {
     display: none !important;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-link-mini-text {
     display: block !important;
     font-size: 0.63rem;
@@ -826,10 +910,12 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     text-overflow: ellipsis;
     letter-spacing: -0.01em;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-link.active .sidebar-link-mini-text {
     color: #ffffff;
     font-weight: 700;
   }
+
   .app-wrapper.sidebar-collapsed .aiwavo-mini-badge {
     display: inline-block !important;
     position: absolute;
@@ -850,15 +936,18 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     border-radius: 12px;
     text-align: center;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-pro-full {
     display: none !important;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-pro-mini {
     display: flex !important;
     flex-direction: column;
     align-items: center;
     justify-content: center;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-pro-mini-btn {
     display: flex;
     flex-direction: column;
@@ -871,9 +960,11 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     border-radius: 8px;
     transition: all 0.2s ease;
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-pro-mini-btn:hover {
     background: rgba(16, 185, 129, 0.2);
   }
+
   .app-wrapper.sidebar-collapsed .sidebar-pro-mini-label {
     font-size: 0.62rem;
     font-weight: 800;
@@ -887,15 +978,18 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     transform: translateX(-100%);
     width: 260px !important;
   }
+
   .app-wrapper.sidebar-open .sidebar,
   .sidebar.show {
     transform: translateX(0);
   }
+
   .main-content {
     margin-left: 0 !important;
     width: 100vw !important;
     max-width: 100vw !important;
   }
+
   .content-container {
     padding: 1.25rem;
   }

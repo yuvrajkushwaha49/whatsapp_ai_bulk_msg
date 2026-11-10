@@ -1286,13 +1286,16 @@ export async function updateContact(businessId, conversationId, contactData) {
 /**
  * 12. Inbox Stats
  */
-export async function getInboxStats(businessId, user) {
+export async function getInboxStats(businessId, user, accountId = null) {
   const numBusinessId = Number(businessId);
   const now = new Date();
 
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    const convs = (store.whatsapp_conversations || []).filter(c => c.business_id === numBusinessId);
+    let convs = (store.whatsapp_conversations || []).filter(c => c.business_id === numBusinessId);
+    if (accountId && accountId !== 'all') {
+      convs = convs.filter(c => String(c.whatsapp_account_id) === String(accountId));
+    }
 
     const total = convs.length;
     const open = convs.filter(c => c.status !== 'closed').length;
@@ -1313,8 +1316,7 @@ export async function getInboxStats(businessId, user) {
     };
   }
 
-  const [stats] = await executeQuery(
-    `SELECT 
+  let statsQuery = `SELECT 
       COUNT(*) as total,
       SUM(CASE WHEN status != 'closed' THEN 1 ELSE 0 END) as open,
       SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed,
@@ -1323,9 +1325,15 @@ export async function getInboxStats(businessId, user) {
       SUM(CASE WHEN assigned_user_id IS NULL AND status != 'closed' THEN 1 ELSE 0 END) as unassigned,
       SUM(CASE WHEN service_window_expires_at > NOW() THEN 1 ELSE 0 END) as windowActive
     FROM whatsapp_conversations 
-    WHERE business_id = ?`,
-    [user.id, numBusinessId]
-  );
+    WHERE business_id = ?`;
+  const statsParams = [user.id, numBusinessId];
+
+  if (accountId && accountId !== 'all') {
+    statsQuery += ' AND whatsapp_account_id = ?';
+    statsParams.push(Number(accountId));
+  }
+
+  const [stats] = await executeQuery(statsQuery, statsParams);
 
   return {
     total: Number(stats?.total || 0),

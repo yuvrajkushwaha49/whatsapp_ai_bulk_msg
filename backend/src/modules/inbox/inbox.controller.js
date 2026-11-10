@@ -5,13 +5,14 @@ export async function getConversations(req, res, next) {
   try {
     const businessId = req.businessId;
     const user = req.user;
-    const { filter, search, page, limit } = req.query;
+    const { filter, search, page, limit, accountId, account_id } = req.query;
 
     const result = await inboxService.listConversations(businessId, user, {
       filter,
       search,
       page,
-      limit
+      limit,
+      accountId: accountId || account_id
     });
 
     res.json({
@@ -220,8 +221,9 @@ export async function getStats(req, res, next) {
   try {
     const businessId = req.businessId;
     const user = req.user;
+    const { accountId, account_id } = req.query;
 
-    const stats = await inboxService.getInboxStats(businessId, user);
+    const stats = await inboxService.getInboxStats(businessId, user, accountId || account_id);
     res.json({ success: true, data: stats });
   } catch (err) {
     next(err);
