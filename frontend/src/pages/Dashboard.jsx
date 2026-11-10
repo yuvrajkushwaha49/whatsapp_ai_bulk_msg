@@ -16,6 +16,163 @@ import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/dashboard.css';
 
+/* ================= Skeleton Placeholder Component ================= */
+function DashboardSkeleton() {
+  return (
+    <div className="aiwavo-dashboard-container" aria-busy="true" aria-label="Loading dashboard">
+      {/* Header Skeleton */}
+      <div className="aiwavo-header">
+        <div className="aiwavo-header-left">
+          <div className="aiwavo-skeleton" style={{ width: '180px', height: '32px', marginBottom: '8px' }}></div>
+          <div className="aiwavo-skeleton" style={{ width: '300px', height: '16px' }}></div>
+        </div>
+        <div className="aiwavo-header-right">
+          <div className="aiwavo-skeleton aiwavo-skeleton-pill" style={{ width: '145px', height: '36px' }}></div>
+          <div className="aiwavo-skeleton aiwavo-skeleton-circle" style={{ width: '36px', height: '36px' }}></div>
+          <div className="aiwavo-skeleton aiwavo-skeleton-circle" style={{ width: '36px', height: '36px' }}></div>
+        </div>
+      </div>
+
+      {/* Row 1: Top Row */}
+      <div className="aiwavo-top-row">
+        {/* Welcome Card Skeleton */}
+        <div className="aiwavo-welcome-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <div className="d-flex align-items-center mb-3">
+            <div className="aiwavo-skeleton aiwavo-skeleton-circle me-3" style={{ width: '40px', height: '40px' }}></div>
+            <div className="aiwavo-skeleton" style={{ width: '220px', height: '24px' }}></div>
+          </div>
+          <div className="aiwavo-skeleton mb-2" style={{ width: '85%', height: '14px' }}></div>
+          <div className="aiwavo-skeleton" style={{ width: '60%', height: '14px' }}></div>
+        </div>
+
+        {/* Quick Actions Card Skeleton */}
+        <div className="aiwavo-quick-actions-card">
+          <div className="aiwavo-skeleton mb-3" style={{ width: '110px', height: '18px' }}></div>
+          <div className="aiwavo-actions-grid">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="d-flex flex-column align-items-center p-2">
+                <div className="aiwavo-skeleton" style={{ width: '42px', height: '42px', borderRadius: '12px', marginBottom: '8px' }}></div>
+                <div className="aiwavo-skeleton" style={{ width: '65px', height: '12px' }}></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: 5 KPI Metric Cards Skeleton */}
+      <div className="aiwavo-kpi-grid">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="aiwavo-kpi-card">
+            <div className="aiwavo-skeleton" style={{ width: '46px', height: '46px', borderRadius: '12px', flexShrink: 0 }}></div>
+            <div className="aiwavo-kpi-info" style={{ width: '100%' }}>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <div className="aiwavo-skeleton" style={{ width: '65px', height: '22px' }}></div>
+                <div className="aiwavo-skeleton aiwavo-skeleton-pill" style={{ width: '42px', height: '18px' }}></div>
+              </div>
+              <div className="aiwavo-skeleton" style={{ width: '90px', height: '13px' }}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Row 3: 3 Analytics / Chart Cards Skeleton */}
+      <div className="aiwavo-charts-row">
+        {/* Chart 1: Message Delivery Trend */}
+        <div className="aiwavo-chart-card">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="aiwavo-skeleton" style={{ width: '170px', height: '18px' }}></div>
+            <div className="aiwavo-skeleton" style={{ width: '120px', height: '14px' }}></div>
+          </div>
+          <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '210px', borderRadius: '12px' }}></div>
+        </div>
+
+        {/* Chart 2: Delivery Overview Donut */}
+        <div className="aiwavo-chart-card">
+          <div className="aiwavo-skeleton mb-3" style={{ width: '140px', height: '18px' }}></div>
+          <div className="d-flex align-items-center justify-content-around py-3">
+            <div className="aiwavo-skeleton aiwavo-skeleton-circle" style={{ width: '130px', height: '130px' }}></div>
+            <div className="d-flex flex-column gap-2" style={{ width: '110px' }}>
+              <div className="aiwavo-skeleton" style={{ width: '100%', height: '14px' }}></div>
+              <div className="aiwavo-skeleton" style={{ width: '80%', height: '14px' }}></div>
+              <div className="aiwavo-skeleton" style={{ width: '90%', height: '14px' }}></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Chart 3: Contact Growth */}
+        <div className="aiwavo-chart-card">
+          <div className="aiwavo-skeleton mb-3" style={{ width: '130px', height: '18px' }}></div>
+          <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '190px', borderRadius: '12px' }}></div>
+        </div>
+      </div>
+
+      {/* Row 4: 3 Section Cards Skeleton */}
+      <div className="aiwavo-sections-row">
+        {[1, 2, 3].map((cardIdx) => (
+          <div key={cardIdx} className="aiwavo-section-card">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="aiwavo-skeleton" style={{ width: '150px', height: '18px' }}></div>
+              <div className="aiwavo-skeleton" style={{ width: '60px', height: '14px' }}></div>
+            </div>
+            <div className="d-flex flex-column gap-3">
+              {[1, 2, 3].map((rowIdx) => (
+                <div key={rowIdx} className="d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-2">
+                    <div className="aiwavo-skeleton aiwavo-skeleton-circle" style={{ width: '36px', height: '36px' }}></div>
+                    <div className="d-flex flex-column gap-1">
+                      <div className="aiwavo-skeleton" style={{ width: '110px', height: '14px' }}></div>
+                      <div className="aiwavo-skeleton" style={{ width: '80px', height: '11px' }}></div>
+                    </div>
+                  </div>
+                  <div className="aiwavo-skeleton aiwavo-skeleton-pill" style={{ width: '70px', height: '22px' }}></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Row 5: Bottom Row Skeleton */}
+      <div className="aiwavo-bottom-row">
+        {/* Recent Campaigns Table Skeleton */}
+        <div className="aiwavo-section-card" style={{ flex: '1 1 65%' }}>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="aiwavo-skeleton" style={{ width: '160px', height: '18px' }}></div>
+            <div className="aiwavo-skeleton" style={{ width: '60px', height: '14px' }}></div>
+          </div>
+          <div className="d-flex flex-column gap-3">
+            {[1, 2, 3, 4].map((r) => (
+              <div key={r} className="d-flex justify-content-between align-items-center py-1">
+                <div className="aiwavo-skeleton" style={{ width: '140px', height: '15px' }}></div>
+                <div className="aiwavo-skeleton aiwavo-skeleton-pill" style={{ width: '75px', height: '20px' }}></div>
+                <div className="aiwavo-skeleton" style={{ width: '60px', height: '15px' }}></div>
+                <div className="aiwavo-skeleton" style={{ width: '60px', height: '15px' }}></div>
+                <div className="aiwavo-skeleton" style={{ width: '90px', height: '15px' }}></div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* System Health Skeleton */}
+        <div className="aiwavo-section-card" style={{ flex: '1 1 30%' }}>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="aiwavo-skeleton" style={{ width: '130px', height: '18px' }}></div>
+            <div className="aiwavo-skeleton aiwavo-skeleton-pill" style={{ width: '80px', height: '20px' }}></div>
+          </div>
+          <div className="d-flex flex-column gap-3">
+            {[1, 2, 3].map((h) => (
+              <div key={h} className="d-flex justify-content-between align-items-center">
+                <div className="aiwavo-skeleton" style={{ width: '100px', height: '14px' }}></div>
+                <div className="aiwavo-skeleton aiwavo-skeleton-pill" style={{ width: '70px', height: '20px' }}></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const outletContext = useOutletContext();
@@ -60,26 +217,9 @@ export default function Dashboard() {
       .slice(0, 2)
     : 'YG';
 
-  // Loading state guard: prevent flashing dummy / mock data before database data is loaded
+  // Loading state guard: render animated Skeleton placeholder layout while database data is being fetched
   if (loading && !stats) {
-    return (
-      <div className="aiwavo-dashboard-container">
-        <div className="aiwavo-header">
-          <div className="aiwavo-header-left">
-            <h1 className="aiwavo-header-title">Dashboard</h1>
-            <p className="aiwavo-header-subtitle">
-              Your WhatsApp automation overview and performance.
-            </p>
-          </div>
-        </div>
-        <div className="d-flex flex-column align-items-center justify-content-center py-5 my-5" style={{ minHeight: '50vh' }}>
-          <div className="spinner-border text-success mb-3" style={{ width: '2.5rem', height: '2.5rem' }} role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="text-muted fw-semibold mb-0">Loading Dashboard data from database...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // KPI Metrics (dynamic from database)

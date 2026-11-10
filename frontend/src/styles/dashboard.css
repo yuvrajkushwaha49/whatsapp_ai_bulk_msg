@@ -880,6 +880,42 @@
   box-shadow: 0 6px 16px rgba(0, 168, 89, 0.4);
 }
 
+/* ================= Dashboard Skeleton Loading Effects ================= */
+.aiwavo-skeleton {
+  background: linear-gradient(
+    90deg,
+    #eef2f6 0%,
+    #e2e8f0 50%,
+    #eef2f6 100%
+  );
+  background-size: 200% 100%;
+  animation: aiwavoSkeletonShimmer 1.5s infinite ease-in-out;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+@keyframes aiwavoSkeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.aiwavo-skeleton-circle {
+  border-radius: 50% !important;
+}
+
+.aiwavo-skeleton-pill {
+  border-radius: 9999px !important;
+}
+
+.aiwavo-skeleton-block {
+  width: 100%;
+  display: block;
+}
+
 /* ================= Responsive Breakpoints ================= */
 @media (max-width: 1200px) {
   .aiwavo-kpi-grid {
