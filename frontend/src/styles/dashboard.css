@@ -1,13 +1,17 @@
 /* =========================================================
-   CampaignFlow Dashboard Stylesheet - Exact Match to Design
+   AIWAVO WhatsApp Automation Platform - Dashboard Styles
+   Pixel-Perfect Match to UI Design Screenshot
    ========================================================= */
 
-.dashboard-container {
-  padding-bottom: 2.5rem;
+.aiwavo-dashboard-container {
+  padding: 1.5rem 2rem 3rem 2rem;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  color: #0f172a;
 }
 
-/* Header */
-.dashboard-header {
+/* ================= Top Header ================= */
+.aiwavo-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -16,527 +20,414 @@
   gap: 1rem;
 }
 
-.dashboard-title {
-  font-size: 1.65rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-  letter-spacing: -0.02em;
+.aiwavo-header-left {
+  display: flex;
+  flex-direction: column;
 }
 
-.dashboard-controls {
+.aiwavo-header-title-row {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-/* Auto-refresh toggle switch */
-.dashboard-switch-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  color: #64748b;
-  cursor: pointer;
-  user-select: none;
-  font-weight: 500;
-}
-
-.dashboard-switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-}
-
-.dashboard-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.dashboard-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #cbd5e1;
-  transition: 0.25s;
-  border-radius: 20px;
-}
-
-.dashboard-slider:before {
-  position: absolute;
-  content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: 0.25s;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.dashboard-switch input:checked + .dashboard-slider {
-  background-color: #22c55e;
-}
-
-.dashboard-switch input:checked + .dashboard-slider:before {
-  transform: translateX(16px);
-}
-
-.dashboard-select {
-  background-color: #ffffff;
+.aiwavo-mobile-toggle {
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 0.38rem 1.8rem 0.38rem 0.85rem;
-  font-size: 0.84rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #334155;
   cursor: pointer;
-  outline: none;
-  font-weight: 500;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.65rem center;
-  background-size: 12px 10px;
-  appearance: none;
 }
 
-.dashboard-refresh-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  border: 1px solid #86efac;
-  background: #ffffff;
-  color: #16a34a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.dashboard-refresh-btn:hover {
-  background: #f0fdf4;
-  border-color: #22c55e;
-}
-
-/* Top Section Layout */
-.dashboard-top-grid {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (max-width: 1200px) {
-  .dashboard-top-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.dashboard-main-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 1.25rem;
-}
-
-@media (max-width: 900px) {
-  .dashboard-main-card {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* WhatsApp Connection Box */
-.dashboard-waba-box {
-  background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%);
-  border: 1px solid #bbf7d0;
-  border-radius: 14px;
-  padding: 1.25rem 1.15rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.dashboard-waba-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #25d366;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.45rem;
-  box-shadow: 0 4px 10px rgba(37, 211, 102, 0.25);
-  margin-bottom: 0.85rem;
-}
-
-.dashboard-waba-number {
-  font-size: 1.25rem;
+.aiwavo-header-title {
+  font-size: 1.75rem;
   font-weight: 800;
   color: #0f172a;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.15rem;
-  word-break: break-all;
+  margin: 0;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
-.dashboard-waba-name {
+.aiwavo-header-subtitle {
   font-size: 0.88rem;
-  font-weight: 500;
   color: #64748b;
-  margin-bottom: 0.4rem;
+  margin: 0.25rem 0 0 0;
+  font-weight: 400;
 }
 
-.dashboard-waba-badge {
-  display: inline-block;
-  background: #dcfce7;
-  color: #15803d;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
-  margin-bottom: 0.85rem;
-  width: fit-content;
-}
-
-.dashboard-waba-sync {
-  font-size: 0.73rem;
-  color: #64748b;
-  margin-bottom: 1rem;
-}
-
-.dashboard-waba-btn {
-  background: #22c55e;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.65rem 1rem;
-  font-size: 0.88rem;
-  font-weight: 600;
+.aiwavo-header-right {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  text-decoration: none;
-  transition: all 0.2s;
-  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.25);
-}
-
-.dashboard-waba-btn:hover {
-  background: #16a34a;
-  color: #ffffff;
-}
-
-/* 2x3 Mini Metric Cards Grid */
-.dashboard-metrics-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.dashboard-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
 
-@media (max-width: 576px) {
-  .dashboard-metrics-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.metric-mini-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 0.75rem 0.95rem;
+/* Date Range Dropdown */
+.aiwavo-date-dropdown {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  transition: all 0.2s;
-}
-
-.metric-mini-card:hover {
   background: #ffffff;
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 0.45rem 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.metric-mini-left {
+.aiwavo-date-icon {
+  color: #475569;
+  font-size: 0.95rem;
+  margin-right: 0.5rem;
+}
+
+.aiwavo-date-select {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  padding-right: 0.5rem;
+}
+
+/* Circular Icon Buttons */
+.aiwavo-circle-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-size: 1rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.aiwavo-circle-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.aiwavo-notification-dot {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 2px solid #ffffff;
+}
+
+/* Profile Badge */
+.aiwavo-profile-badge {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-}
-
-.metric-mini-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
-  flex-shrink: 0;
-}
-
-.metric-mini-label {
-  font-size: 0.82rem;
-  color: #475569;
-  font-weight: 500;
-}
-
-.metric-mini-value {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-/* Specific colors for mini metric cards */
-.metric-card-contacts {
-  border-left: 3.5px solid #3b82f6;
-}
-.metric-card-contacts .metric-mini-icon {
-  background: #eff6ff;
-  color: #3b82f6;
-}
-
-.metric-card-campaigns {
-  border-left: 3.5px solid #8b5cf6;
-}
-.metric-card-campaigns .metric-mini-icon {
-  background: #f5f3ff;
-  color: #8b5cf6;
-}
-.metric-card-campaigns .metric-mini-value {
-  color: #4338ca;
-}
-
-.metric-card-sent-today {
-  border-left: 3.5px solid #6366f1;
-}
-.metric-card-sent-today .metric-mini-icon {
-  background: #eef2ff;
-  color: #6366f1;
-}
-
-.metric-card-numbers {
-  border-left: 3.5px solid #22c55e;
-}
-.metric-card-numbers .metric-mini-icon {
-  background: #f0fdf4;
-  color: #22c55e;
-}
-.metric-card-numbers .metric-mini-value {
-  color: #15803d;
-}
-
-.metric-card-delivered {
-  border-left: 3.5px solid #10b981;
-}
-.metric-card-delivered .metric-mini-icon {
-  background: #ecfdf5;
-  color: #10b981;
-}
-.metric-card-delivered .metric-mini-value {
-  color: #047857;
-}
-
-.metric-card-failed {
-  border-left: 3.5px solid #ef4444;
-}
-.metric-card-failed .metric-mini-icon {
-  background: #fef2f2;
-  color: #ef4444;
-}
-.metric-card-failed .metric-mini-value {
-  color: #b91c1c;
-}
-
-.dashboard-sync-footer {
-  font-size: 0.73rem;
-  color: #94a3b8;
-  margin-top: 0.75rem;
   padding-left: 0.25rem;
 }
 
-/* Dark Teal "DELIVERY" Card */
-.dashboard-delivery-card {
-  background: #0d5c52;
-  border-radius: 16px;
-  padding: 1.35rem 1.4rem;
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  box-shadow: 0 4px 15px rgba(13, 92, 82, 0.22);
-}
-
-.delivery-card-header {
-  margin-bottom: 0.35rem;
-}
-
-.delivery-card-tag {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 700;
-  color: #99f6e4;
-}
-
-.delivery-card-main-stat {
-  font-size: 2.35rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  color: #ffffff;
-  margin-top: 0.2rem;
-}
-
-.delivery-card-substat {
-  font-size: 0.75rem;
-  color: #ccfbf1;
-}
-
-.delivery-progress-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  margin: 1rem 0;
-}
-
-.delivery-progress-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.delivery-progress-labels {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.76rem;
-}
-
-.delivery-progress-name {
-  color: #e2e8f0;
-  font-weight: 500;
-}
-
-.delivery-progress-count {
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.delivery-progress-pct {
-  font-size: 0.7rem;
-  color: #99f6e4;
-  text-align: right;
-}
-
-.delivery-progress-bar-bg {
-  width: 100%;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 9999px;
-  overflow: hidden;
-}
-
-.delivery-progress-bar-fill {
-  height: 100%;
-  border-radius: 9999px;
-  transition: width 0.5s ease;
-}
-
-.delivery-card-footer {
-  font-size: 0.69rem;
-  color: #99f6e4;
-  opacity: 0.85;
-}
-
-/* 2x2 Charts Section */
-.dashboard-charts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (max-width: 992px) {
-  .dashboard-charts-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.dashboard-chart-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 1.25rem 1.35rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  min-width: 0;
-  width: 100%;
-  overflow: hidden;
-}
-
-.chart-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.85rem;
-}
-
-.chart-card-title {
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.01em;
-  margin: 0;
-}
-
-.chart-legend-custom {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.72rem;
-  color: #64748b;
-}
-
-.chart-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.chart-legend-circle {
-  width: 9px;
-  height: 9px;
+.aiwavo-profile-avatar {
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  border: 2px solid;
-  display: inline-block;
-}
-
-.pie-legend-custom {
+  background: #16a34a;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: 0.02em;
+}
+
+.aiwavo-profile-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.aiwavo-profile-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.aiwavo-profile-role {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ================= Row 1: Welcome Banner & Quick Actions ================= */
+.aiwavo-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
   gap: 1.25rem;
-  margin-top: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.aiwavo-welcome-card {
+  background: linear-gradient(135deg, #dcfce7 0%, #ecfdf5 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.aiwavo-welcome-watermark {
+  position: absolute;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 5.5rem;
+  color: #10b981;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.aiwavo-welcome-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.aiwavo-welcome-text {
+  font-size: 0.88rem;
+  color: #334155;
+  margin: 0.45rem 0 0 0;
+  max-width: 85%;
+  line-height: 1.45;
+}
+
+.aiwavo-quick-actions-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.aiwavo-card-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.85rem 0;
+}
+
+.aiwavo-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.65rem;
+}
+
+.aiwavo-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.4rem;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.aiwavo-action-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+}
+
+.aiwavo-action-icon-wrap {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 1.15rem;
+  margin-bottom: 0.45rem;
+}
+
+.aiwavo-action-label {
   font-size: 0.75rem;
+  font-weight: 600;
+  color: #1e293b;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Action Button Themes */
+.action-send { background: #ecfdf5; }
+.action-send .aiwavo-action-icon-wrap { color: #10b981; }
+
+.action-campaign { background: #f5f3ff; }
+.action-campaign .aiwavo-action-icon-wrap { color: #8b5cf6; }
+
+.action-excel { background: #eff6ff; }
+.action-excel .aiwavo-action-icon-wrap { color: #3b82f6; }
+
+.action-automation { background: #fff7ed; }
+.action-automation .aiwavo-action-icon-wrap { color: #f97316; }
+
+.action-whatsapp { background: #ecfdf5; }
+.action-whatsapp .aiwavo-action-icon-wrap { color: #10b981; }
+
+/* ================= Row 2: 5 KPI Metric Cards ================= */
+.aiwavo-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.aiwavo-kpi-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.aiwavo-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.aiwavo-kpi-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.aiwavo-kpi-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.aiwavo-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.aiwavo-kpi-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.12rem 0.4rem;
+  border-radius: 9999px;
+  line-height: 1.2;
+}
+
+.aiwavo-kpi-badge.badge-green {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.aiwavo-kpi-badge.badge-red {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.aiwavo-kpi-label {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* KPI Icon Variations */
+.kpi-icon-contacts { background: #dcfce7; color: #10b981; }
+.kpi-icon-messages { background: #dcfce7; color: #10b981; }
+.kpi-icon-campaigns { background: #f3e8ff; color: #9333ea; }
+.kpi-icon-automations { background: #ffedd5; color: #ea580c; }
+.kpi-icon-failed { background: #fee2e2; color: #ef4444; }
+
+/* ================= Row 3: 3 Analytics / Chart Cards ================= */
+.aiwavo-charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1.15fr 0.95fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.aiwavo-chart-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.aiwavo-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.aiwavo-chart-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.aiwavo-chart-title-icon {
+  color: #10b981;
+  font-size: 1.05rem;
+}
+
+.aiwavo-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: #475569;
 }
 
-.pie-legend-dot {
+.aiwavo-legend-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -544,58 +435,480 @@
   margin-right: 0.35rem;
 }
 
-/* Recent Campaigns Card */
-.dashboard-campaigns-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 1.25rem 1.4rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+/* Donut Chart Inner Content */
+.aiwavo-donut-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 190px;
 }
 
-.recent-campaigns-list {
+.aiwavo-donut-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.aiwavo-donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.aiwavo-donut-number {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.aiwavo-donut-subtext {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 0.15rem;
+}
+
+.aiwavo-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-left: 0.75rem;
+}
+
+.aiwavo-donut-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  font-size: 0.78rem;
+}
+
+.aiwavo-donut-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.aiwavo-donut-legend-val {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ================= Row 4: 3 Section Cards ================= */
+.aiwavo-sections-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.aiwavo-section-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
 }
 
-.recent-campaign-row {
+.aiwavo-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 0.5rem;
-  border-bottom: 1px solid #f1f5f9;
-  transition: background 0.15s ease;
+  margin-bottom: 1rem;
 }
 
-.recent-campaign-row:last-child {
-  border-bottom: none;
+.aiwavo-section-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
-.recent-campaign-row:hover {
-  background: #f8fafc;
-}
-
-.recent-campaign-name {
+.aiwavo-section-link {
+  font-size: 0.78rem;
   font-weight: 600;
-  font-size: 0.86rem;
-  color: #1e293b;
-  flex: 1;
+  color: #16a34a;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 
-.recent-campaign-status {
+.aiwavo-section-link:hover {
+  text-decoration: underline;
+  color: #15803d;
+}
+
+.aiwavo-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.aiwavo-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.aiwavo-list-item:hover {
+  background: #f1f5f9;
+}
+
+.aiwavo-list-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.aiwavo-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.aiwavo-item-icon.icon-whatsapp { background: #dcfce7; color: #10b981; }
+.aiwavo-item-icon.icon-whatsapp-gray { background: #f1f5f9; color: #64748b; }
+.aiwavo-item-icon.icon-play { background: #dcfce7; color: #10b981; }
+.aiwavo-item-icon.icon-pause { background: #f1f5f9; color: #475569; }
+.aiwavo-item-icon.icon-purple { background: #f3e8ff; color: #9333ea; }
+
+.aiwavo-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.aiwavo-item-name {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.aiwavo-item-subtext {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.aiwavo-list-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.aiwavo-status-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.aiwavo-status-pill.status-connected {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.aiwavo-status-pill.status-disconnected {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.aiwavo-status-pill.status-running {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.aiwavo-status-pill.status-paused {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.aiwavo-more-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aiwavo-more-btn:hover {
+  color: #334155;
+}
+
+/* ================= Row 5: 2 Bottom Cards ================= */
+.aiwavo-bottom-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 1.25rem;
+}
+
+.aiwavo-campaigns-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.aiwavo-campaigns-table th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 0.75rem 0.5rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.aiwavo-campaigns-table td {
+  padding: 0.75rem;
+  background: #f8fafc;
+  font-size: 0.82rem;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.aiwavo-campaigns-table tr td:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.aiwavo-campaigns-table tr td:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.aiwavo-rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 130px;
+}
+
+.aiwavo-rate-val {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.8rem;
+  min-width: 42px;
+}
+
+.aiwavo-rate-bar-bg {
+  flex: 1;
+  height: 6px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.aiwavo-rate-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: #16a34a;
+}
+
+/* System Health Card */
+.aiwavo-health-badge {
+  background: #ecfdf5;
+  color: #15803d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.aiwavo-health-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.aiwavo-health-item {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 1.25rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.aiwavo-health-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  margin-bottom: 0.65rem;
+}
+
+.aiwavo-health-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.3rem;
+}
+
+.aiwavo-health-status {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* ================= Left Sidebar AIWAVO Polish ================= */
+.sidebar-pro-card {
+  margin: 1rem;
+  padding: 1rem 1.15rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.2) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 14px;
+  color: #ffffff;
+}
+
+.sidebar-pro-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+  margin-bottom: 0.2rem;
+}
+
+.sidebar-pro-crown {
+  color: #f59e0b;
+  font-size: 1.1rem;
+}
+
+.sidebar-pro-valid {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-pro-progress-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 0.35rem;
+}
+
+.sidebar-pro-progress-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 9999px;
+}
+
+.sidebar-pro-text {
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-pro-btn {
+  width: 100%;
+  padding: 0.45rem 0.75rem;
   background: #10b981;
   color: #ffffff;
-  font-size: 0.68rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 0.2rem 0.65rem;
-  border-radius: 9999px;
-  text-transform: lowercase;
-  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
 }
 
-.recent-campaign-stats {
-  font-size: 0.82rem;
-  color: #475569;
-  flex: 1;
-  text-align: right;
+.sidebar-pro-btn:hover {
+  background: #059669;
+  color: #ffffff;
+}
+
+/* ================= Responsive Breakpoints ================= */
+@media (max-width: 1200px) {
+  .aiwavo-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .aiwavo-charts-row {
+    grid-template-columns: 1fr;
+  }
+  .aiwavo-sections-row {
+    grid-template-columns: 1fr;
+  }
+  .aiwavo-bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .aiwavo-dashboard-container {
+    padding: 1rem;
+  }
+  .aiwavo-top-row {
+    grid-template-columns: 1fr;
+  }
+  .aiwavo-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .aiwavo-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .aiwavo-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .aiwavo-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

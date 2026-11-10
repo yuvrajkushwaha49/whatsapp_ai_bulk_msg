@@ -134,13 +134,14 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 
 .sidebar-link.active {
   color: #ffffff;
-  background: linear-gradient(90deg, rgba(37, 211, 102, 0.15) 0%, rgba(37, 211, 102, 0.05) 100%);
-  border-left: 3px solid var(--cf-primary);
-  font-weight: 600;
+  background-color: #10b981;
+  border-radius: 10px;
+  font-weight: 700;
+  border-left: none;
 }
 
 .sidebar-link.active i {
-  color: var(--cf-primary);
+  color: #ffffff;
 }
 
 .sidebar-heading {
