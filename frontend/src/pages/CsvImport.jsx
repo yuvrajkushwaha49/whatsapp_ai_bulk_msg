@@ -209,24 +209,6 @@ export default function CsvImport() {
           <div className="em-card">
             <div className="em-card-header">
               <h2 className="em-card-title">Step 1: Choose CSV File or Paste Data</h2>
-              <div className="d-flex align-items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={handleDownloadSampleCsv}
-                  className="em-btn-sample-blue"
-                >
-                  <i className="bi bi-download"></i>
-                  <span>Download Sample CSV</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={loadSampleData}
-                  className="em-btn-sample-green"
-                >
-                  <i className="bi bi-upload"></i>
-                  <span>Load Test Sample CSV</span>
-                </button>
-              </div>
             </div>
 
             {/* Dashed Dropzone */}
