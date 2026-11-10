@@ -137,7 +137,7 @@ export default function CsvImport() {
   return (
     <div>
       <AiwavoHeader
-        title="Excel Manager"
+        title="Contacts"
         subtitle="Bulk contact ingestion with E.164 normalization, intra-file deduplication & consent checks"
         onToggleSidebar={onToggleSidebar}
       />
