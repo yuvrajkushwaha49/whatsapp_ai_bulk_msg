@@ -113,25 +113,27 @@ export default function Contacts() {
         title="Contacts"
         subtitle="E.164 verified phone numbers with auditable WhatsApp consent records"
         onToggleSidebar={onToggleSidebar}
-      >
-        <Link to="/contacts/groups" className="btn btn-outline-success d-flex align-items-center gap-2">
-          <i className="bi bi-folder-fill"></i>
-          <span>Contact Groups</span>
-        </Link>
-        <Link to="/imports" className="btn btn-outline-secondary d-flex align-items-center gap-2">
-          <i className="bi bi-file-earmark-arrow-up"></i>
-          <span>Import CSV</span>
-        </Link>
-        <button 
-          onClick={() => setShowAddModal(true)} 
-          className="btn btn-cf-primary d-flex align-items-center gap-2"
-        >
-          <i className="bi bi-person-plus-fill"></i>
-          <span>Add Contact</span>
-        </button>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        {/* Action Toolbar */}
+        <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-4">
+          <Link to="/contacts/groups" className="btn btn-outline-success d-flex align-items-center gap-2">
+            <i className="bi bi-folder-fill"></i>
+            <span>Contact Groups</span>
+          </Link>
+          <Link to="/imports" className="btn btn-outline-secondary d-flex align-items-center gap-2">
+            <i className="bi bi-file-earmark-arrow-up"></i>
+            <span>Import CSV</span>
+          </Link>
+          <button 
+            onClick={() => setShowAddModal(true)} 
+            className="btn btn-cf-primary d-flex align-items-center gap-2"
+          >
+            <i className="bi bi-person-plus-fill"></i>
+            <span>Add Contact</span>
+          </button>
+        </div>
 
       {feedbackMsg.text && (
         <div className={`alert alert-${feedbackMsg.type} alert-dismissible fade show mb-4`} role="alert">

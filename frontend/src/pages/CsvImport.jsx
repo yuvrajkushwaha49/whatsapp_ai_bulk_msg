@@ -138,19 +138,21 @@ export default function CsvImport() {
         title="Excel Manager"
         subtitle="Bulk contact ingestion with E.164 normalization, intra-file deduplication & consent checks"
         onToggleSidebar={onToggleSidebar}
-      >
-        <button
-          type="button"
-          onClick={handleDownloadSampleCsv}
-          className="btn btn-outline-primary d-inline-flex align-items-center gap-2 shadow-sm fw-semibold"
-          title="Download sample CSV template"
-        >
-          <i className="bi bi-cloud-arrow-down-fill fs-5"></i>
-          <span>Download Sample CSV Template</span>
-        </button>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        {/* Action Toolbar */}
+        <div className="d-flex justify-content-end mb-3">
+          <button
+            type="button"
+            onClick={handleDownloadSampleCsv}
+            className="btn btn-outline-primary d-inline-flex align-items-center gap-2 shadow-sm fw-semibold"
+            title="Download sample CSV template"
+          >
+            <i className="bi bi-cloud-arrow-down-fill fs-5"></i>
+            <span>Download Sample CSV Template</span>
+          </button>
+        </div>
 
       {/* Wizard Stepper */}
       <div className="wizard-stepper">

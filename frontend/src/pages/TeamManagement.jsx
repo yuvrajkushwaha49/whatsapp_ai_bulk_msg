@@ -76,16 +76,17 @@ export default function TeamManagement() {
         title="Team & Users"
         subtitle="Manage workspace collaborators and granular RBAC permissions"
         onToggleSidebar={onToggleSidebar}
-      >
-        {['owner', 'admin', 'superadmin'].includes(user?.role) && (
-          <button onClick={() => setShowInviteModal(true)} className="btn btn-cf-primary d-flex align-items-center gap-2">
-            <i className="bi bi-person-plus-fill"></i>
-            <span>Invite Team Member</span>
-          </button>
-        )}
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        {['owner', 'admin', 'superadmin'].includes(user?.role) && (
+          <div className="d-flex justify-content-end mb-3">
+            <button onClick={() => setShowInviteModal(true)} className="btn btn-cf-primary d-flex align-items-center gap-2">
+              <i className="bi bi-person-plus-fill"></i>
+              <span>Invite Team Member</span>
+            </button>
+          </div>
+        )}
 
       {feedback.text && (
         <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4`} role="alert">

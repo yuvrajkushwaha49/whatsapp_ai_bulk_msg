@@ -228,29 +228,34 @@ export default function ContactGroups() {
         title="Contact Groups"
         subtitle="Organize contacts into targeted groups for bulk WhatsApp broadcasts and automations"
         onToggleSidebar={onToggleSidebar}
-      >
-        <Link to="/contacts" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
-          <i className="bi bi-arrow-left"></i>
-          <span>Back to Contacts</span>
-        </Link>
-        <button
-          onClick={fetchGroups}
-          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
-          title="Refresh groups list"
-        >
-          <i className="bi bi-arrow-clockwise"></i>
-          <span>Refresh</span>
-        </button>
-        <button
-          onClick={openCreateModal}
-          className="btn btn-cf-primary btn-sm d-flex align-items-center gap-1 shadow-sm"
-        >
-          <i className="bi bi-plus-lg"></i>
-          <span>Create New Group</span>
-        </button>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        {/* Action Toolbar */}
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+          <Link to="/contacts" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
+            <i className="bi bi-arrow-left"></i>
+            <span>Back to Contacts</span>
+          </Link>
+
+          <div className="d-flex align-items-center gap-2">
+            <button
+              onClick={fetchGroups}
+              className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
+              title="Refresh groups list"
+            >
+              <i className="bi bi-arrow-clockwise"></i>
+              <span>Refresh</span>
+            </button>
+            <button
+              onClick={openCreateModal}
+              className="btn btn-cf-primary btn-sm d-flex align-items-center gap-1 shadow-sm"
+            >
+              <i className="bi bi-plus-lg"></i>
+              <span>Create New Group</span>
+            </button>
+          </div>
+        </div>
 
       {/* Search & Statistics Bar */}
       <div className="row g-3 mb-4">

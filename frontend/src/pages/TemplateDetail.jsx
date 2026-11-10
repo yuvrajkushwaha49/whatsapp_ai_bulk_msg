@@ -261,24 +261,31 @@ export default function TemplateDetail() {
       <AiwavoHeader
         title={`Template: ${template.name}`}
         subtitle={`${template.category || 'MARKETING'} • ${template.language} • Status: ${template.status}`}
-        badge={<span className={`badge-status ${statusClass} ms-2`}>{template.status}</span>}
         onToggleSidebar={onToggleSidebar}
-      >
-        <Link to="/templates" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
-          <i className="bi bi-arrow-left"></i>
-          <span>Templates Studio</span>
-        </Link>
-        <button
-          onClick={handleCheckLiveStatus}
-          disabled={refreshingStatus}
-          className="btn btn-outline-success btn-sm d-flex align-items-center gap-1 shadow-xs bg-white"
-        >
-          <i className={`bi bi-arrow-repeat ${refreshingStatus ? 'spin-icon' : ''}`}></i>
-          <span>Check Status</span>
-        </button>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        {/* Action Toolbar */}
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+          <div className="d-flex align-items-center gap-2">
+            <Link to="/templates" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
+              <i className="bi bi-arrow-left"></i>
+              <span>Templates Studio</span>
+            </Link>
+            <span className={`badge-status ${statusClass}`}>
+              {template.status}
+            </span>
+          </div>
+
+          <button
+            onClick={handleCheckLiveStatus}
+            disabled={refreshingStatus}
+            className="btn btn-outline-success btn-sm d-flex align-items-center gap-1 shadow-xs bg-white"
+          >
+            <i className={`bi bi-arrow-repeat ${refreshingStatus ? 'spin-icon' : ''}`}></i>
+            <span>Check Status</span>
+          </button>
+        </div>
         {/* Main Hero Card */}
       <div className="template-detail-hero mb-4">
         <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">

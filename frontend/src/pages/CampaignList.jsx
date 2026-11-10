@@ -50,14 +50,15 @@ export default function CampaignList() {
         title="Marketing Campaigns"
         subtitle="Track broadcast status, delivery webhooks, and recipient engagement"
         onToggleSidebar={onToggleSidebar}
-      >
-        <Link to="/campaigns/new" className="btn btn-cf-primary d-flex align-items-center gap-2">
-          <i className="bi bi-plus-lg"></i>
-          <span>Create Campaign</span>
-        </Link>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        <div className="d-flex justify-content-end mb-3">
+          <Link to="/campaigns/new" className="btn btn-cf-primary d-flex align-items-center gap-2">
+            <i className="bi bi-plus-lg"></i>
+            <span>Create Campaign</span>
+          </Link>
+        </div>
 
       <div className="cf-card">
         <div className="cf-card-header">

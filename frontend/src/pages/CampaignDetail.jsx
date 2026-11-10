@@ -329,67 +329,75 @@ export default function CampaignDetail() {
       <AiwavoHeader
         title={`Campaign: ${campaign?.name || `#${campaign?.id}`}`}
         subtitle={`Account: ${campaign?.account_name || 'Primary WhatsApp'} • Template: ${campaign?.template_name || 'N/A'}`}
-        badge={<span className={`badge-status badge-${campaign?.status} ms-2`}>{campaign?.status?.toUpperCase()}</span>}
         onToggleSidebar={onToggleSidebar}
-      >
-        <Link to="/campaigns" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
-          <i className="bi bi-arrow-left"></i>
-          <span>Campaigns</span>
-        </Link>
-
-        {campaign?.status === 'draft' && (
-          <button
-            onClick={handleStartCampaign}
-            disabled={actionLoading}
-            className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm"
-          >
-            <i className="bi bi-play-fill fs-6"></i>
-            <span>{actionLoading ? 'Starting...' : 'Send Broadcast'}</span>
-          </button>
-        )}
-
-        {campaign?.status === 'running' && (
-          <button
-            onClick={handlePauseCampaign}
-            disabled={actionLoading}
-            className="btn btn-warning btn-sm d-flex align-items-center gap-1"
-          >
-            <i className="bi bi-pause-fill fs-6"></i>
-            <span>Pause</span>
-          </button>
-        )}
-
-        {['running', 'scheduled', 'draft'].includes(campaign?.status) && (
-          <button
-            onClick={handleCancelCampaign}
-            disabled={actionLoading}
-            className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-          >
-            <i className="bi bi-stop-fill fs-6"></i>
-            <span>Cancel</span>
-          </button>
-        )}
-
-        <button
-          onClick={handleExportCSV}
-          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
-          title="Download CSV report of all recipients"
-        >
-          <i className="bi bi-download"></i>
-          <span>Export CSV</span>
-        </button>
-
-        <button
-          onClick={() => fetchCampaignDetails()}
-          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
-          title="Refresh analytics and webhooks"
-        >
-          <i className="bi bi-arrow-clockwise"></i>
-          <span>Refresh</span>
-        </button>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        {/* Campaign Action Toolbar */}
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 bg-white p-3 rounded-3 border">
+          <div className="d-flex align-items-center gap-2">
+            <Link to="/campaigns" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs">
+              <i className="bi bi-arrow-left"></i>
+              <span>Back to Campaigns</span>
+            </Link>
+            <span className={`badge-status badge-${campaign?.status} ms-1`}>
+              {campaign?.status?.toUpperCase()}
+            </span>
+          </div>
+
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            {campaign?.status === 'draft' && (
+              <button
+                onClick={handleStartCampaign}
+                disabled={actionLoading}
+                className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm"
+              >
+                <i className="bi bi-play-fill fs-6"></i>
+                <span>{actionLoading ? 'Starting...' : 'Send Broadcast'}</span>
+              </button>
+            )}
+
+            {campaign?.status === 'running' && (
+              <button
+                onClick={handlePauseCampaign}
+                disabled={actionLoading}
+                className="btn btn-warning btn-sm d-flex align-items-center gap-1"
+              >
+                <i className="bi bi-pause-fill fs-6"></i>
+                <span>Pause</span>
+              </button>
+            )}
+
+            {['running', 'scheduled', 'draft'].includes(campaign?.status) && (
+              <button
+                onClick={handleCancelCampaign}
+                disabled={actionLoading}
+                className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+              >
+                <i className="bi bi-stop-fill fs-6"></i>
+                <span>Cancel</span>
+              </button>
+            )}
+
+            <button
+              onClick={handleExportCSV}
+              className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+              title="Download CSV report of all recipients"
+            >
+              <i className="bi bi-download"></i>
+              <span>Export CSV</span>
+            </button>
+
+            <button
+              onClick={() => fetchCampaignDetails()}
+              className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+              title="Refresh analytics and webhooks"
+            >
+              <i className="bi bi-arrow-clockwise"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
 
       {/* KPI Stats Cards */}
       <div className="row g-3 mb-4">

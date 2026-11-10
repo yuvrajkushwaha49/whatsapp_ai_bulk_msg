@@ -481,27 +481,29 @@ export default function Templates() {
         title="Message Templates"
         subtitle="Create, test, synchronize, and monitor Meta-approved broadcast message templates in real-time."
         onToggleSidebar={onToggleSidebar}
-      >
-        <button
-          onClick={handleSyncFromMeta}
-          disabled={syncing}
-          className="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs bg-white"
-          title="Sync latest template approval statuses directly from Meta Cloud API"
-        >
-          <i className={`bi bi-arrow-repeat ${syncing ? 'spin-icon' : ''}`}></i>
-          <span>{syncing ? 'Syncing...' : 'Sync from Meta'}</span>
-        </button>
-
-        <button
-          onClick={() => { setShowCreateModal(true); setFormError(''); }}
-          className="btn btn-success d-flex align-items-center gap-2 shadow-sm"
-        >
-          <i className="bi bi-plus-circle-fill"></i>
-          <span>+ Create Template</span>
-        </button>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        {/* Action Toolbar */}
+        <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-4">
+          <button
+            onClick={handleSyncFromMeta}
+            disabled={syncing}
+            className="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs bg-white"
+            title="Sync latest template approval statuses directly from Meta Cloud API"
+          >
+            <i className={`bi bi-arrow-repeat ${syncing ? 'spin-icon' : ''}`}></i>
+            <span>{syncing ? 'Syncing...' : 'Sync from Meta'}</span>
+          </button>
+
+          <button
+            onClick={() => { setShowCreateModal(true); setFormError(''); }}
+            className="btn btn-success d-flex align-items-center gap-2 shadow-sm"
+          >
+            <i className="bi bi-plus-circle-fill"></i>
+            <span>+ Create Template</span>
+          </button>
+        </div>
 
       {/* Feedback Banner */}
       {feedbackMsg && (

@@ -302,52 +302,54 @@ export default function WhatsAppAccounts() {
         title="WhatsApp Accounts"
         subtitle="Meta WhatsApp Cloud API v21.0 WABA & Phone Number Management"
         onToggleSidebar={onToggleSidebar}
-      >
-        {detectedMeta && (
-          <button
-            type="button"
-            disabled={autoConnecting}
-            onClick={handleAutoConnect}
-            className="btn btn-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
-            title="1-Click Connect Configured Meta WhatsApp Account"
-          >
-            {autoConnecting ? (
-              <span className="spinner-border spinner-border-sm" role="status"></span>
-            ) : (
-              <i className="bi bi-lightning-charge-fill"></i>
-            )}
-            <span>⚡ Auto-Connect {detectedMeta.displayName}</span>
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowSystemUserModal(true)}
-          className="btn btn-outline-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
-          title="Scan & Bulk Connect all WhatsApp numbers across multiple Meta Apps using System User"
-        >
-          <i className="bi bi-diagram-3-fill fs-5"></i>
-          <span>⚡ 1-Click Multi-App Scan</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleContinueWithFacebook}
-          className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
-          style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
-        >
-          <i className="bi bi-facebook fs-5"></i>
-          <span>{accounts.length > 0 ? "+ Connect Another Number" : "Continue with Facebook"}</span>
-        </button>
-        <button
-          onClick={() => setShowManualModal(true)}
-          className="btn btn-outline-secondary"
-          title="Advanced Manual Configuration"
-        >
-          <i className="bi bi-gear-fill me-1"></i>
-          Manual Setup
-        </button>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        {/* Action Toolbar */}
+        <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-4">
+          {detectedMeta && (
+            <button
+              type="button"
+              disabled={autoConnecting}
+              onClick={handleAutoConnect}
+              className="btn btn-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
+              title="1-Click Connect Configured Meta WhatsApp Account"
+            >
+              {autoConnecting ? (
+                <span className="spinner-border spinner-border-sm" role="status"></span>
+              ) : (
+                <i className="bi bi-lightning-charge-fill"></i>
+              )}
+              <span>⚡ Auto-Connect {detectedMeta.displayName}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowSystemUserModal(true)}
+            className="btn btn-outline-success d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
+            title="Scan & Bulk Connect all WhatsApp numbers across multiple Meta Apps using System User"
+          >
+            <i className="bi bi-diagram-3-fill fs-5"></i>
+            <span>⚡ 1-Click Multi-App Scan</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleContinueWithFacebook}
+            className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-xs"
+            style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+          >
+            <i className="bi bi-facebook fs-5"></i>
+            <span>{accounts.length > 0 ? "+ Connect Another Number" : "Continue with Facebook"}</span>
+          </button>
+          <button
+            onClick={() => setShowManualModal(true)}
+            className="btn btn-outline-secondary px-3 py-2"
+            title="Advanced Manual Configuration"
+          >
+            <i className="bi bi-gear-fill me-1"></i>
+            Manual Setup
+          </button>
+        </div>
 
       {/* Alert / Feedback Notification */}
       {feedback.text && (

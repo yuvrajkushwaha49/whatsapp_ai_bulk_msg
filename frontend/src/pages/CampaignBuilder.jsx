@@ -551,14 +551,15 @@ export default function CampaignBuilder() {
         title="Create Campaign"
         subtitle="Official WhatsApp broadcast wizard with multi-account rotation & compliance checks"
         onToggleSidebar={onToggleSidebar}
-      >
-        <Link to="/campaigns" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
-          <i className="bi bi-arrow-left"></i>
-          <span>Back to Campaigns</span>
-        </Link>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        <div className="mb-3">
+          <Link to="/campaigns" className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+            <i className="bi bi-arrow-left"></i>
+            <span>Back to Campaigns</span>
+          </Link>
+        </div>
 
       {/* Stepper */}
       <div className="wizard-stepper">

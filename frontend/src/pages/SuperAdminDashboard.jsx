@@ -374,19 +374,19 @@ export default function SuperAdminDashboard() {
       <AiwavoHeader
         title="SuperAdmin Console"
         subtitle="Platform Overview, Meta SaaS Governance & Multi-Tenant Allocations"
-        badge={<span className="badge bg-warning text-dark">Super Admin</span>}
         onToggleSidebar={onToggleSidebar}
-      >
-        <button
-          onClick={() => { fetchAdminData(); fetchPlatformMetaConfig(); fetchMonitoring(); fetchMatrixData(); }}
-          className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
-        >
-          <i className="bi bi-arrow-clockwise"></i>
-          <span>Refresh All</span>
-        </button>
-      </AiwavoHeader>
+      />
 
       <div className="p-4">
+        <div className="d-flex justify-content-end mb-3">
+          <button
+            onClick={() => { fetchAdminData(); fetchPlatformMetaConfig(); fetchMonitoring(); fetchMatrixData(); }}
+            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
+          >
+            <i className="bi bi-arrow-clockwise"></i>
+            <span>Refresh All</span>
+          </button>
+        </div>
 
       {feedback.text && (
         <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4 shadow-sm`} role="alert">

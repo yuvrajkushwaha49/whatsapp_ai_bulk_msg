@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import AiwavoHeader from '../components/AiwavoHeader';
 import '../styles/dashboard.css';
 
 /* ================= Skeleton Placeholder Component ================= */
@@ -273,76 +274,15 @@ export default function Dashboard() {
   return (
     <div className="aiwavo-dashboard-container">
       {/* ================= Top Header ================= */}
-      <div className="aiwavo-header">
-        <div className="aiwavo-header-left">
-          <div className="aiwavo-header-title-row">
-            {/* {onToggleSidebar && (
-              <button
-                type="button"
-                className="aiwavo-sidebar-toggle-btn me-2"
-                onClick={onToggleSidebar}
-                aria-label="Toggle navigation"
-                title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-              >
-                <i className={`bi ${sidebarOpen ? 'bi-layout-sidebar-inset' : 'bi-list'} fs-5`}></i>
-              </button>
-            )} */}
-            <h1 className="aiwavo-header-title">Dashboard</h1>
-          </div>
-          <p className="aiwavo-header-subtitle">
-            Your WhatsApp automation overview and performance.
-          </p>
-        </div>
-
-        <div className="aiwavo-header-right">
-          {/* Date Selector */}
-          <div className="aiwavo-date-dropdown">
-            <i className="bi bi-calendar3 aiwavo-date-icon"></i>
-            <select
-              className="aiwavo-date-select"
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-            >
-              <option value="Last 30 Days">Last 30 Days</option>
-              <option value="Today">Today</option>
-              <option value="Last 7 Days">Last 7 Days</option>
-              <option value="This Month">This Month</option>
-              <option value="All Time">All Time</option>
-            </select>
-          </div>
-
-          {/* Notification Button */}
-          <button
-            type="button"
-            className="aiwavo-circle-btn"
-            title="Notifications"
-            onClick={() => fetchDashboardData(true)}
-          >
-            <i className="bi bi-bell"></i>
-            <span className="aiwavo-notification-dot"></span>
-          </button>
-
-          {/* Help Button */}
-          <button
-            type="button"
-            className="aiwavo-circle-btn"
-            title="Help & Documentation"
-          >
-            <i className="bi bi-question-circle"></i>
-          </button>
-
-          {/* Profile Badge */}
-          <div className="aiwavo-profile-badge">
-            <div className="aiwavo-profile-avatar">{userInitials}</div>
-            <div className="aiwavo-profile-info">
-              <span className="aiwavo-profile-name">{user?.name || 'Yuv Gamers'}</span>
-              <span className="aiwavo-profile-role text-capitalize">
-                {user?.role || 'Admin'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AiwavoHeader
+        title="Dashboard"
+        subtitle="Your WhatsApp automation overview and performance."
+        onToggleSidebar={onToggleSidebar}
+        showDateSelector={true}
+        timeRange={timeRange}
+        setTimeRange={setTimeRange}
+        onNotificationClick={() => fetchDashboardData(true)}
+      />
 
       {/* ================= Row 1: Welcome Banner & Quick Actions ================= */}
       <div className="aiwavo-dashboard-body">
