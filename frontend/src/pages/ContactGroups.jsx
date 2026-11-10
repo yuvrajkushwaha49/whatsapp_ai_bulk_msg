@@ -226,7 +226,7 @@ export default function ContactGroups() {
 
       {/* Top Header */}
       <AiwavoHeader
-        title="Contact Groups"
+        title="Contacts"
         subtitle="Organize contacts into targeted groups for bulk WhatsApp broadcasts and automations"
         onToggleSidebar={onToggleSidebar}
       />

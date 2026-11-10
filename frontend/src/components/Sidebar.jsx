@@ -15,7 +15,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
     { to: '/campaigns/new', icon: 'bi-diagram-3-fill', name: 'Automation', shortName: 'Automation', hasChevron: true },
     { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
     { to: '/inbox', icon: 'bi-chat-left-dots-fill', name: 'Message Queue', shortName: 'Queue', badge: '12' },
-    { to: '/contacts/groups', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
+    { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
     { to: '/billing', icon: 'bi-bar-chart-fill', name: 'Reports', shortName: 'Reports', hasChevron: true },
     { to: '/team', icon: 'bi-people-fill', name: 'Team & Users', shortName: 'Team' },
     { to: '/settings', icon: 'bi-gear-fill', name: 'Settings', shortName: 'Settings' }
@@ -116,7 +116,10 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
               <NavLink
                 to={item.to}
                 className={({ isActive }) => {
-                  const active = isActive || (item.to === '/contacts' && location.pathname.startsWith('/imports'));
+                  const active =
+                    isActive ||
+                    (item.to === '/contacts' &&
+                      (location.pathname.startsWith('/contacts') || location.pathname.startsWith('/imports')));
                   return `sidebar-link ${active ? 'active' : ''}`;
                 }}
                 onClick={handleLinkClick}
