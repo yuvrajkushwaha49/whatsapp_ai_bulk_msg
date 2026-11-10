@@ -60,54 +60,56 @@ export default function Dashboard() {
       .slice(0, 2)
     : 'YG';
 
-  // KPI Metrics (dynamic from backend or design defaults)
-  const totalContacts = stats?.kpi?.totalContacts ?? 12450;
-  const contactsGrowth = stats?.kpi?.contactsGrowth ?? '+6.2%';
-  const messagesSent = stats?.kpi?.messagesSent ?? 8240;
-  const messagesSentGrowth = stats?.kpi?.messagesSentGrowth ?? '+14.8%';
-  const totalCampaigns = stats?.kpi?.totalCampaigns ?? 50;
-  const campaignsGrowth = stats?.kpi?.campaignsGrowth ?? '+25.0%';
-  const activeAutomations = stats?.kpi?.activeAutomations ?? 18;
-  const failedMessages = stats?.kpi?.failedMessages ?? 30;
-  const failedMessagesGrowth = stats?.kpi?.failedMessagesGrowth ?? '+2.1%';
+  // Loading state guard: prevent flashing dummy / mock data before database data is loaded
+  if (loading && !stats) {
+    return (
+      <div className="aiwavo-dashboard-container">
+        <div className="aiwavo-header">
+          <div className="aiwavo-header-left">
+            <h1 className="aiwavo-header-title">Dashboard</h1>
+            <p className="aiwavo-header-subtitle">
+              Your WhatsApp automation overview and performance.
+            </p>
+          </div>
+        </div>
+        <div className="d-flex flex-column align-items-center justify-content-center py-5 my-5" style={{ minHeight: '50vh' }}>
+          <div className="spinner-border text-success mb-3" style={{ width: '2.5rem', height: '2.5rem' }} role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="text-muted fw-semibold mb-0">Loading Dashboard data from database...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // KPI Metrics (dynamic from database)
+  const totalContacts = stats?.kpi?.totalContacts ?? 0;
+  const contactsGrowth = stats?.kpi?.contactsGrowth ?? '+0%';
+  const messagesSent = stats?.kpi?.messagesSent ?? 0;
+  const messagesSentGrowth = stats?.kpi?.messagesSentGrowth ?? '+0%';
+  const totalCampaigns = stats?.kpi?.totalCampaigns ?? 0;
+  const campaignsGrowth = stats?.kpi?.campaignsGrowth ?? '+0%';
+  const activeAutomations = stats?.kpi?.activeAutomations ?? 0;
+  const failedMessages = stats?.kpi?.failedMessages ?? 0;
+  const failedMessagesGrowth = stats?.kpi?.failedMessagesGrowth ?? '+0%';
 
   // Trend & Chart Data
-  const deliveryTrendData = stats?.deliveryTrend || [
-    { date: 'Oct 12', sent: 2800, delivered: 1900, failed: 400 },
-    { date: 'Oct 15', sent: 3500, delivered: 2400, failed: 600 },
-    { date: 'Oct 18', sent: 5100, delivered: 3600, failed: 800 },
-    { date: 'Oct 21', sent: 4200, delivered: 2900, failed: 500 },
-    { date: 'Oct 24', sent: 5200, delivered: 3700, failed: 650 },
-    { date: 'Oct 27', sent: 6800, delivered: 4900, failed: 900 },
-    { date: 'Oct 30', sent: 5900, delivered: 4200, failed: 700 },
-    { date: 'Nov 02', sent: 6400, delivered: 4500, failed: 850 },
-    { date: 'Nov 05', sent: 7200, delivered: 5100, failed: 950 },
-    { date: 'Nov 08', sent: 8100, delivered: 5700, failed: 1100 },
-    { date: 'Nov 11', sent: 8800, delivered: 6300, failed: 1250 }
-  ];
+  const deliveryTrendData = stats?.deliveryTrend || [];
 
   // Delivery Overview (Donut chart data)
   const overviewBreakdown = stats?.deliveryOverview?.breakdown || [
-    { name: 'Delivered', pct: 71, count: 5848, color: '#10b981' },
-    { name: 'Sent', pct: 20, count: 1648, color: '#3b82f6' },
-    { name: 'Failed', pct: 9, count: 744, color: '#ef4444' }
+    { name: 'Delivered', pct: 0, count: 0, color: '#10b981' },
+    { name: 'Sent', pct: 0, count: 0, color: '#3b82f6' },
+    { name: 'Failed', pct: 0, count: 0, color: '#ef4444' }
   ];
-  const overviewTotal = stats?.deliveryOverview?.total ?? 8240;
+  const overviewTotal = stats?.deliveryOverview?.total ?? 0;
 
   // Contact Growth Data
-  const contactGrowthData = stats?.contactGrowth || [
-    { month: 'Aug', contacts: 6200 },
-    { month: 'Sep', contacts: 8400 },
-    { month: 'Oct', contacts: 11200 },
-    { month: 'Nov', contacts: 13850 }
-  ];
+  const contactGrowthData = stats?.contactGrowth || [];
 
   // WhatsApp Accounts
-  const whatsappAccountsSummary = stats?.whatsappAccounts?.summary || '1/2 Connected';
-  const whatsappAccountsList = stats?.whatsappAccounts?.list || [
-    { id: 1, name: 'TechSRV Media', phone: '+91 98765 43210', status: 'Connected' },
-    { id: 2, name: 'Business Number', phone: '+91 87654 32109', status: 'Disconnected' }
-  ];
+  const whatsappAccountsSummary = stats?.whatsappAccounts?.summary || '0 Connected';
+  const whatsappAccountsList = stats?.whatsappAccounts?.list || [];
 
   // Automations List (from MySQL)
   const automationsList = stats?.automations || [];
@@ -121,7 +123,7 @@ export default function Dashboard() {
   // System Health (from MySQL & services)
   const systemHealth = stats?.systemHealth || {
     operational: true,
-    whatsapp: 'Connected',
+    whatsapp: 'Connecting...',
     automation: 'Running',
     system: 'All Good'
   };
@@ -540,40 +542,47 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="aiwavo-list-container">
-            {whatsappAccountsList.map((acc, idx) => (
-              <div key={`waba-${acc.id || idx}`} className="aiwavo-list-item">
-                <div className="aiwavo-list-left">
-                  <div
-                    className={`aiwavo-item-icon ${acc.status === 'Connected' ? 'icon-whatsapp' : 'icon-whatsapp-gray'
-                      }`}
-                  >
-                    <i className="bi bi-whatsapp"></i>
-                  </div>
-                  <div className="aiwavo-item-info">
-                    <span className="aiwavo-item-name">{acc.name}</span>
-                    <span className="aiwavo-item-subtext">{acc.phone}</span>
-                  </div>
-                </div>
-                <div className="aiwavo-list-right">
-                  <span
-                    className={`aiwavo-status-pill ${acc.status === 'Connected' ? 'status-connected' : 'status-disconnected'
-                      }`}
-                  >
-                    <span
-                      className="aiwavo-legend-dot"
-                      style={{
-                        background: acc.status === 'Connected' ? '#10b981' : '#f59e0b',
-                        marginRight: '0.2rem'
-                      }}
-                    ></span>
-                    {acc.status}
-                  </span>
-                  <button type="button" className="aiwavo-more-btn" title="Options">
-                    <i className="bi bi-three-dots-vertical"></i>
-                  </button>
-                </div>
+            {whatsappAccountsList.length === 0 ? (
+              <div className="text-center py-4 text-muted">
+                <i className="bi bi-whatsapp fs-3 d-block mb-1 text-secondary opacity-50"></i>
+                <span className="small">No WhatsApp accounts connected</span>
               </div>
-            ))}
+            ) : (
+              whatsappAccountsList.map((acc, idx) => (
+                <div key={`waba-${acc.id || idx}`} className="aiwavo-list-item">
+                  <div className="aiwavo-list-left">
+                    <div
+                      className={`aiwavo-item-icon ${acc.status === 'Connected' ? 'icon-whatsapp' : 'icon-whatsapp-gray'
+                        }`}
+                    >
+                      <i className="bi bi-whatsapp"></i>
+                    </div>
+                    <div className="aiwavo-item-info">
+                      <span className="aiwavo-item-name">{acc.name}</span>
+                      <span className="aiwavo-item-subtext">{acc.phone}</span>
+                    </div>
+                  </div>
+                  <div className="aiwavo-list-right">
+                    <span
+                      className={`aiwavo-status-pill ${acc.status === 'Connected' ? 'status-connected' : 'status-disconnected'
+                        }`}
+                    >
+                      <span
+                        className="aiwavo-legend-dot"
+                        style={{
+                          background: acc.status === 'Connected' ? '#10b981' : '#f59e0b',
+                          marginRight: '0.2rem'
+                        }}
+                      ></span>
+                      {acc.status}
+                    </span>
+                    <button type="button" className="aiwavo-more-btn" title="Options">
+                      <i className="bi bi-three-dots-vertical"></i>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -702,36 +711,44 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {recentCampaigns.map((c, idx) => {
-                  const rateVal = Math.min(Number(c.deliveryRate || 0), 100);
-                  const isCompleted = c.status === 'Completed';
-                  return (
-                    <tr key={`camp-row-${c.id || idx}`}>
-                      <td>{c.name}</td>
-                      <td>
-                        <span
-                          className={`aiwavo-status-pill ${isCompleted ? 'status-connected' : 'status-running'
-                            }`}
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-                      <td>{c.sent.toLocaleString()}</td>
-                      <td>{c.delivered.toLocaleString()}</td>
-                      <td>
-                        <div className="aiwavo-rate-cell">
-                          <span className="aiwavo-rate-val">{rateVal}%</span>
-                          <div className="aiwavo-rate-bar-bg">
-                            <div
-                              className="aiwavo-rate-bar-fill"
-                              style={{ width: `${rateVal}%` }}
-                            ></div>
+                {recentCampaigns.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4 text-muted">
+                      No recent campaigns found
+                    </td>
+                  </tr>
+                ) : (
+                  recentCampaigns.map((c, idx) => {
+                    const rateVal = Math.min(Number(c.deliveryRate || 0), 100);
+                    const isCompleted = c.status === 'Completed';
+                    return (
+                      <tr key={`camp-row-${c.id || idx}`}>
+                        <td>{c.name}</td>
+                        <td>
+                          <span
+                            className={`aiwavo-status-pill ${isCompleted ? 'status-connected' : 'status-running'
+                              }`}
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+                        <td>{c.sent.toLocaleString()}</td>
+                        <td>{c.delivered.toLocaleString()}</td>
+                        <td>
+                          <div className="aiwavo-rate-cell">
+                            <span className="aiwavo-rate-val">{rateVal}%</span>
+                            <div className="aiwavo-rate-bar-bg">
+                              <div
+                                className="aiwavo-rate-bar-fill"
+                                style={{ width: `${rateVal}%` }}
+                              ></div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

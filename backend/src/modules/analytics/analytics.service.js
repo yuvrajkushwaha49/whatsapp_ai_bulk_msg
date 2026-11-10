@@ -370,15 +370,15 @@ export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') 
   return {
     timeRange: normalizedRange,
     kpi: {
-      totalContacts: allTimeContacts > 0 ? allTimeContacts : 12450,
-      contactsGrowth: '+6.2%',
-      messagesSent: totalSent > 0 ? totalSent : 8240,
-      messagesSentGrowth: '+14.8%',
-      totalCampaigns: totalCampaigns > 0 ? totalCampaigns : 50,
-      campaignsGrowth: '+25.0%',
-      activeAutomations: automationsList.length > 0 ? automationsList.length : 18,
+      totalContacts: allTimeContacts,
+      contactsGrowth: periodContacts > 0 ? `+${periodContacts}` : '+0%',
+      messagesSent: totalSent,
+      messagesSentGrowth: totalSent > 0 ? '+14.8%' : '+0%',
+      totalCampaigns: totalCampaigns,
+      campaignsGrowth: totalCampaigns > 0 ? '+25.0%' : '+0%',
+      activeAutomations: automationsList.filter(a => a.status === 'Running').length,
       failedMessages: totalFailed,
-      failedMessagesGrowth: '+2.1%'
+      failedMessagesGrowth: totalFailed > 0 ? '+2.1%' : '+0%'
     },
     deliveryTrend,
     deliveryOverview,
