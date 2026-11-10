@@ -52,21 +52,12 @@ export default function AppLayout() {
         />
       )}
 
-      {/* Floating Toggle Pill when Sidebar is closed */}
-      {!sidebarOpen && (
-        <button
-          type="button"
-          className="sidebar-floating-toggle"
-          onClick={openSidebar}
-          title="Open Sidebar"
-          aria-label="Open Sidebar"
-        >
-          <i className="bi bi-chevron-right"></i>
-        </button>
-      )}
-
-      {/* Sidebar Component */}
-      <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+      {/* Sidebar Component with onToggle support */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        onToggle={toggleSidebar}
+      />
 
       {/* Main Content Area */}
       <div className="main-content">
