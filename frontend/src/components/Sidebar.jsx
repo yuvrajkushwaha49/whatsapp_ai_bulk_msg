@@ -1,9 +1,10 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Sidebar({ isOpen, onClose, onToggle }) {
   const { isSuperAdmin } = useAuth();
+  const location = useLocation();
 
   const menuItems = [
     { to: '/dashboard', icon: 'bi-house-door-fill', name: 'Dashboard', shortName: 'Dashboard' },
@@ -114,7 +115,10 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
             <li key={item.to} className="sidebar-item">
               <NavLink
                 to={item.to}
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                className={({ isActive }) => {
+                  const active = isActive || (item.to === '/contacts' && location.pathname.startsWith('/imports'));
+                  return `sidebar-link ${active ? 'active' : ''}`;
+                }}
                 onClick={handleLinkClick}
                 title={!isOpen ? item.name : undefined}
               >
