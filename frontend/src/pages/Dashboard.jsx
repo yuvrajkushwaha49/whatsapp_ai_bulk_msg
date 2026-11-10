@@ -108,26 +108,22 @@ export default function Dashboard() {
     { id: 2, name: 'Business Number', phone: '+91 87654 32109', status: 'Disconnected' }
   ];
 
-  // Automations List
-  const automationsList = stats?.automations || [
-    { id: 1, name: 'Welcome Message', status: 'Running', icon: 'play' },
-    { id: 2, name: 'Excel Follow-up', status: 'Running', icon: 'play' },
-    { id: 3, name: 'Payment Reminder', status: 'Paused', icon: 'pause' }
-  ];
+  // Automations List (from MySQL)
+  const automationsList = stats?.automations || [];
 
-  // Scheduled Campaigns
-  const scheduledCampaigns = stats?.scheduledCampaigns || [
-    { id: 1, name: 'Product Launch', date: '06 Nov 2026, 10:00 AM', icon: 'gift' },
-    { id: 2, name: 'Offer Reminder', date: '07 Nov 2026, 02:00 PM', icon: 'tag' },
-    { id: 3, name: 'Payment Reminder', date: '08 Nov 2026, 11:00 AM', icon: 'bell' }
-  ];
+  // Scheduled Campaigns (from MySQL)
+  const scheduledCampaigns = stats?.scheduledCampaigns || [];
 
-  // Recent Campaigns Table
-  const recentCampaigns = stats?.recentCampaigns || [
-    { id: 1, name: 'Product Launch', status: 'Completed', sent: 2482, delivered: 2320, deliveryRate: 93.5 },
-    { id: 2, name: 'Offer Reminder', status: 'Completed', sent: 1100, delivered: 1045, deliveryRate: 95.0 },
-    { id: 3, name: 'Payment Reminder', status: 'Running', sent: 1856, delivered: 1620, deliveryRate: 87.3 }
-  ];
+  // Recent Campaigns Table (from MySQL)
+  const recentCampaigns = stats?.recentCampaigns || [];
+
+  // System Health (from MySQL & services)
+  const systemHealth = stats?.systemHealth || {
+    operational: true,
+    whatsapp: 'Connected',
+    automation: 'Running',
+    system: 'All Good'
+  };
 
   return (
     <div className="aiwavo-dashboard-container">
@@ -738,9 +734,15 @@ export default function Dashboard() {
               <i className="bi bi-activity text-success"></i>
               System Health
             </h3>
-            <span className="aiwavo-health-badge">
-              <i className="bi bi-check-circle-fill"></i>
-              All Systems Operational
+            <span
+              className="aiwavo-health-badge"
+              style={{
+                background: systemHealth.operational ? '#ecfdf5' : '#fef2f2',
+                color: systemHealth.operational ? '#15803d' : '#dc2626'
+              }}
+            >
+              <i className={`bi ${systemHealth.operational ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'}`}></i>
+              {systemHealth.operational ? 'All Systems Operational' : 'Degraded Performance'}
             </span>
           </div>
           <div className="aiwavo-health-grid">
@@ -749,9 +751,19 @@ export default function Dashboard() {
                 <i className="bi bi-whatsapp"></i>
               </div>
               <span className="aiwavo-health-name">WhatsApp</span>
-              <span className="aiwavo-health-status">
-                <span className="aiwavo-legend-dot" style={{ background: '#16a34a' }}></span>
-                Connected
+              <span
+                className="aiwavo-health-status"
+                style={{
+                  color: systemHealth.whatsapp === 'Connected' ? '#16a34a' : '#ea580c'
+                }}
+              >
+                <span
+                  className="aiwavo-legend-dot"
+                  style={{
+                    background: systemHealth.whatsapp === 'Connected' ? '#16a34a' : '#ea580c'
+                  }}
+                ></span>
+                {systemHealth.whatsapp}
               </span>
             </div>
 
@@ -760,9 +772,19 @@ export default function Dashboard() {
                 <i className="bi bi-lightning-charge-fill"></i>
               </div>
               <span className="aiwavo-health-name">Automation Engine</span>
-              <span className="aiwavo-health-status">
-                <span className="aiwavo-legend-dot" style={{ background: '#16a34a' }}></span>
-                Running
+              <span
+                className="aiwavo-health-status"
+                style={{
+                  color: systemHealth.automation === 'Running' ? '#16a34a' : '#64748b'
+                }}
+              >
+                <span
+                  className="aiwavo-legend-dot"
+                  style={{
+                    background: systemHealth.automation === 'Running' ? '#16a34a' : '#64748b'
+                  }}
+                ></span>
+                {systemHealth.automation}
               </span>
             </div>
 
@@ -771,9 +793,19 @@ export default function Dashboard() {
                 <i className="bi bi-hdd-stack-fill"></i>
               </div>
               <span className="aiwavo-health-name">System Status</span>
-              <span className="aiwavo-health-status">
-                <span className="aiwavo-legend-dot" style={{ background: '#16a34a' }}></span>
-                All Good
+              <span
+                className="aiwavo-health-status"
+                style={{
+                  color: systemHealth.system === 'All Good' ? '#16a34a' : '#dc2626'
+                }}
+              >
+                <span
+                  className="aiwavo-legend-dot"
+                  style={{
+                    background: systemHealth.system === 'All Good' ? '#16a34a' : '#dc2626'
+                  }}
+                ></span>
+                {systemHealth.system}
               </span>
             </div>
           </div>
