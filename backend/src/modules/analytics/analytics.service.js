@@ -194,47 +194,120 @@ export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') 
     system: dbStatus
   };
 
-  // 8. Message Delivery Trend (Smooth 11-point multi-line area chart)
-  const deliveryTrend = [
-    { date: 'Oct 12', sent: 2800, delivered: 1900, failed: 400 },
-    { date: 'Oct 15', sent: 3500, delivered: 2400, failed: 600 },
-    { date: 'Oct 18', sent: 5100, delivered: 3600, failed: 800 },
-    { date: 'Oct 21', sent: 4200, delivered: 2900, failed: 500 },
-    { date: 'Oct 24', sent: 5200, delivered: 3700, failed: 650 },
-    { date: 'Oct 27', sent: 6800, delivered: 4900, failed: 900 },
-    { date: 'Oct 30', sent: 5900, delivered: 4200, failed: 700 },
-    { date: 'Nov 02', sent: 6400, delivered: 4500, failed: 850 },
-    { date: 'Nov 05', sent: 7200, delivered: 5100, failed: 950 },
-    { date: 'Nov 08', sent: 8100, delivered: 5700, failed: 1100 },
-    { date: 'Nov 11', sent: 8800, delivered: 6300, failed: 1250 }
-  ];
+  // 8. Message Delivery Trend (Fetched directly from MySQL campaigns table)
+  let deliveryTrend = [];
+  try {
+    const trendMap = {};
+    const dateLabels = [];
+    const totalDays = normalizedRange === 'Today' ? 1 : (normalizedRange === 'Last 7 Days' ? 7 : (normalizedRange === 'This Month' ? new Date().getDate() : 30));
+    const step = normalizedRange === 'Last 30 Days' ? 3 : 1;
 
-  // 9. Delivery Overview (Donut chart data calculated from real DB metrics or realistic proportions)
-  const deliveryTotal = totalSent > 0 ? totalSent : 8240;
-  const deliveredPct = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 71;
-  const failedPct = totalSent > 0 ? Math.round((totalFailed / totalSent) * 100) : 9;
-  const sentPct = Math.max(0, 100 - deliveredPct - failedPct);
+    for (let i = totalDays; i >= 0; i -= step) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+      trendMap[key] = { date: label, sent: 0, delivered: 0, failed: 0 };
+      dateLabels.push(key);
+    }
 
-  const deliveredCount = totalSent > 0 ? totalDelivered : 5848;
-  const failedCount = totalSent > 0 ? totalFailed : 744;
-  const sentCount = totalSent > 0 ? (totalSent - totalDelivered - totalFailed) : 1648;
+    const trendRows = await executeQuery(
+      `SELECT 
+        DATE(created_at) as dt,
+        COALESCE(SUM(sent_count), 0) as sent,
+        COALESCE(SUM(delivered_count), 0) as delivered,
+        COALESCE(SUM(failed_count), 0) as failed
+       FROM campaigns 
+       WHERE business_id = ? AND status != 'scheduled' ${dateFilter}
+       GROUP BY dt
+       ORDER BY dt ASC`,
+      [businessId]
+    );
+
+    if (Array.isArray(trendRows)) {
+      for (const r of trendRows) {
+        if (!r.dt) continue;
+        const dStr = new Date(r.dt).toISOString().split('T')[0];
+        if (trendMap[dStr]) {
+          trendMap[dStr].sent = Number(r.sent || 0);
+          trendMap[dStr].delivered = Number(r.delivered || 0);
+          trendMap[dStr].failed = Number(r.failed || 0);
+        } else {
+          const label = new Date(r.dt).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+          trendMap[dStr] = {
+            date: label,
+            sent: Number(r.sent || 0),
+            delivered: Number(r.delivered || 0),
+            failed: Number(r.failed || 0)
+          };
+          dateLabels.push(dStr);
+        }
+      }
+    }
+
+    dateLabels.sort();
+    deliveryTrend = dateLabels.map(key => trendMap[key]);
+  } catch (err) {
+    console.error('Error fetching delivery trend from DB:', err);
+  }
+
+  // 9. Delivery Overview (Donut chart data calculated directly from MySQL campaign aggregations)
+  const deliveryTotal = totalSent;
+  const deliveredPct = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
+  const failedPct = totalSent > 0 ? Math.round((totalFailed / totalSent) * 100) : 0;
+  const sentPct = totalSent > 0 ? Math.max(0, 100 - deliveredPct - failedPct) : 0;
+  const inTransitCount = Math.max(0, totalSent - totalDelivered - totalFailed);
 
   const deliveryOverview = {
     total: deliveryTotal,
     breakdown: [
-      { name: 'Delivered', pct: deliveredPct, count: Math.max(0, deliveredCount), color: '#10b981' },
-      { name: 'Sent', pct: sentPct, count: Math.max(0, sentCount), color: '#3b82f6' },
-      { name: 'Failed', pct: failedPct, count: Math.max(0, failedCount), color: '#ef4444' }
+      { name: 'Delivered', pct: deliveredPct, count: totalDelivered, color: '#10b981' },
+      { name: 'Sent', pct: sentPct, count: inTransitCount, color: '#3b82f6' },
+      { name: 'Failed', pct: failedPct, count: totalFailed, color: '#ef4444' }
     ]
   };
 
-  // 10. Contact Growth (Area chart)
-  const contactGrowth = [
-    { month: 'Aug', contacts: 6200 },
-    { month: 'Sep', contacts: 8400 },
-    { month: 'Oct', contacts: 11200 },
-    { month: 'Nov', contacts: Math.max(allTimeContacts, 13850) }
-  ];
+  // 10. Contact Growth (Cumulative contacts growth fetched directly from MySQL contacts table)
+  let contactGrowth = [];
+  try {
+    const monthlyRows = await executeQuery(
+      `SELECT 
+        DATE_FORMAT(created_at, '%b') as month_name,
+        DATE_FORMAT(created_at, '%Y-%m') as ym,
+        COUNT(*) as cnt
+       FROM contacts 
+       WHERE business_id = ?
+       GROUP BY ym, month_name
+       ORDER BY ym ASC`,
+      [businessId]
+    );
+
+    const now = new Date();
+    const targetMonths = [];
+    for (let m = 3; m >= 0; m--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const name = d.toLocaleDateString('en-US', { month: 'short' });
+      targetMonths.push({ ym, name });
+    }
+
+    contactGrowth = targetMonths.map(tm => {
+      let cumContacts = 0;
+      if (Array.isArray(monthlyRows)) {
+        for (const r of monthlyRows) {
+          if (r.ym <= tm.ym) {
+            cumContacts += Number(r.cnt || 0);
+          }
+        }
+      }
+      return {
+        month: tm.name,
+        contacts: cumContacts
+      };
+    });
+  } catch (err) {
+    console.error('Error fetching contact growth from DB:', err);
+  }
 
   return {
     timeRange: normalizedRange,

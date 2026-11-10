@@ -429,7 +429,7 @@ export default function Dashboard() {
                 <PieChart>
                   <Pie
                     isAnimationActive={false}
-                    data={overviewBreakdown}
+                    data={overviewTotal > 0 ? overviewBreakdown : [{ name: 'No Messages', pct: 100, count: 0, color: '#e2e8f0' }]}
                     cx="50%"
                     cy="50%"
                     innerRadius={52}
@@ -438,7 +438,7 @@ export default function Dashboard() {
                     startAngle={90}
                     endAngle={-270}
                   >
-                    {overviewBreakdown.map((entry, index) => (
+                    {(overviewTotal > 0 ? overviewBreakdown : [{ color: '#e2e8f0' }]).map((entry, index) => (
                       <Cell key={`donut-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
