@@ -53,11 +53,11 @@ export default function Dashboard() {
   const firstName = user?.name ? user.name.split(' ')[0] : 'Yuv';
   const userInitials = user?.name
     ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
     : 'YG';
 
   // KPI Metrics (dynamic from backend or design defaults)
@@ -132,7 +132,7 @@ export default function Dashboard() {
       <div className="aiwavo-header">
         <div className="aiwavo-header-left">
           <div className="aiwavo-header-title-row">
-            {onToggleSidebar && (
+            {/* {onToggleSidebar && (
               <button
                 type="button"
                 className="aiwavo-sidebar-toggle-btn me-2"
@@ -142,7 +142,7 @@ export default function Dashboard() {
               >
                 <i className={`bi ${sidebarOpen ? 'bi-layout-sidebar-inset' : 'bi-list'} fs-5`}></i>
               </button>
-            )}
+            )} */}
             <h1 className="aiwavo-header-title">Dashboard</h1>
           </div>
           <p className="aiwavo-header-subtitle">
@@ -544,9 +544,8 @@ export default function Dashboard() {
               <div key={`waba-${acc.id || idx}`} className="aiwavo-list-item">
                 <div className="aiwavo-list-left">
                   <div
-                    className={`aiwavo-item-icon ${
-                      acc.status === 'Connected' ? 'icon-whatsapp' : 'icon-whatsapp-gray'
-                    }`}
+                    className={`aiwavo-item-icon ${acc.status === 'Connected' ? 'icon-whatsapp' : 'icon-whatsapp-gray'
+                      }`}
                   >
                     <i className="bi bi-whatsapp"></i>
                   </div>
@@ -557,9 +556,8 @@ export default function Dashboard() {
                 </div>
                 <div className="aiwavo-list-right">
                   <span
-                    className={`aiwavo-status-pill ${
-                      acc.status === 'Connected' ? 'status-connected' : 'status-disconnected'
-                    }`}
+                    className={`aiwavo-status-pill ${acc.status === 'Connected' ? 'status-connected' : 'status-disconnected'
+                      }`}
                   >
                     <span
                       className="aiwavo-legend-dot"
@@ -601,14 +599,12 @@ export default function Dashboard() {
                 <div key={`auto-${auto.id || idx}`} className="aiwavo-list-item">
                   <div className="aiwavo-list-left">
                     <div
-                      className={`aiwavo-item-icon ${
-                        auto.icon === 'play' ? 'icon-play' : 'icon-pause'
-                      }`}
+                      className={`aiwavo-item-icon ${auto.icon === 'play' ? 'icon-play' : 'icon-pause'
+                        }`}
                     >
                       <i
-                        className={`bi ${
-                          auto.icon === 'play' ? 'bi-play-fill' : 'bi-pause-fill'
-                        }`}
+                        className={`bi ${auto.icon === 'play' ? 'bi-play-fill' : 'bi-pause-fill'
+                          }`}
                       ></i>
                     </div>
                     <div className="aiwavo-item-info">
@@ -617,9 +613,8 @@ export default function Dashboard() {
                   </div>
                   <div className="aiwavo-list-right">
                     <span
-                      className={`aiwavo-status-pill ${
-                        auto.status === 'Running' ? 'status-running' : 'status-paused'
-                      }`}
+                      className={`aiwavo-status-pill ${auto.status === 'Running' ? 'status-running' : 'status-paused'
+                        }`}
                     >
                       {auto.status}
                     </span>
@@ -656,8 +651,8 @@ export default function Dashboard() {
                   camp.icon === 'gift'
                     ? 'bi-gift-fill'
                     : camp.icon === 'tag'
-                    ? 'bi-tag-fill'
-                    : 'bi-bell-fill';
+                      ? 'bi-tag-fill'
+                      : 'bi-bell-fill';
                 return (
                   <div key={`sched-${camp.id || idx}`} className="aiwavo-list-item">
                     <div className="aiwavo-list-left">
@@ -715,9 +710,8 @@ export default function Dashboard() {
                       <td>{c.name}</td>
                       <td>
                         <span
-                          className={`aiwavo-status-pill ${
-                            isCompleted ? 'status-connected' : 'status-running'
-                          }`}
+                          className={`aiwavo-status-pill ${isCompleted ? 'status-connected' : 'status-running'
+                            }`}
                         >
                           {c.status}
                         </span>

@@ -718,21 +718,26 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 
   /* When Collapsed: Small Navbar Mode (Desktop) */
   .app-wrapper.sidebar-collapsed .sidebar {
-    width: 82px;
+    width: 86px;
     transform: translateX(0);
   }
   .app-wrapper.sidebar-collapsed .main-content {
-    margin-left: 82px;
-    width: calc(100vw - 82px);
-    max-width: calc(100vw - 82px);
+    margin-left: 86px;
+    width: calc(100vw - 86px);
+    max-width: calc(100vw - 86px);
   }
 
-  /* Small Navbar: Brand Header */
+  /* Small Navbar: Brand Header (WhatsApp Icon & Close BTN side-by-side in same row) */
   .app-wrapper.sidebar-collapsed .sidebar-brand {
-    padding: 1rem 0.4rem 0.85rem;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.6rem;
+    padding: 1.15rem 0.65rem 1rem;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.4rem;
+  }
+  .app-wrapper.sidebar-collapsed .sidebar-brand-inner {
+    display: flex;
+    align-items: center;
   }
   .app-wrapper.sidebar-collapsed .sidebar-brand-text {
     display: none !important;
@@ -741,12 +746,17 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     width: 36px;
     height: 36px;
     font-size: 1.15rem;
+    flex-shrink: 0;
   }
   .app-wrapper.sidebar-collapsed .sidebar-close-btn {
-    width: 26px;
-    height: 26px;
-    font-size: 0.85rem;
-    margin: 0 auto;
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+    margin: 0 !important;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Small Navbar: Scrollable Body */
@@ -791,13 +801,13 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   }
   .app-wrapper.sidebar-collapsed .sidebar-link-mini-text {
     display: block !important;
-    font-size: 0.62rem;
+    font-size: 0.63rem;
     font-weight: 600;
     line-height: 1.1;
     color: #cbd5e1;
     text-align: center;
     white-space: nowrap;
-    max-width: 72px;
+    max-width: 76px;
     overflow: hidden;
     text-overflow: ellipsis;
     letter-spacing: -0.01em;
