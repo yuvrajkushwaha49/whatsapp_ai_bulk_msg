@@ -171,7 +171,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   transform: scale(1.05);
 }
 
-/* Scrollable Navigation Body (Menu + Pro Card scroll together) */
+/* Scrollable Navigation Body (Menu + Pro Card scroll together, scrollbar hidden) */
 .sidebar-body {
   flex: 1;
   overflow-y: auto;
@@ -180,16 +180,14 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   flex-direction: column;
   position: relative;
   z-index: 2;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .sidebar-body::-webkit-scrollbar {
-  width: 4px;
-}
-.sidebar-body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
 }
 
 .sidebar-menu {
