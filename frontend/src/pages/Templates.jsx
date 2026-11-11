@@ -557,9 +557,6 @@ export default function Templates() {
             <div>
               <div className="mt-stat-val">{stats.approved}</div>
               <div className="mt-stat-label">Meta Approved</div>
-              <div className="mt-stat-sub">
-                {stats.total > 0 ? `${Math.round((stats.approved / stats.total) * 100)}% Ready to send` : '38% Ready to send'}
-              </div>
             </div>
           </div>
 
@@ -574,7 +571,6 @@ export default function Templates() {
             <div>
               <div className="mt-stat-val">{stats.pending}</div>
               <div className="mt-stat-label">In Review (Pending)</div>
-              <div className="mt-stat-sub">Under Meta automated audit</div>
             </div>
           </div>
 
@@ -589,7 +585,6 @@ export default function Templates() {
             <div>
               <div className="mt-stat-val">{stats.rejected}</div>
               <div className="mt-stat-label">Meta Rejected</div>
-              <div className="mt-stat-sub">Requires policy correction</div>
             </div>
           </div>
 
@@ -604,7 +599,6 @@ export default function Templates() {
             <div>
               <div className="mt-stat-val">{stats.paused_or_disabled}</div>
               <div className="mt-stat-label">Paused / Disabled</div>
-              <div className="mt-stat-sub">Quality score affected</div>
             </div>
           </div>
         </div>
@@ -895,683 +889,683 @@ export default function Templates() {
               );
             })}
           </div>
-      ) : (
-        /* TABLE VIEW */
-        <div className="table-responsive templates-table shadow-xs">
-          <table className="table table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Template Name</th>
-                <th>Category</th>
-                <th>Language</th>
-                <th>Target Account</th>
-                <th>Meta Status</th>
-                <th>Meta Template ID</th>
-                <th className="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {templates.map(tpl => {
-                const statusClass = tpl.status === 'APPROVED' ? 'badge-approved' :
-                  tpl.status === 'PENDING' ? 'badge-pending' :
-                  tpl.status === 'REJECTED' ? 'badge-rejected' : 'badge-paused';
+        ) : (
+          /* TABLE VIEW */
+          <div className="table-responsive templates-table shadow-xs">
+            <table className="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Template Name</th>
+                  <th>Category</th>
+                  <th>Language</th>
+                  <th>Target Account</th>
+                  <th>Meta Status</th>
+                  <th>Meta Template ID</th>
+                  <th className="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {templates.map(tpl => {
+                  const statusClass = tpl.status === 'APPROVED' ? 'badge-approved' :
+                    tpl.status === 'PENDING' ? 'badge-pending' :
+                      tpl.status === 'REJECTED' ? 'badge-rejected' : 'badge-paused';
 
-                const catClass = tpl.category === 'MARKETING' ? 'badge-category-marketing' :
-                  tpl.category === 'UTILITY' ? 'badge-category-utility' : 'badge-category-auth';
+                  const catClass = tpl.category === 'MARKETING' ? 'badge-category-marketing' :
+                    tpl.category === 'UTILITY' ? 'badge-category-utility' : 'badge-category-auth';
 
-                const acc = accounts.find(a => a.id === tpl.whatsapp_account_id);
+                  const acc = accounts.find(a => a.id === tpl.whatsapp_account_id);
 
-                return (
-                  <tr key={tpl.id}>
-                    <td>
-                      <Link to={`/templates/${tpl.id}`} className="fw-bold text-dark text-decoration-none font-monospace">
-                        {tpl.name}
-                      </Link>
-                    </td>
-                    <td>
-                      <span className={`badge-category ${catClass}`}>
-                        {tpl.category || 'MARKETING'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="badge bg-light text-secondary border small">{tpl.language}</span>
-                    </td>
-                    <td>
-                      {acc ? (
-                        <span className="small text-muted d-flex align-items-center gap-1">
-                          <i className="bi bi-whatsapp text-success"></i>
-                          {acc.account_name}
-                        </span>
-                      ) : (
-                        <span className="text-muted small">—</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`badge-status ${statusClass}`}>
-                        <span className="status-dot"></span>
-                        <span>{tpl.status}</span>
-                      </span>
-                    </td>
-                    <td>
-                      {tpl.meta_template_id ? (
-                        <code className="text-muted small">{tpl.meta_template_id}</code>
-                      ) : (
-                        <span className="text-muted small">—</span>
-                      )}
-                    </td>
-                    <td className="text-end">
-                      <div className="d-flex align-items-center justify-content-end gap-1">
-                        <button
-                          onClick={() => handleOpenQuickTest(tpl)}
-                          className="btn btn-sm btn-success py-1 px-2"
-                          title="Quick Test Send"
-                        >
-                          <i className="bi bi-send-fill me-1"></i> Test
-                        </button>
-                        <Link
-                          to={`/templates/${tpl.id}`}
-                          className="btn btn-sm btn-outline-secondary py-1 px-2"
-                          title="Open Details & Studio"
-                        >
-                          <i className="bi bi-sliders me-1"></i> Studio
+                  return (
+                    <tr key={tpl.id}>
+                      <td>
+                        <Link to={`/templates/${tpl.id}`} className="fw-bold text-dark text-decoration-none font-monospace">
+                          {tpl.name}
                         </Link>
-                        <button
-                          onClick={() => handleCheckLiveStatus(tpl)}
-                          className="btn btn-sm btn-outline-primary py-1 px-2"
-                          title="Check Live Status"
-                        >
-                          <i className="bi bi-arrow-clockwise"></i>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTemplate(tpl)}
-                          className="btn btn-sm btn-outline-danger py-1 px-2"
-                          title="Delete Template"
-                        >
-                          <i className="bi bi-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* CREATE TEMPLATE MODAL */}
-      {/* ========================================================= */}
-      {showCreateModal && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(15,23,42,0.65)' }}>
-          <div className="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
-            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
-              <div className="modal-header bg-light border-bottom px-4 py-3">
-                <div className="d-flex align-items-center gap-2">
-                  <div className="stat-icon bg-success-subtle text-success border border-success-subtle p-2 rounded-3" style={{ width: '36px', height: '36px' }}>
-                    <i className="bi bi-plus-circle-fill fs-5"></i>
-                  </div>
-                  <div>
-                    <h5 className="modal-title fw-bold text-dark mb-0">Create & Submit WhatsApp Template</h5>
-                    <p className="text-muted small mb-0">Directly syncs to Meta Cloud API approval queue</p>
-                  </div>
-                </div>
-                <button type="button" className="btn-close" onClick={() => setShowCreateModal(false)}></button>
-              </div>
-
-              <div className="modal-body p-4">
-                {formError && (
-                  <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3 rounded-3">
-                    <i className="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
-                    <div>{formError}</div>
-                  </div>
-                )}
-
-                <div className="row g-4">
-                  {/* Left Column: Form Controls */}
-                  <div className="col-12 col-lg-7">
-                    <form onSubmit={handleCreateSubmit}>
-                      {/* Target WhatsApp Account / WABA */}
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">
-                          Target WhatsApp Business Account / WABA <span className="text-danger">*</span>
-                        </label>
-                        <select
-                          className="form-select"
-                          value={formAccountId}
-                          onChange={(e) => setFormAccountId(e.target.value)}
-                          required
-                        >
-                          {accounts.length === 0 ? (
-                            <option value="">No WhatsApp accounts connected</option>
-                          ) : (
-                            accounts.map(acc => (
-                              <option key={acc.id} value={acc.id}>
-                                {acc.account_name} — {acc.display_phone_number || 'No phone'} (WABA: {acc.waba_id})
-                              </option>
-                            ))
-                          )}
-                        </select>
-                        <div className="form-text small text-muted">
-                          This template will be registered under this client's official Meta Business Portfolio.
-                        </div>
-                      </div>
-
-                      {/* Name & Language */}
-                      <div className="row g-3 mb-3">
-                        <div className="col-md-7">
-                          <label className="form-label small fw-bold">
-                            Template Name <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="e.g. festive_diwali_offer"
-                            value={formName}
-                            onChange={(e) => setFormName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
-                            required
-                          />
-                          <div className="form-text small text-muted">
-                            Lowercase letters, numbers, and underscores only.
-                          </div>
-                        </div>
-
-                        <div className="col-md-5">
-                          <label className="form-label small fw-bold">Language</label>
-                          <select
-                            className="form-select"
-                            value={formLanguage}
-                            onChange={(e) => setFormLanguage(e.target.value)}
-                          >
-                            {LANGUAGES.map(l => (
-                              <option key={l.code} value={l.code}>{l.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Category */}
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Category</label>
-                        <div className="d-flex gap-2">
-                          {[
-                            { id: 'MARKETING', label: 'Marketing', icon: 'bi-megaphone-fill' },
-                            { id: 'UTILITY', label: 'Utility', icon: 'bi-gear-fill' },
-                            { id: 'AUTHENTICATION', label: 'Authentication', icon: 'bi-shield-lock-fill' }
-                          ].map(cat => (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              className={`btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-1 py-2 ${formCategory === cat.id ? 'btn-success' : 'btn-outline-secondary'}`}
-                              onClick={() => setFormCategory(cat.id)}
-                            >
-                              <i className={`bi ${cat.icon}`}></i>
-                              <span>{cat.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Header Selection */}
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Header Format (Optional)</label>
-                        <select
-                          className="form-select mb-2"
-                          value={headerType}
-                          onChange={(e) => setHeaderType(e.target.value)}
-                        >
-                          <option value="NONE">None (No Header)</option>
-                          <option value="TEXT">Text Header</option>
-                          <option value="IMAGE">Image Header (PNG/JPG)</option>
-                          <option value="VIDEO">Video Header (MP4)</option>
-                          <option value="DOCUMENT">Document Header (PDF)</option>
-                        </select>
-
-                        {headerType === 'TEXT' && (
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Header text (e.g. Exclusive Diwali VIP Offer!)"
-                            value={headerText}
-                            onChange={(e) => setHeaderText(e.target.value)}
-                          />
+                      </td>
+                      <td>
+                        <span className={`badge-category ${catClass}`}>
+                          {tpl.category || 'MARKETING'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge bg-light text-secondary border small">{tpl.language}</span>
+                      </td>
+                      <td>
+                        {acc ? (
+                          <span className="small text-muted d-flex align-items-center gap-1">
+                            <i className="bi bi-whatsapp text-success"></i>
+                            {acc.account_name}
+                          </span>
+                        ) : (
+                          <span className="text-muted small">—</span>
                         )}
-                      </div>
-
-                      {/* Message Body */}
-                      <div className="mb-3">
-                        <div className="d-flex align-items-center justify-content-between mb-1">
-                          <label className="form-label small fw-bold mb-0">
-                            Message Body <span className="text-danger">*</span>
-                          </label>
+                      </td>
+                      <td>
+                        <span className={`badge-status ${statusClass}`}>
+                          <span className="status-dot"></span>
+                          <span>{tpl.status}</span>
+                        </span>
+                      </td>
+                      <td>
+                        {tpl.meta_template_id ? (
+                          <code className="text-muted small">{tpl.meta_template_id}</code>
+                        ) : (
+                          <span className="text-muted small">—</span>
+                        )}
+                      </td>
+                      <td className="text-end">
+                        <div className="d-flex align-items-center justify-content-end gap-1">
                           <button
-                            type="button"
-                            className="btn btn-sm btn-outline-success py-0 px-2"
-                            style={{ fontSize: '0.75rem' }}
-                            onClick={() => {
-                              const nextNum = detectedVariables.length + 1;
-                              setBodyText(prev => `${prev} {{${nextNum}}}`);
-                            }}
+                            onClick={() => handleOpenQuickTest(tpl)}
+                            className="btn btn-sm btn-success py-1 px-2"
+                            title="Quick Test Send"
                           >
-                            <i className="bi bi-braces me-1"></i>+ Add Variable &#123;&#123;{detectedVariables.length + 1}&#125;&#125;
+                            <i className="bi bi-send-fill me-1"></i> Test
+                          </button>
+                          <Link
+                            to={`/templates/${tpl.id}`}
+                            className="btn btn-sm btn-outline-secondary py-1 px-2"
+                            title="Open Details & Studio"
+                          >
+                            <i className="bi bi-sliders me-1"></i> Studio
+                          </Link>
+                          <button
+                            onClick={() => handleCheckLiveStatus(tpl)}
+                            className="btn btn-sm btn-outline-primary py-1 px-2"
+                            title="Check Live Status"
+                          >
+                            <i className="bi bi-arrow-clockwise"></i>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTemplate(tpl)}
+                            className="btn btn-sm btn-outline-danger py-1 px-2"
+                            title="Delete Template"
+                          >
+                            <i className="bi bi-trash"></i>
                           </button>
                         </div>
-                        <textarea
-                          rows="4"
-                          className="form-control"
-                          value={bodyText}
-                          onChange={(e) => setBodyText(e.target.value)}
-                          placeholder="Type your WhatsApp message. Use {{1}}, {{2}} for variables."
-                          required
-                        ></textarea>
-                      </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-                      {/* Variable Sample Values (Required by Meta) */}
-                      {detectedVariables.length > 0 && (
-                        <div className="card bg-light border p-3 mb-3 rounded-3">
-                          <div className="fw-bold small mb-2 text-dark d-flex align-items-center gap-1">
-                            <i className="bi bi-info-circle-fill text-primary"></i>
-                            <span>Variable Sample Values (Required by Meta for Review):</span>
+        {/* ========================================================= */}
+        {/* CREATE TEMPLATE MODAL */}
+        {/* ========================================================= */}
+        {showCreateModal && (
+          <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(15,23,42,0.65)' }}>
+            <div className="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+                <div className="modal-header bg-light border-bottom px-4 py-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <div className="stat-icon bg-success-subtle text-success border border-success-subtle p-2 rounded-3" style={{ width: '36px', height: '36px' }}>
+                      <i className="bi bi-plus-circle-fill fs-5"></i>
+                    </div>
+                    <div>
+                      <h5 className="modal-title fw-bold text-dark mb-0">Create & Submit WhatsApp Template</h5>
+                      <p className="text-muted small mb-0">Directly syncs to Meta Cloud API approval queue</p>
+                    </div>
+                  </div>
+                  <button type="button" className="btn-close" onClick={() => setShowCreateModal(false)}></button>
+                </div>
+
+                <div className="modal-body p-4">
+                  {formError && (
+                    <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3 rounded-3">
+                      <i className="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+                      <div>{formError}</div>
+                    </div>
+                  )}
+
+                  <div className="row g-4">
+                    {/* Left Column: Form Controls */}
+                    <div className="col-12 col-lg-7">
+                      <form onSubmit={handleCreateSubmit}>
+                        {/* Target WhatsApp Account / WABA */}
+                        <div className="mb-3">
+                          <label className="form-label small fw-bold">
+                            Target WhatsApp Business Account / WABA <span className="text-danger">*</span>
+                          </label>
+                          <select
+                            className="form-select"
+                            value={formAccountId}
+                            onChange={(e) => setFormAccountId(e.target.value)}
+                            required
+                          >
+                            {accounts.length === 0 ? (
+                              <option value="">No WhatsApp accounts connected</option>
+                            ) : (
+                              accounts.map(acc => (
+                                <option key={acc.id} value={acc.id}>
+                                  {acc.account_name} — {acc.display_phone_number || 'No phone'} (WABA: {acc.waba_id})
+                                </option>
+                              ))
+                            )}
+                          </select>
+                          <div className="form-text small text-muted">
+                            This template will be registered under this client's official Meta Business Portfolio.
                           </div>
-                          <div className="row g-2">
-                            {detectedVariables.map((v) => (
-                              <div key={v} className="col-12 col-md-6">
-                                <label className="form-label small text-muted mb-1 d-flex align-items-center gap-1">
-                                  <span>Variable</span>
-                                  <span className="variable-badge">&#123;&#123;{v}&#125;&#125;</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  className="form-control form-control-sm"
-                                  placeholder={`Sample for {{${v}}}`}
-                                  value={variableExamples[v] || ''}
-                                  onChange={(e) => setVariableExamples({ ...variableExamples, [v]: e.target.value })}
-                                  required
-                                />
-                              </div>
+                        </div>
+
+                        {/* Name & Language */}
+                        <div className="row g-3 mb-3">
+                          <div className="col-md-7">
+                            <label className="form-label small fw-bold">
+                              Template Name <span className="text-danger">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="e.g. festive_diwali_offer"
+                              value={formName}
+                              onChange={(e) => setFormName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                              required
+                            />
+                            <div className="form-text small text-muted">
+                              Lowercase letters, numbers, and underscores only.
+                            </div>
+                          </div>
+
+                          <div className="col-md-5">
+                            <label className="form-label small fw-bold">Language</label>
+                            <select
+                              className="form-select"
+                              value={formLanguage}
+                              onChange={(e) => setFormLanguage(e.target.value)}
+                            >
+                              {LANGUAGES.map(l => (
+                                <option key={l.code} value={l.code}>{l.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Category */}
+                        <div className="mb-3">
+                          <label className="form-label small fw-bold">Category</label>
+                          <div className="d-flex gap-2">
+                            {[
+                              { id: 'MARKETING', label: 'Marketing', icon: 'bi-megaphone-fill' },
+                              { id: 'UTILITY', label: 'Utility', icon: 'bi-gear-fill' },
+                              { id: 'AUTHENTICATION', label: 'Authentication', icon: 'bi-shield-lock-fill' }
+                            ].map(cat => (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                className={`btn btn-sm flex-fill d-flex align-items-center justify-content-center gap-1 py-2 ${formCategory === cat.id ? 'btn-success' : 'btn-outline-secondary'}`}
+                                onClick={() => setFormCategory(cat.id)}
+                              >
+                                <i className={`bi ${cat.icon}`}></i>
+                                <span>{cat.label}</span>
+                              </button>
                             ))}
                           </div>
                         </div>
-                      )}
 
-                      {/* Footer Text */}
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Footer Text (Optional)</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="e.g. Reply STOP to opt out"
-                          value={footerText}
-                          onChange={(e) => setFooterText(e.target.value)}
-                        />
-                      </div>
+                        {/* Header Selection */}
+                        <div className="mb-3">
+                          <label className="form-label small fw-bold">Header Format (Optional)</label>
+                          <select
+                            className="form-select mb-2"
+                            value={headerType}
+                            onChange={(e) => setHeaderType(e.target.value)}
+                          >
+                            <option value="NONE">None (No Header)</option>
+                            <option value="TEXT">Text Header</option>
+                            <option value="IMAGE">Image Header (PNG/JPG)</option>
+                            <option value="VIDEO">Video Header (MP4)</option>
+                            <option value="DOCUMENT">Document Header (PDF)</option>
+                          </select>
 
-                      {/* Interactive Buttons Builder */}
-                      <div className="mb-4">
-                        <div className="d-flex align-items-center justify-content-between mb-2">
-                          <label className="form-label small fw-bold mb-0">Call to Action Buttons (Max 3)</label>
-                          <div className="btn-group btn-group-sm">
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary"
-                              onClick={() => handleAddButton('QUICK_REPLY')}
-                            >
-                              + Quick Reply
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary"
-                              onClick={() => handleAddButton('URL')}
-                            >
-                              + Website URL
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary"
-                              onClick={() => handleAddButton('PHONE_NUMBER')}
-                            >
-                              + Phone Number
-                            </button>
-                          </div>
+                          {headerType === 'TEXT' && (
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Header text (e.g. Exclusive Diwali VIP Offer!)"
+                              value={headerText}
+                              onChange={(e) => setHeaderText(e.target.value)}
+                            />
+                          )}
                         </div>
 
-                        {buttons.map((btn, idx) => (
-                          <div key={idx} className="card p-2 mb-2 border bg-light rounded-3">
-                            <div className="d-flex align-items-center justify-content-between mb-1">
-                              <span className="badge bg-secondary small">{btn.type}</span>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-link text-danger p-0"
-                                onClick={() => handleRemoveButton(idx)}
-                              >
-                                <i className="bi bi-trash"></i>
-                              </button>
+                        {/* Message Body */}
+                        <div className="mb-3">
+                          <div className="d-flex align-items-center justify-content-between mb-1">
+                            <label className="form-label small fw-bold mb-0">
+                              Message Body <span className="text-danger">*</span>
+                            </label>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-success py-0 px-2"
+                              style={{ fontSize: '0.75rem' }}
+                              onClick={() => {
+                                const nextNum = detectedVariables.length + 1;
+                                setBodyText(prev => `${prev} {{${nextNum}}}`);
+                              }}
+                            >
+                              <i className="bi bi-braces me-1"></i>+ Add Variable &#123;&#123;{detectedVariables.length + 1}&#125;&#125;
+                            </button>
+                          </div>
+                          <textarea
+                            rows="4"
+                            className="form-control"
+                            value={bodyText}
+                            onChange={(e) => setBodyText(e.target.value)}
+                            placeholder="Type your WhatsApp message. Use {{1}}, {{2}} for variables."
+                            required
+                          ></textarea>
+                        </div>
+
+                        {/* Variable Sample Values (Required by Meta) */}
+                        {detectedVariables.length > 0 && (
+                          <div className="card bg-light border p-3 mb-3 rounded-3">
+                            <div className="fw-bold small mb-2 text-dark d-flex align-items-center gap-1">
+                              <i className="bi bi-info-circle-fill text-primary"></i>
+                              <span>Variable Sample Values (Required by Meta for Review):</span>
                             </div>
                             <div className="row g-2">
-                              <div className="col-5">
-                                <input
-                                  type="text"
-                                  className="form-control form-control-sm"
-                                  placeholder="Button Label"
-                                  value={btn.text}
-                                  onChange={(e) => {
-                                    const next = [...buttons];
-                                    next[idx].text = e.target.value;
-                                    setButtons(next);
-                                  }}
-                                />
-                              </div>
-                              <div className="col-7">
-                                {btn.type === 'URL' && (
-                                  <input
-                                    type="url"
-                                    className="form-control form-control-sm"
-                                    placeholder="https://yourwebsite.com"
-                                    value={btn.url || ''}
-                                    onChange={(e) => {
-                                      const next = [...buttons];
-                                      next[idx].url = e.target.value;
-                                      setButtons(next);
-                                    }}
-                                  />
-                                )}
-                                {btn.type === 'PHONE_NUMBER' && (
+                              {detectedVariables.map((v) => (
+                                <div key={v} className="col-12 col-md-6">
+                                  <label className="form-label small text-muted mb-1 d-flex align-items-center gap-1">
+                                    <span>Variable</span>
+                                    <span className="variable-badge">&#123;&#123;{v}&#125;&#125;</span>
+                                  </label>
                                   <input
                                     type="text"
                                     className="form-control form-control-sm"
-                                    placeholder="+919876543210"
-                                    value={btn.phone_number || ''}
+                                    placeholder={`Sample for {{${v}}}`}
+                                    value={variableExamples[v] || ''}
+                                    onChange={(e) => setVariableExamples({ ...variableExamples, [v]: e.target.value })}
+                                    required
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Footer Text */}
+                        <div className="mb-3">
+                          <label className="form-label small fw-bold">Footer Text (Optional)</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="e.g. Reply STOP to opt out"
+                            value={footerText}
+                            onChange={(e) => setFooterText(e.target.value)}
+                          />
+                        </div>
+
+                        {/* Interactive Buttons Builder */}
+                        <div className="mb-4">
+                          <div className="d-flex align-items-center justify-content-between mb-2">
+                            <label className="form-label small fw-bold mb-0">Call to Action Buttons (Max 3)</label>
+                            <div className="btn-group btn-group-sm">
+                              <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={() => handleAddButton('QUICK_REPLY')}
+                              >
+                                + Quick Reply
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={() => handleAddButton('URL')}
+                              >
+                                + Website URL
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={() => handleAddButton('PHONE_NUMBER')}
+                              >
+                                + Phone Number
+                              </button>
+                            </div>
+                          </div>
+
+                          {buttons.map((btn, idx) => (
+                            <div key={idx} className="card p-2 mb-2 border bg-light rounded-3">
+                              <div className="d-flex align-items-center justify-content-between mb-1">
+                                <span className="badge bg-secondary small">{btn.type}</span>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-danger p-0"
+                                  onClick={() => handleRemoveButton(idx)}
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              </div>
+                              <div className="row g-2">
+                                <div className="col-5">
+                                  <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    placeholder="Button Label"
+                                    value={btn.text}
                                     onChange={(e) => {
                                       const next = [...buttons];
-                                      next[idx].phone_number = e.target.value;
+                                      next[idx].text = e.target.value;
                                       setButtons(next);
                                     }}
                                   />
-                                )}
+                                </div>
+                                <div className="col-7">
+                                  {btn.type === 'URL' && (
+                                    <input
+                                      type="url"
+                                      className="form-control form-control-sm"
+                                      placeholder="https://yourwebsite.com"
+                                      value={btn.url || ''}
+                                      onChange={(e) => {
+                                        const next = [...buttons];
+                                        next[idx].url = e.target.value;
+                                        setButtons(next);
+                                      }}
+                                    />
+                                  )}
+                                  {btn.type === 'PHONE_NUMBER' && (
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      placeholder="+919876543210"
+                                      value={btn.phone_number || ''}
+                                      onChange={(e) => {
+                                        const next = [...buttons];
+                                        next[idx].phone_number = e.target.value;
+                                        setButtons(next);
+                                      }}
+                                    />
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
 
-                      <div className="d-flex justify-content-end gap-2 pt-3 border-top">
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary"
-                          onClick={() => setShowCreateModal(false)}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={submitting}
-                          className="btn btn-success d-flex align-items-center gap-2"
-                        >
-                          {submitting ? (
-                            <>
-                              <div className="spinner-border spinner-border-sm" role="status"></div>
-                              <span>Submitting to Meta...</span>
-                            </>
-                          ) : (
-                            <>
-                              <i className="bi bi-cloud-arrow-up-fill"></i>
-                              <span>Submit Template to Meta</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-
-                  {/* Right Column: Live WhatsApp Mobile Simulator */}
-                  <div className="col-12 col-lg-5 text-center">
-                    <div className="small fw-bold text-muted mb-2 text-uppercase d-flex align-items-center justify-content-center gap-1">
-                      <i className="bi bi-phone"></i>
-                      <span>Live WhatsApp Phone Simulator</span>
+                        <div className="d-flex justify-content-end gap-2 pt-3 border-top">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            onClick={() => setShowCreateModal(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={submitting}
+                            className="btn btn-success d-flex align-items-center gap-2"
+                          >
+                            {submitting ? (
+                              <>
+                                <div className="spinner-border spinner-border-sm" role="status"></div>
+                                <span>Submitting to Meta...</span>
+                              </>
+                            ) : (
+                              <>
+                                <i className="bi bi-cloud-arrow-up-fill"></i>
+                                <span>Submit Template to Meta</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </form>
                     </div>
-                    {renderSimulatedPreview(null, true)}
-                    <div className="text-muted small mt-2">
-                      <i className="bi bi-shield-check text-success me-1"></i>
-                      Simulated preview. Meta review automated approval typically completes in 2–15 minutes.
+
+                    {/* Right Column: Live WhatsApp Mobile Simulator */}
+                    <div className="col-12 col-lg-5 text-center">
+                      <div className="small fw-bold text-muted mb-2 text-uppercase d-flex align-items-center justify-content-center gap-1">
+                        <i className="bi bi-phone"></i>
+                        <span>Live WhatsApp Phone Simulator</span>
+                      </div>
+                      {renderSimulatedPreview(null, true)}
+                      <div className="text-muted small mt-2">
+                        <i className="bi bi-shield-check text-success me-1"></i>
+                        Simulated preview. Meta review automated approval typically completes in 2–15 minutes.
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ========================================================= */}
-      {/* VIEW DETAILS & REJECTION MODAL */}
-      {/* ========================================================= */}
-      {detailTemplate && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(15,23,42,0.65)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
-              <div className="modal-header bg-light border-bottom px-4 py-3">
-                <div className="d-flex align-items-center gap-2">
-                  <h5 className="modal-title fw-bold text-dark mb-0">{detailTemplate.name}</h5>
-                  <span className={`badge-status ${detailTemplate.status === 'APPROVED' ? 'badge-approved' : detailTemplate.status === 'PENDING' ? 'badge-pending' : 'badge-rejected'}`}>
-                    <span className="status-dot"></span>
-                    <span>{detailTemplate.status}</span>
-                  </span>
+        {/* ========================================================= */}
+        {/* VIEW DETAILS & REJECTION MODAL */}
+        {/* ========================================================= */}
+        {detailTemplate && (
+          <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(15,23,42,0.65)' }}>
+            <div className="modal-dialog modal-lg modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+                <div className="modal-header bg-light border-bottom px-4 py-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <h5 className="modal-title fw-bold text-dark mb-0">{detailTemplate.name}</h5>
+                    <span className={`badge-status ${detailTemplate.status === 'APPROVED' ? 'badge-approved' : detailTemplate.status === 'PENDING' ? 'badge-pending' : 'badge-rejected'}`}>
+                      <span className="status-dot"></span>
+                      <span>{detailTemplate.status}</span>
+                    </span>
+                  </div>
+                  <button type="button" className="btn-close" onClick={() => setDetailTemplate(null)}></button>
                 </div>
-                <button type="button" className="btn-close" onClick={() => setDetailTemplate(null)}></button>
-              </div>
 
-              <div className="modal-body p-4">
-                {/* Rejection Alert if present */}
-                {detailTemplate.status === 'REJECTED' && (
-                  <div className="rejection-banner mb-4">
-                    <h6 className="fw-bold mb-1 text-danger d-flex align-items-center gap-1">
-                      <i className="bi bi-x-octagon-fill"></i>
-                      <span>Meta Rejection Details</span>
-                    </h6>
-                    <p>{detailTemplate.rejection_reason || 'This template was rejected by Meta moderation policy.'}</p>
-                    <div className="small text-danger mt-2">
-                      <strong>Policy Tip:</strong> Check that variable placeholders have realistic sample values, promotional phrasing does not make prohibited claims, and all buttons have valid URLs or phone numbers.
+                <div className="modal-body p-4">
+                  {/* Rejection Alert if present */}
+                  {detailTemplate.status === 'REJECTED' && (
+                    <div className="rejection-banner mb-4">
+                      <h6 className="fw-bold mb-1 text-danger d-flex align-items-center gap-1">
+                        <i className="bi bi-x-octagon-fill"></i>
+                        <span>Meta Rejection Details</span>
+                      </h6>
+                      <p>{detailTemplate.rejection_reason || 'This template was rejected by Meta moderation policy.'}</p>
+                      <div className="small text-danger mt-2">
+                        <strong>Policy Tip:</strong> Check that variable placeholders have realistic sample values, promotional phrasing does not make prohibited claims, and all buttons have valid URLs or phone numbers.
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="row g-4 align-items-center">
+                    {/* Meta Details Metadata */}
+                    <div className="col-12 col-md-6">
+                      <h6 className="fw-bold mb-3 border-bottom pb-2 text-dark">
+                        <i className="bi bi-info-circle me-1 text-success"></i>
+                        Meta Cloud API Specifications
+                      </h6>
+
+                      <div className="card bg-light border p-3 rounded-3 mb-3">
+                        <div className="mb-2">
+                          <span className="text-muted small d-block">Meta Template ID:</span>
+                          <div className="d-flex align-items-center gap-2">
+                            <code className="text-dark fw-bold">{detailTemplate.meta_template_id || 'Not assigned'}</code>
+                            {detailTemplate.meta_template_id && (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-link p-0 text-muted"
+                                title="Copy ID"
+                                onClick={() => copyToClipboard(detailTemplate.meta_template_id, 'modal')}
+                              >
+                                <i className={`bi ${copiedId === 'modal' ? 'bi-check2 text-success' : 'bi-clipboard'}`}></i>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="row g-2 mb-2">
+                          <div className="col-6">
+                            <span className="text-muted small d-block">Category:</span>
+                            <span className="badge-category badge-category-marketing">{detailTemplate.category}</span>
+                          </div>
+                          <div className="col-6">
+                            <span className="text-muted small d-block">Language:</span>
+                            <span className="badge bg-white text-secondary border small">{detailTemplate.language}</span>
+                          </div>
+                        </div>
+
+                        <div className="mb-0">
+                          <span className="text-muted small d-block">Last Synchronized:</span>
+                          <span className="small text-dark fw-semibold">
+                            {detailTemplate.last_synced_at ? new Date(detailTemplate.last_synced_at).toLocaleString() : 'Never'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="d-flex gap-2">
+                        <button
+                          onClick={() => handleCheckLiveStatus(detailTemplate)}
+                          disabled={statusCheckLoading}
+                          className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-xs"
+                        >
+                          <i className={`bi bi-arrow-clockwise ${statusCheckLoading ? 'spin-icon' : ''}`}></i>
+                          <span>{statusCheckLoading ? 'Checking...' : 'Check Live Status'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteTemplate(detailTemplate)}
+                          className="btn btn-outline-danger btn-sm shadow-xs"
+                        >
+                          <i className="bi bi-trash me-1"></i>Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* WhatsApp Mobile Preview */}
+                    <div className="col-12 col-md-6 text-center">
+                      <div className="small fw-bold text-muted mb-2 text-uppercase">Recipient Preview</div>
+                      {renderSimulatedPreview(detailTemplate, false)}
                     </div>
                   </div>
-                )}
+                </div>
 
-                <div className="row g-4 align-items-center">
-                  {/* Meta Details Metadata */}
-                  <div className="col-12 col-md-6">
-                    <h6 className="fw-bold mb-3 border-bottom pb-2 text-dark">
-                      <i className="bi bi-info-circle me-1 text-success"></i>
-                      Meta Cloud API Specifications
-                    </h6>
+                <div className="modal-footer bg-light px-4 py-3">
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDetailTemplate(null)}>
+                    Close Preview
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
+        {/* ========================================================= */}
+        {/* QUICK TEST SEND MODAL (Aisensy / WATI Direct Dispatch)  */}
+        {/* ========================================================= */}
+        {quickTestTemplate && (
+          <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(15,23,42,0.65)' }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+                <div className="modal-header bg-light border-bottom px-4 py-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <div className="stat-icon bg-success-subtle text-success border border-success-subtle p-2 rounded-3" style={{ width: '36px', height: '36px' }}>
+                      <i className="bi bi-send-fill fs-5"></i>
+                    </div>
+                    <div>
+                      <h5 className="modal-title fw-bold text-dark mb-0">Quick Test Send</h5>
+                      <p className="text-muted small mb-0">Dispatch live test to your personal WhatsApp</p>
+                    </div>
+                  </div>
+                  <button type="button" className="btn-close" onClick={() => setQuickTestTemplate(null)}></button>
+                </div>
+
+                <form onSubmit={handleSendQuickTest}>
+                  <div className="modal-body p-4">
+                    {quickTestResult && (
+                      <div className={`alert alert-${quickTestResult.success ? 'success' : 'danger'} py-2 px-3 small d-flex align-items-center gap-2 mb-3 rounded-3`}>
+                        <i className={`bi ${quickTestResult.success ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-5 flex-shrink-0`}></i>
+                        <div>{quickTestResult.message}</div>
+                      </div>
+                    )}
+
+                    {/* Template Info Card */}
                     <div className="card bg-light border p-3 rounded-3 mb-3">
-                      <div className="mb-2">
-                        <span className="text-muted small d-block">Meta Template ID:</span>
-                        <div className="d-flex align-items-center gap-2">
-                          <code className="text-dark fw-bold">{detailTemplate.meta_template_id || 'Not assigned'}</code>
-                          {detailTemplate.meta_template_id && (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-link p-0 text-muted"
-                              title="Copy ID"
-                              onClick={() => copyToClipboard(detailTemplate.meta_template_id, 'modal')}
-                            >
-                              <i className={`bi ${copiedId === 'modal' ? 'bi-check2 text-success' : 'bi-clipboard'}`}></i>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="row g-2 mb-2">
-                        <div className="col-6">
-                          <span className="text-muted small d-block">Category:</span>
-                          <span className="badge-category badge-category-marketing">{detailTemplate.category}</span>
-                        </div>
-                        <div className="col-6">
-                          <span className="text-muted small d-block">Language:</span>
-                          <span className="badge bg-white text-secondary border small">{detailTemplate.language}</span>
-                        </div>
-                      </div>
-
-                      <div className="mb-0">
-                        <span className="text-muted small d-block">Last Synchronized:</span>
-                        <span className="small text-dark fw-semibold">
-                          {detailTemplate.last_synced_at ? new Date(detailTemplate.last_synced_at).toLocaleString() : 'Never'}
+                      <div className="d-flex align-items-center justify-content-between mb-1">
+                        <span className="small text-muted">Selected Template:</span>
+                        <span className="badge bg-success-subtle text-success border border-success-subtle">
+                          {quickTestTemplate.status}
                         </span>
                       </div>
-                    </div>
-
-                    <div className="d-flex gap-2">
-                      <button
-                        onClick={() => handleCheckLiveStatus(detailTemplate)}
-                        disabled={statusCheckLoading}
-                        className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-xs"
-                      >
-                        <i className={`bi bi-arrow-clockwise ${statusCheckLoading ? 'spin-icon' : ''}`}></i>
-                        <span>{statusCheckLoading ? 'Checking...' : 'Check Live Status'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteTemplate(detailTemplate)}
-                        className="btn btn-outline-danger btn-sm shadow-xs"
-                      >
-                        <i className="bi bi-trash me-1"></i>Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* WhatsApp Mobile Preview */}
-                  <div className="col-12 col-md-6 text-center">
-                    <div className="small fw-bold text-muted mb-2 text-uppercase">Recipient Preview</div>
-                    {renderSimulatedPreview(detailTemplate, false)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="modal-footer bg-light px-4 py-3">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDetailTemplate(null)}>
-                  Close Preview
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* QUICK TEST SEND MODAL (Aisensy / WATI Direct Dispatch)  */}
-      {/* ========================================================= */}
-      {quickTestTemplate && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(15,23,42,0.65)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
-              <div className="modal-header bg-light border-bottom px-4 py-3">
-                <div className="d-flex align-items-center gap-2">
-                  <div className="stat-icon bg-success-subtle text-success border border-success-subtle p-2 rounded-3" style={{ width: '36px', height: '36px' }}>
-                    <i className="bi bi-send-fill fs-5"></i>
-                  </div>
-                  <div>
-                    <h5 className="modal-title fw-bold text-dark mb-0">Quick Test Send</h5>
-                    <p className="text-muted small mb-0">Dispatch live test to your personal WhatsApp</p>
-                  </div>
-                </div>
-                <button type="button" className="btn-close" onClick={() => setQuickTestTemplate(null)}></button>
-              </div>
-
-              <form onSubmit={handleSendQuickTest}>
-                <div className="modal-body p-4">
-                  {quickTestResult && (
-                    <div className={`alert alert-${quickTestResult.success ? 'success' : 'danger'} py-2 px-3 small d-flex align-items-center gap-2 mb-3 rounded-3`}>
-                      <i className={`bi ${quickTestResult.success ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-5 flex-shrink-0`}></i>
-                      <div>{quickTestResult.message}</div>
-                    </div>
-                  )}
-
-                  {/* Template Info Card */}
-                  <div className="card bg-light border p-3 rounded-3 mb-3">
-                    <div className="d-flex align-items-center justify-content-between mb-1">
-                      <span className="small text-muted">Selected Template:</span>
-                      <span className="badge bg-success-subtle text-success border border-success-subtle">
-                        {quickTestTemplate.status}
-                      </span>
-                    </div>
-                    <div className="fw-bold text-dark d-flex align-items-center gap-2">
-                      <i className="bi bi-whatsapp text-success"></i>
-                      <span>{quickTestTemplate.name}</span>
-                      <span className="badge bg-white text-secondary border small">({quickTestTemplate.language})</span>
-                    </div>
-                  </div>
-
-                  {/* Recipient Phone Number */}
-                  <div className="mb-3">
-                    <label className="form-label small fw-bold">
-                      Recipient WhatsApp Phone Number <span className="text-danger">*</span>
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light text-muted">
-                        <i className="bi bi-whatsapp text-success me-1"></i> +
-                      </span>
-                      <input
-                        type="tel"
-                        className="form-control"
-                        placeholder="919876543210 (Country code + Phone number)"
-                        value={quickTestPhone}
-                        onChange={(e) => setQuickTestPhone(e.target.value)}
-                        required
-                        autoFocus
-                      />
-                    </div>
-                    <div className="form-text small text-muted">
-                      Include country code without "+" or spaces (e.g., 919876543210 for India).
-                    </div>
-                  </div>
-
-                  {/* Dynamic Variables Inputs */}
-                  {Object.keys(quickTestVars).length > 0 && (
-                    <div className="mb-3">
-                      <label className="form-label small fw-bold mb-2">
-                        Template Dynamic Variables
-                      </label>
-                      <div className="d-flex flex-column gap-2 bg-light p-3 rounded-3 border">
-                        {Object.keys(quickTestVars).map(vName => (
-                          <div key={vName} className="row g-2 align-items-center">
-                            <div className="col-4">
-                              <span className="wa-var-pill w-100 text-truncate text-center">
-                                &#123;&#123;{vName}&#125;&#125;
-                              </span>
-                            </div>
-                            <div className="col-8">
-                              <input
-                                type="text"
-                                className="form-control form-control-sm"
-                                placeholder={`Value for {{${vName}}}`}
-                                value={quickTestVars[vName] || ''}
-                                onChange={(e) => setQuickTestVars({
-                                  ...quickTestVars,
-                                  [vName]: e.target.value
-                                })}
-                              />
-                            </div>
-                          </div>
-                        ))}
+                      <div className="fw-bold text-dark d-flex align-items-center gap-2">
+                        <i className="bi bi-whatsapp text-success"></i>
+                        <span>{quickTestTemplate.name}</span>
+                        <span className="badge bg-white text-secondary border small">({quickTestTemplate.language})</span>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                <div className="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
-                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setQuickTestTemplate(null)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-success btn-sm d-flex align-items-center gap-2 shadow-xs" disabled={quickTestSending}>
-                    <i className={`bi ${quickTestSending ? 'bi-arrow-repeat spin-icon' : 'bi-send-fill'}`}></i>
-                    <span>{quickTestSending ? 'Dispatching...' : 'Send Live Test'}</span>
-                  </button>
-                </div>
-              </form>
+                    {/* Recipient Phone Number */}
+                    <div className="mb-3">
+                      <label className="form-label small fw-bold">
+                        Recipient WhatsApp Phone Number <span className="text-danger">*</span>
+                      </label>
+                      <div className="input-group">
+                        <span className="input-group-text bg-light text-muted">
+                          <i className="bi bi-whatsapp text-success me-1"></i> +
+                        </span>
+                        <input
+                          type="tel"
+                          className="form-control"
+                          placeholder="919876543210 (Country code + Phone number)"
+                          value={quickTestPhone}
+                          onChange={(e) => setQuickTestPhone(e.target.value)}
+                          required
+                          autoFocus
+                        />
+                      </div>
+                      <div className="form-text small text-muted">
+                        Include country code without "+" or spaces (e.g., 919876543210 for India).
+                      </div>
+                    </div>
+
+                    {/* Dynamic Variables Inputs */}
+                    {Object.keys(quickTestVars).length > 0 && (
+                      <div className="mb-3">
+                        <label className="form-label small fw-bold mb-2">
+                          Template Dynamic Variables
+                        </label>
+                        <div className="d-flex flex-column gap-2 bg-light p-3 rounded-3 border">
+                          {Object.keys(quickTestVars).map(vName => (
+                            <div key={vName} className="row g-2 align-items-center">
+                              <div className="col-4">
+                                <span className="wa-var-pill w-100 text-truncate text-center">
+                                  &#123;&#123;{vName}&#125;&#125;
+                                </span>
+                              </div>
+                              <div className="col-8">
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm"
+                                  placeholder={`Value for {{${vName}}}`}
+                                  value={quickTestVars[vName] || ''}
+                                  onChange={(e) => setQuickTestVars({
+                                    ...quickTestVars,
+                                    [vName]: e.target.value
+                                  })}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setQuickTestTemplate(null)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-success btn-sm d-flex align-items-center gap-2 shadow-xs" disabled={quickTestSending}>
+                      <i className={`bi ${quickTestSending ? 'bi-arrow-repeat spin-icon' : 'bi-send-fill'}`}></i>
+                      <span>{quickTestSending ? 'Dispatching...' : 'Send Live Test'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
