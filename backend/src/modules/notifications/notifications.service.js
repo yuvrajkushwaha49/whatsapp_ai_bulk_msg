@@ -179,7 +179,7 @@ export async function createNotification({
       type,
       is_read: false,
       link,
-      created_at: now
+      created_at: now.toISOString()
     };
     store.notifications.unshift(newNotif);
     return newNotif;
@@ -188,7 +188,7 @@ export async function createNotification({
   try {
     const result = await executeQuery(
       `INSERT INTO notifications (business_id, user_id, title, message, type, is_read, link, created_at)
-       VALUES (?, ?, ?, ?, ?, FALSE, ?, NOW())`,
+       VALUES (?, ?, ?, ?, ?, FALSE, ?, UTC_TIMESTAMP())`,
       [businessId, userId, title, message, type, link]
     );
     return {
@@ -200,7 +200,7 @@ export async function createNotification({
       type,
       is_read: false,
       link,
-      created_at: now
+      created_at: now.toISOString()
     };
   } catch (err) {
     console.error('Error creating notification in MySQL:', err.message);

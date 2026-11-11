@@ -32,7 +32,11 @@ export default function AiwavoHeader({
   // Helper for human-friendly relative time
   const formatTimeAgo = (dateStr) => {
     if (!dateStr) return '';
-    const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+    let d = new Date(dateStr);
+    if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+      d = new Date(dateStr.replace(' ', 'T') + 'Z');
+    }
+    const diff = Math.max(0, (Date.now() - d.getTime()) / 1000);
     if (diff < 60) return 'Just now';
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;

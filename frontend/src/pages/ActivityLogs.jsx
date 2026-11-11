@@ -71,7 +71,10 @@ export default function ActivityLogs() {
   // Helper to format timestamp
   const formatTimestamp = (dateStr) => {
     if (!dateStr) return { primary: 'Unknown', relative: '' };
-    const date = new Date(dateStr);
+    let date = new Date(dateStr);
+    if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+      date = new Date(dateStr.replace(' ', 'T') + 'Z');
+    }
     const primary = date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -81,7 +84,7 @@ export default function ActivityLogs() {
       minute: '2-digit'
     });
 
-    const diffMs = Date.now() - date.getTime();
+    const diffMs = Math.max(0, Date.now() - date.getTime());
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);

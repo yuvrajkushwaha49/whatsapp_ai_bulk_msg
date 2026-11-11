@@ -837,7 +837,8 @@ export function getPool() {
       waitForConnections: true,
       connectionLimit: parseInt(process.env.DATABASE_CONNECTION_LIMIT || '10', 10),
       queueLimit: 0,
-      charset: 'utf8mb4'
+      charset: 'utf8mb4',
+      timezone: 'Z'
     });
   }
   return pool;
