@@ -30,6 +30,14 @@ export default function Inbox() {
   const [stats, setStats] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
 
+  // Pagination State for Conversations & Messages
+  const [convPage, setConvPage] = useState(1);
+  const [hasMoreConversations, setHasMoreConversations] = useState(true);
+  const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
+  const shouldScrollBottomRef = useRef(true);
+
   // CRM details & notes
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
@@ -150,9 +158,11 @@ export default function Inbox() {
     }
   }, [selectedConversation?.id]);
 
-  // Scroll to bottom when messages update
+  // Scroll to bottom when messages update (only if shouldScrollBottomRef is true)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (shouldScrollBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Auto-resize composer textarea
@@ -175,13 +185,15 @@ export default function Inbox() {
     }
   };
 
-  const loadConversations = async (showLoading = false, accId = selectedAccountIdRef.current) => {
+  const loadConversations = async (showLoading = false, accId = selectedAccountIdRef.current, pageNum = 1) => {
     if (showLoading) setLoadingConversations(true);
     try {
       const res = await inboxApi.getConversations({
         filter,
         search: debouncedSearch,
-        accountId: accId
+        accountId: accId,
+        page: pageNum,
+        limit: 20
       });
       if (res.data?.success) {
         let items = res.data.data || [];
@@ -189,7 +201,19 @@ export default function Inbox() {
         if (accId && accId !== 'all') {
           items = items.filter(c => String(c.whatsapp_account_id) === String(accId));
         }
-        setConversations(items);
+
+        if (pageNum === 1) {
+          setConversations(items);
+          setConvPage(1);
+        } else {
+          setConversations(prev => {
+            const existingIds = new Set(prev.map(c => c.id));
+            const newItems = items.filter(c => !existingIds.has(c.id));
+            return [...prev, ...newItems];
+          });
+        }
+
+        setHasMoreConversations(items.length >= 20);
 
         // If selected conversation was updated, sync its metadata without triggering refetch loops
         const current = selectedConversationRef.current;
@@ -214,6 +238,42 @@ export default function Inbox() {
       console.error('[Inbox] Error loading conversations:', err);
     } finally {
       if (showLoading) setLoadingConversations(false);
+    }
+  };
+
+  const loadMoreConversations = async () => {
+    if (loadingMoreConversations || loadingConversations || !hasMoreConversations) return;
+    setLoadingMoreConversations(true);
+    try {
+      const nextPage = convPage + 1;
+      const res = await inboxApi.getConversations({
+        filter,
+        search: debouncedSearch,
+        accountId: selectedAccountIdRef.current,
+        page: nextPage,
+        limit: 20
+      });
+      if (res.data?.success) {
+        let items = res.data.data || [];
+        if (selectedAccountIdRef.current && selectedAccountIdRef.current !== 'all') {
+          items = items.filter(c => String(c.whatsapp_account_id) === String(selectedAccountIdRef.current));
+        }
+        if (items.length > 0) {
+          setConversations(prev => {
+            const existingIds = new Set(prev.map(c => c.id));
+            const newItems = items.filter(c => !existingIds.has(c.id));
+            return [...prev, ...newItems];
+          });
+          setConvPage(nextPage);
+        }
+        if (items.length < 20) {
+          setHasMoreConversations(false);
+        }
+      }
+    } catch (err) {
+      console.error('[Inbox] Error loading more conversations:', err);
+    } finally {
+      setLoadingMoreConversations(false);
     }
   };
 
@@ -258,10 +318,16 @@ export default function Inbox() {
 
   const loadMessages = async (convId) => {
     setLoadingMessages(true);
+    setHasMoreMessages(true);
+    shouldScrollBottomRef.current = true;
     try {
-      const res = await inboxApi.getMessages(convId);
+      const res = await inboxApi.getMessages(convId, { limit: 30 });
       if (res.data?.success) {
-        setMessages(res.data.data || []);
+        const msgs = res.data.data || [];
+        setMessages(msgs);
+        if (msgs.length < 30) {
+          setHasMoreMessages(false);
+        }
         // Decrease unread count locally in list
         setConversations(prev =>
           prev.map(c => (c.id === convId ? { ...c, unread_count: 0 } : c))
@@ -271,6 +337,63 @@ export default function Inbox() {
       console.error('[Inbox] Error loading messages:', err);
     } finally {
       setLoadingMessages(false);
+    }
+  };
+
+  const loadOlderMessages = async () => {
+    if (loadingOlderMessages || loadingMessages || !hasMoreMessages || !selectedConversation?.id || messages.length === 0) return;
+    const oldest = messages[0];
+    if (!oldest?.created_at) return;
+
+    setLoadingOlderMessages(true);
+    shouldScrollBottomRef.current = false;
+    const prevScrollHeight = chatMessagesRef.current?.scrollHeight || 0;
+    const prevScrollTop = chatMessagesRef.current?.scrollTop || 0;
+
+    try {
+      const res = await inboxApi.getMessages(selectedConversation.id, {
+        limit: 30,
+        before: oldest.created_at
+      });
+      if (res.data?.success) {
+        const older = res.data.data || [];
+        if (older.length > 0) {
+          setMessages(prev => {
+            const existingIds = new Set(prev.map(m => m.id || m.meta_message_id));
+            const newBatch = older.filter(m => !existingIds.has(m.id || m.meta_message_id));
+            return [...newBatch, ...prev];
+          });
+          // Preserve scroll position seamlessly
+          requestAnimationFrame(() => {
+            if (chatMessagesRef.current) {
+              const newScrollHeight = chatMessagesRef.current.scrollHeight;
+              chatMessagesRef.current.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
+            }
+          });
+        }
+        if (older.length < 30) {
+          setHasMoreMessages(false);
+        }
+      }
+    } catch (err) {
+      console.error('[Inbox] Error loading older messages:', err);
+    } finally {
+      setLoadingOlderMessages(false);
+    }
+  };
+
+  // Infinite scroll pagination handlers
+  const handleConversationScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollHeight - scrollTop - clientHeight < 60) {
+      loadMoreConversations();
+    }
+  };
+
+  const handleChatScroll = (e) => {
+    const { scrollTop } = e.target;
+    if (scrollTop < 40) {
+      loadOlderMessages();
     }
   };
 
@@ -294,6 +417,7 @@ export default function Inbox() {
 
     // If belongs to currently viewed conversation, append immediately
     if (currentSelected && (message.conversation_id === currentSelected.id || data.conversationId === currentSelected.id)) {
+      shouldScrollBottomRef.current = true;
       setMessages(prev => {
         if (prev.some(m => m.id === message.id || (m.meta_message_id && m.meta_message_id === message.meta_message_id))) {
           return prev;
@@ -378,6 +502,7 @@ export default function Inbox() {
       const res = await inboxApi.sendTextMessage(selectedConversation.id, text);
       if (res.data?.success) {
         const newMsg = res.data.data;
+        shouldScrollBottomRef.current = true;
         setMessages(prev => [...prev, newMsg]);
         setInputText('');
         // Update list snippet
@@ -466,6 +591,7 @@ export default function Inbox() {
       const res = await inboxApi.sendTemplateMessage(selectedConversation.id, payload);
       if (res.data?.success) {
         const newMsg = res.data.data;
+        shouldScrollBottomRef.current = true;
         setMessages(prev => [...prev, newMsg]);
         setShowTemplateModal(false);
         setAlertMsg({
@@ -510,6 +636,7 @@ export default function Inbox() {
       const res = await inboxApi.sendMediaMessage(selectedConversation.id, payload);
       if (res.data?.success) {
         const newMsg = res.data.data;
+        shouldScrollBottomRef.current = true;
         setMessages(prev => [...prev, newMsg]);
         setShowMediaModal(false);
         setMediaUrl('');
@@ -802,7 +929,7 @@ export default function Inbox() {
           </div>
 
           {/* Conversations Scrollable List */}
-          <div className="conversation-list" ref={conversationListRef}>
+          <div className="conversation-list" ref={conversationListRef} onScroll={handleConversationScroll}>
             {loadingConversations && conversations.length === 0 ? (
               <div className="p-4 text-center text-muted">
                 <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
@@ -819,68 +946,76 @@ export default function Inbox() {
                 </div>
               </div>
             ) : (
-              conversations.map((c, index) => {
-                const isActive = selectedConversation?.id === c.id;
-                const isFirst = index === 0;
-                const hasUnread = c.unread_count > 0 || (isFirst && !selectedConversation);
-                const unreadCount = c.unread_count > 0 ? c.unread_count : (isFirst && !selectedConversation ? 1 : 0);
-                const contactName = c.contact?.name && c.contact?.name !== c.customer_phone
-                  ? c.contact.name
-                  : (c.customer_name || c.customer_phone || 'WhatsApp Customer');
-                
-                const rawSnippet = c.last_message_text || 'No message preview';
-                const displaySnippet = rawSnippet === '[unsupported message]' ? '[Unsupported message]' : rawSnippet;
+              <>
+                {conversations.map((c, index) => {
+                  const isActive = selectedConversation?.id === c.id;
+                  const isFirst = index === 0;
+                  const hasUnread = c.unread_count > 0 || (isFirst && !selectedConversation);
+                  const unreadCount = c.unread_count > 0 ? c.unread_count : (isFirst && !selectedConversation ? 1 : 0);
+                  const contactName = c.contact?.name && c.contact?.name !== c.customer_phone
+                    ? c.contact.name
+                    : (c.customer_name || c.customer_phone || 'WhatsApp Customer');
+                  
+                  const rawSnippet = c.last_message_text || 'No message preview';
+                  const displaySnippet = rawSnippet === '[unsupported message]' ? '[Unsupported message]' : rawSnippet;
 
-                return (
-                  <div
-                    key={c.id}
-                    className={`conversation-item ${isActive ? 'active' : ''} ${hasUnread ? 'has-unread' : ''}`}
-                    onClick={() => setSelectedConversation(c)}
-                  >
-                    {/* Avatar with 24h Window Indicator */}
-                    <div className="conversation-avatar-wrapper">
-                      <div className="conversation-avatar">
-                        {getAvatarLetter(contactName, c.whatsapp_account?.display_name)}
+                  return (
+                    <div
+                      key={c.id}
+                      className={`conversation-item ${isActive ? 'active' : ''} ${hasUnread ? 'has-unread' : ''}`}
+                      onClick={() => setSelectedConversation(c)}
+                    >
+                      {/* Avatar with 24h Window Indicator */}
+                      <div className="conversation-avatar-wrapper">
+                        <div className="conversation-avatar">
+                          {getAvatarLetter(contactName, c.whatsapp_account?.display_name)}
+                        </div>
+                        <span
+                          className={`window-indicator-dot ${(c.is_window_open || isFirst) ? 'active' : 'expired'}`}
+                          title={(c.is_window_open || isFirst) ? '24h Service Window Active' : '24h Window Expired'}
+                        ></span>
                       </div>
-                      <span
-                        className={`window-indicator-dot ${(c.is_window_open || isFirst) ? 'active' : 'expired'}`}
-                        title={(c.is_window_open || isFirst) ? '24h Service Window Active' : '24h Window Expired'}
-                      ></span>
-                    </div>
 
-                    {/* Metadata & Preview */}
-                    <div className="conversation-info">
-                      <div className="conversation-header-row">
-                        <span className="conversation-name d-flex align-items-center gap-1 overflow-hidden text-truncate">
-                          <span className="text-truncate">{contactName}</span>
-                        </span>
-                        <span className={`conversation-time ${isActive || hasUnread ? 'text-green' : ''}`}>
-                          {isFirst ? '09:49 AM' : formatTime(c.last_message_at || c.updated_at)}
-                        </span>
-                      </div>
-                      <div className="conversation-preview-row">
-                        <div className="conversation-snippet-wrapper">
-                          {c.whatsapp_account && (
-                            <span
-                              className="conversation-channel-tag"
-                              title={`WhatsApp Account: ${c.whatsapp_account.display_name || c.whatsapp_account.phone_number}`}
-                            >
-                              <i className="bi bi-whatsapp"></i>
-                              <span>{c.whatsapp_account.display_name || c.whatsapp_account.phone_number}</span>
-                            </span>
-                          )}
-                          <span className="conversation-snippet">
-                            {displaySnippet}
+                      {/* Metadata & Preview */}
+                      <div className="conversation-info">
+                        <div className="conversation-header-row">
+                          <span className="conversation-name d-flex align-items-center gap-1 overflow-hidden text-truncate">
+                            <span className="text-truncate">{contactName}</span>
+                          </span>
+                          <span className={`conversation-time ${isActive || hasUnread ? 'text-green' : ''}`}>
+                            {isFirst ? '09:49 AM' : formatTime(c.last_message_at || c.updated_at)}
                           </span>
                         </div>
-                        {unreadCount > 0 && (
-                          <span className="conversation-unread-badge">{unreadCount}</span>
-                        )}
+                        <div className="conversation-preview-row">
+                          <div className="conversation-snippet-wrapper">
+                            {c.whatsapp_account && (
+                              <span
+                                className="conversation-channel-tag"
+                                title={`WhatsApp Account: ${c.whatsapp_account.display_name || c.whatsapp_account.phone_number}`}
+                              >
+                                <i className="bi bi-whatsapp"></i>
+                                <span>{c.whatsapp_account.display_name || c.whatsapp_account.phone_number}</span>
+                              </span>
+                            )}
+                            <span className="conversation-snippet">
+                              {displaySnippet}
+                            </span>
+                          </div>
+                          {unreadCount > 0 && (
+                            <span className="conversation-unread-badge">{unreadCount}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+                {loadingMoreConversations && (
+                  <div className="text-center py-2 text-muted">
+                    <div className="spinner-border spinner-border-sm text-success me-1" role="status"></div>
+                    <span className="small" style={{ fontSize: '0.72rem' }}>Loading more...</span>
                   </div>
-                );
-              })
+                )}
+              </>
             )}
           </div>
         </div>
@@ -998,7 +1133,20 @@ export default function Inbox() {
               )}
 
               {/* Message History Feed */}
-              <div className="chat-messages-container" ref={chatMessagesRef}>
+              <div className="chat-messages-container" ref={chatMessagesRef} onScroll={handleChatScroll}>
+                {loadingOlderMessages && (
+                  <div className="text-center py-2">
+                    <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                    <span className="small text-secondary" style={{ fontSize: '0.75rem' }}>Loading earlier messages...</span>
+                  </div>
+                )}
+                {!hasMoreMessages && messages.length >= 25 && (
+                  <div className="text-center my-2">
+                    <span className="badge bg-light text-secondary border px-2 py-1" style={{ fontSize: '0.68rem', fontWeight: 500 }}>
+                      Start of conversation
+                    </span>
+                  </div>
+                )}
                 <div className="date-divider">
                   <span className="date-pill">
                     <i className="bi bi-lock-fill text-muted me-1"></i>

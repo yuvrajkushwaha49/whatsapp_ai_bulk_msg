@@ -136,11 +136,16 @@ export async function listConversations(businessId, user, options = {}) {
       };
     });
 
+    const total = items.length;
+    const pageNum = Math.max(1, Number(page || 1));
+    const limitNum = Math.max(1, Number(limit || 20));
+    const paginatedItems = items.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
     return {
-      items,
-      total: items.length,
-      page: Number(page),
-      limit: Number(limit)
+      items: paginatedItems,
+      total,
+      page: pageNum,
+      limit: limitNum
     };
   }
 
@@ -376,18 +381,29 @@ export async function getConversation(businessId, conversationId) {
 }
 
 /**
- * 3. Get Messages for a Conversation
+ * 3. Get Messages for a Conversation (Always Latest with Backward Scroll Pagination)
  */
 export async function getMessages(businessId, conversationId, options = {}) {
   const numBusinessId = Number(businessId);
   const numConvId = Number(conversationId);
-  const limit = Number(options.limit || 100);
+  const limit = Math.min(Number(options.limit || 30), 100);
+  const before = options.before;
 
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    const messages = (store.whatsapp_messages || [])
-      .filter(m => m.conversation_id === numConvId && m.business_id === numBusinessId)
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    let msgs = (store.whatsapp_messages || [])
+      .filter(m => m.conversation_id === numConvId && m.business_id === numBusinessId);
+
+    if (before) {
+      const beforeTime = new Date(before).getTime();
+      msgs = msgs.filter(m => new Date(m.created_at).getTime() < beforeTime);
+    }
+
+    // Always sort descending to grab the most recent batch
+    msgs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    msgs = msgs.slice(0, limit);
+    // Sort ascending for chronological display in chat
+    msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     // Auto-mark conversation as read
     const conv = store.whatsapp_conversations?.find(c => c.id === numConvId);
@@ -397,17 +413,31 @@ export async function getMessages(businessId, conversationId, options = {}) {
       emitToTenant(numBusinessId, 'inbox:conversation_updated', { conversation: conv });
     }
 
-    return messages;
+    return msgs;
   }
 
-  const messages = await executeQuery(
-    `SELECT m.*, u.name as sender_name 
-     FROM whatsapp_messages m 
-     LEFT JOIN users u ON m.sender_user_id = u.id 
-     WHERE m.conversation_id = ? AND m.business_id = ? 
-     ORDER BY m.created_at ASC LIMIT ?`,
-    [numConvId, numBusinessId, limit]
-  );
+  let query = `
+    SELECT * FROM (
+      SELECT m.*, u.name as sender_name 
+      FROM whatsapp_messages m 
+      LEFT JOIN users u ON m.sender_user_id = u.id 
+      WHERE m.conversation_id = ? AND m.business_id = ?
+  `;
+  const params = [numConvId, numBusinessId];
+
+  if (before) {
+    query += ' AND m.created_at < ?';
+    params.push(new Date(before));
+  }
+
+  query += `
+      ORDER BY m.created_at DESC 
+      LIMIT ?
+    ) sub ORDER BY sub.created_at ASC
+  `;
+  params.push(limit);
+
+  const messages = await executeQuery(query, params);
 
   // Mark conversation read
   await executeQuery(
