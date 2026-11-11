@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import { getSocket, initSocket } from '../services/socket';
+import iconImg from '../assets/icon.png';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({ isOpen, onClose, onToggle }) {
@@ -157,7 +158,11 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
           style={{ cursor: !isOpen ? 'pointer' : 'default' }}
         >
           <div className="sidebar-brand-icon">
-            <i className="bi bi-whatsapp"></i>
+            <img
+              src={iconImg}
+              alt="AIWAVO Icon"
+              className="sidebar-brand-icon-img"
+            />
           </div>
           <div className="sidebar-brand-text">
             <img
