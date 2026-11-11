@@ -214,6 +214,7 @@ async function initFallbackStore() {
 
       seedInboxData(memoryStore);
       seedAuditLogsData(memoryStore);
+      seedNotificationsData(memoryStore);
 
       // Ensure Business 2 and users exist in loaded store
       if (!memoryStore.businesses.find(b => b.id === 2)) {
@@ -491,6 +492,7 @@ async function initFallbackStore() {
 
   seedInboxData(memoryStore);
   seedAuditLogsData(memoryStore);
+  seedNotificationsData(memoryStore);
 
   fallbackInitialized = true;
   saveMemoryStore();
@@ -704,6 +706,27 @@ export async function checkConnection() {
       }
     } catch (_) {}
 
+    // Check and seed notifications if empty
+    try {
+      await p.execute(`CREATE TABLE IF NOT EXISTS notifications (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        business_id BIGINT UNSIGNED NOT NULL,
+        user_id BIGINT UNSIGNED NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        type ENUM('info', 'warning', 'error', 'success') NOT NULL DEFAULT 'info',
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        link VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_notif_user_read (business_id, user_id, is_read)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+      const [notifCount] = await p.execute('SELECT COUNT(*) as count FROM notifications');
+      if (notifCount[0]?.count === 0) {
+        await seedMySqlNotifications(p);
+      }
+    } catch (_) {}
+
     return true;
   } catch (err) {
     useFallback = true;
@@ -759,6 +782,29 @@ async function seedMySqlAuditLogs(p) {
     console.log('✅ [Database] Seeded MySQL audit_logs successfully!');
   } catch (err) {
     console.error('⚠️ [Database] Failed to seed MySQL audit_logs:', err.message);
+  }
+}
+
+async function seedMySqlNotifications(p) {
+  try {
+    const now = Date.now();
+    const seed = [
+      [1, 2, 'Meta Webhook Active & Verified', 'WhatsApp Cloud API Webhook is active and receiving live message delivery & read receipts.', 'success', 0, '/settings', new Date(now - 12 * 60000)],
+      [1, 2, "Campaign 'Diwali Festive Blast' Completed", 'Successfully dispatched 2,500 broadcast messages with 98.4% delivery rate.', 'success', 0, '/campaigns', new Date(now - 2 * 3600000)],
+      [1, 2, 'Meta Templates Synced', '16 official message templates have been synced from Meta Cloud API.', 'info', 0, '/templates', new Date(now - 5 * 3600000)],
+      [1, 2, 'Pro Automation Plan Active', 'Your workspace is active on Pro Automation tier with 75,000 monthly messages.', 'info', 1, '/billing', new Date(now - 24 * 3600000)],
+      [1, 2, 'New Collaborator Joined', 'Amit Verma joined workspace as Support Agent.', 'info', 1, '/team', new Date(now - 48 * 3600000)]
+    ];
+    for (const row of seed) {
+      await p.execute(
+        `INSERT INTO notifications (business_id, user_id, title, message, type, is_read, link, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        row
+      );
+    }
+    console.log('✅ [Database] Seeded MySQL notifications successfully!');
+  } catch (err) {
+    console.error('⚠️ [Database] Failed to seed MySQL notifications:', err.message);
   }
 }
 
@@ -1063,6 +1109,70 @@ function seedAuditLogsData(store) {
         details: { message: 'Platform global webhook endpoint secret rotated', scope: 'global' },
         ip_address: '127.0.0.1',
         created_at: new Date(now - 28 * 3600000)
+      }
+    ];
+  }
+}
+
+function seedNotificationsData(store) {
+  if (!store.notifications) store.notifications = [];
+  if (store.notifications.length === 0) {
+    const now = Date.now();
+    store.notifications = [
+      {
+        id: 1,
+        business_id: 1,
+        user_id: 2,
+        title: 'Meta Webhook Active & Verified',
+        message: 'WhatsApp Cloud API Webhook is active and receiving live message delivery & read receipts.',
+        type: 'success',
+        is_read: false,
+        link: '/settings',
+        created_at: new Date(now - 12 * 60000)
+      },
+      {
+        id: 2,
+        business_id: 1,
+        user_id: 2,
+        title: 'Campaign Dispatched',
+        message: 'Broadcast campaign "Diwali Festive Blast" completed: 2,500 messages sent with 98.4% delivery rate.',
+        type: 'success',
+        is_read: false,
+        link: '/campaigns',
+        created_at: new Date(now - 2 * 3600000)
+      },
+      {
+        id: 3,
+        business_id: 1,
+        user_id: 2,
+        title: 'Meta Templates Synced',
+        message: '16 official message templates have been synced from Meta Cloud API.',
+        type: 'info',
+        is_read: false,
+        link: '/templates',
+        created_at: new Date(now - 5 * 3600000)
+      },
+      {
+        id: 4,
+        business_id: 1,
+        user_id: 2,
+        title: 'Pro Automation Plan Active',
+        message: 'Your workspace is active on Pro Automation tier with 75,000 monthly messages.',
+        type: 'info',
+        is_read: true,
+        link: '/billing',
+        created_at: new Date(now - 24 * 3600000)
+      },
+      {
+        id: 5,
+        business_id: 1,
+        user_id: 2,
+        title: 'New Collaborator Joined',
+        message: 'Amit Verma was added to your workspace as Support Agent.',
+        type: 'info',
+        is_read: true,
+        link: '/team',
+        created_at: new Date(now - 48 * 3600000)
       }
     ];
   }

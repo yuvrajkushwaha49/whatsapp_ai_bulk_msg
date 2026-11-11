@@ -9,6 +9,7 @@ import './styles/billing.css';
 import './styles/team.css';
 import './styles/logs.css';
 import './styles/settings.css';
+import './styles/notifications.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
