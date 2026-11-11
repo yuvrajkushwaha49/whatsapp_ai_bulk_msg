@@ -371,7 +371,7 @@ export default function Templates() {
     const parts = text.split(/(\{\{[a-zA-Z0-9_]+\}\})/g);
     return parts.map((part, i) => {
       if (part.startsWith('{{') && part.endsWith('}}')) {
-        return <span key={i} className="card-var-highlight">{part}</span>;
+        return <span key={i} className="mt-var-pill">{part}</span>;
       }
       return part;
     });
@@ -483,162 +483,151 @@ export default function Templates() {
         onToggleSidebar={onToggleSidebar}
       />
 
-      <div className="p-4">
-        {/* Action Toolbar */}
-        <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-4">
-          <button
-            onClick={handleSyncFromMeta}
-            disabled={syncing}
-            className="btn btn-outline-success d-flex align-items-center gap-2 shadow-xs bg-white"
-            title="Sync latest template approval statuses directly from Meta Cloud API"
-          >
-            <i className={`bi bi-arrow-repeat ${syncing ? 'spin-icon' : ''}`}></i>
-            <span>{syncing ? 'Syncing...' : 'Sync from Meta'}</span>
-          </button>
-
-          <button
-            onClick={() => { setShowCreateModal(true); setFormError(''); }}
-            className="btn btn-success d-flex align-items-center gap-2 shadow-sm"
-          >
-            <i className="bi bi-plus-circle-fill"></i>
-            <span>+ Create Template</span>
-          </button>
-        </div>
-
-      {/* Feedback Banner */}
-      {feedbackMsg && (
-        <div className={`alert alert-${feedbackMsg.type} alert-dismissible fade show shadow-xs d-flex align-items-center justify-content-between mb-4`} role="alert">
-          <div className="d-flex align-items-center gap-2">
-            <i className={`bi ${feedbackMsg.type === 'success' ? 'bi-check-circle-fill text-success' : 'bi-info-circle-fill text-primary'} fs-5`}></i>
-            <span className="small">{typeof feedbackMsg?.text === 'string' ? feedbackMsg.text : (feedbackMsg?.text?.message || JSON.stringify(feedbackMsg?.text || ''))}</span>
-          </div>
-          <button type="button" className="btn-close" onClick={() => setFeedbackMsg(null)}></button>
-        </div>
-      )}
-
-      {/* Top Stats Dashboard Cards */}
-      <div className="template-stats-grid">
-        {/* Total */}
-        <div
-          className={`template-stat-card ${activeFilter === 'ALL' ? 'active-filter' : ''}`}
-          onClick={() => setActiveFilter('ALL')}
-        >
-          <div className="d-flex align-items-center justify-content-between">
+      <div className="mt-page-container">
+        {/* Top Hero Banner */}
+        <div className="mt-hero-banner">
+          <div className="mt-hero-left">
+            <div className="mt-hero-icon">
+              <i className="bi bi-chat-square-text-fill"></i>
+            </div>
             <div>
-              <div className="stat-count">{stats.total}</div>
-              <div className="stat-label">Total Templates</div>
-              <div className="stat-subtitle">All categories & languages</div>
+              <h1 className="mt-hero-title">Manage Message Templates</h1>
+              <p className="mt-hero-subtitle">
+                Create, test, sync, and monitor Meta-approved broadcast message templates in real-time.
+              </p>
             </div>
-            <div className="stat-icon bg-light text-secondary border">
-              <i className="bi bi-collection-fill"></i>
-            </div>
+          </div>
+          <div className="mt-hero-actions">
+            <button
+              type="button"
+              onClick={handleSyncFromMeta}
+              disabled={syncing}
+              className="mt-btn-sync"
+              title="Sync latest template approval statuses directly from Meta Cloud API"
+            >
+              <i className={`bi bi-arrow-repeat ${syncing ? 'spin-icon' : ''}`}></i>
+              <span>Sync from Meta</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowCreateModal(true); setFormError(''); }}
+              className="mt-btn-create"
+            >
+              <i className="bi bi-plus-lg"></i>
+              <span>Create Template</span>
+            </button>
           </div>
         </div>
 
-        {/* Approved */}
-        <div
-          className={`template-stat-card ${activeFilter === 'APPROVED' ? 'active-filter' : ''}`}
-          onClick={() => setActiveFilter('APPROVED')}
-        >
-          <div className="d-flex align-items-center justify-content-between">
+        {/* Feedback Banner */}
+        {feedbackMsg && (
+          <div className={`alert alert-${feedbackMsg.type} alert-dismissible fade show shadow-xs d-flex align-items-center justify-content-between mb-4 rounded-3`} role="alert">
+            <div className="d-flex align-items-center gap-2">
+              <i className={`bi ${feedbackMsg.type === 'success' ? 'bi-check-circle-fill text-success' : 'bi-info-circle-fill text-primary'} fs-5`}></i>
+              <span className="small">{typeof feedbackMsg?.text === 'string' ? feedbackMsg.text : (feedbackMsg?.text?.message || JSON.stringify(feedbackMsg?.text || ''))}</span>
+            </div>
+            <button type="button" className="btn-close" onClick={() => setFeedbackMsg(null)}></button>
+          </div>
+        )}
+
+        {/* 5 KPI Stat Cards Grid */}
+        <div className="mt-stats-grid">
+          {/* 1. Total Templates */}
+          <div
+            className={`mt-stat-card ${activeFilter === 'ALL' ? 'active' : ''}`}
+            onClick={() => setActiveFilter('ALL')}
+          >
+            <div className="mt-stat-icon-wrap mt-stat-icon-green-square">
+              <i className="bi bi-file-earmark-text"></i>
+            </div>
             <div>
-              <div className="stat-count text-success">{stats.approved}</div>
-              <div className="stat-label text-success">Meta Approved</div>
-              <div className="stat-subtitle text-success opacity-75">
-                {stats.total > 0 ? `${Math.round((stats.approved / stats.total) * 100)}% Ready to send` : 'Ready to broadcast'}
+              <div className="mt-stat-val">{stats.total}</div>
+              <div className="mt-stat-label">Total Templates</div>
+            </div>
+          </div>
+
+          {/* 2. Meta Approved */}
+          <div
+            className={`mt-stat-card ${activeFilter === 'APPROVED' ? 'active' : ''}`}
+            onClick={() => setActiveFilter('APPROVED')}
+          >
+            <div className="mt-stat-icon-wrap mt-stat-icon-green-circle">
+              <i className="bi bi-check-circle"></i>
+            </div>
+            <div>
+              <div className="mt-stat-val">{stats.approved}</div>
+              <div className="mt-stat-label">Meta Approved</div>
+              <div className="mt-stat-sub">
+                {stats.total > 0 ? `${Math.round((stats.approved / stats.total) * 100)}% Ready to send` : '38% Ready to send'}
               </div>
             </div>
-            <div className="stat-icon bg-success-subtle text-success border border-success-subtle">
-              <i className="bi bi-check-circle-fill"></i>
-            </div>
           </div>
-        </div>
 
-        {/* Pending */}
-        <div
-          className={`template-stat-card ${activeFilter === 'PENDING' ? 'active-filter' : ''}`}
-          onClick={() => setActiveFilter('PENDING')}
-        >
-          <div className="d-flex align-items-center justify-content-between">
-            <div>
-              <div className="stat-count text-warning">{stats.pending}</div>
-              <div className="stat-label text-warning">In Review (Pending)</div>
-              <div className="stat-subtitle text-warning opacity-75">Under Meta automated audit</div>
-            </div>
-            <div className="stat-icon bg-warning-subtle text-warning border border-warning-subtle">
+          {/* 3. In Review (Pending) */}
+          <div
+            className={`mt-stat-card ${activeFilter === 'PENDING' ? 'active' : ''}`}
+            onClick={() => setActiveFilter('PENDING')}
+          >
+            <div className="mt-stat-icon-wrap mt-stat-icon-yellow-square">
               <i className="bi bi-hourglass-split"></i>
             </div>
-          </div>
-        </div>
-
-        {/* Rejected */}
-        <div
-          className={`template-stat-card ${activeFilter === 'REJECTED' ? 'active-filter' : ''}`}
-          onClick={() => setActiveFilter('REJECTED')}
-        >
-          <div className="d-flex align-items-center justify-content-between">
             <div>
-              <div className="stat-count text-danger">{stats.rejected}</div>
-              <div className="stat-label text-danger">Meta Rejected</div>
-              <div className="stat-subtitle text-danger opacity-75">Requires policy correction</div>
-            </div>
-            <div className="stat-icon bg-danger-subtle text-danger border border-danger-subtle">
-              <i className="bi bi-x-octagon-fill"></i>
+              <div className="mt-stat-val">{stats.pending}</div>
+              <div className="mt-stat-label">In Review (Pending)</div>
+              <div className="mt-stat-sub">Under Meta automated audit</div>
             </div>
           </div>
-        </div>
 
-        {/* Paused / Disabled */}
-        <div
-          className={`template-stat-card ${activeFilter === 'PAUSED_DISABLED' ? 'active-filter' : ''}`}
-          onClick={() => setActiveFilter('PAUSED_DISABLED')}
-        >
-          <div className="d-flex align-items-center justify-content-between">
+          {/* 4. Meta Rejected */}
+          <div
+            className={`mt-stat-card ${activeFilter === 'REJECTED' ? 'active' : ''}`}
+            onClick={() => setActiveFilter('REJECTED')}
+          >
+            <div className="mt-stat-icon-wrap mt-stat-icon-red-circle">
+              <i className="bi bi-x-circle"></i>
+            </div>
             <div>
-              <div className="stat-count text-secondary">{stats.paused_or_disabled}</div>
-              <div className="stat-label">Paused / Disabled</div>
-              <div className="stat-subtitle">Quality score affected</div>
+              <div className="mt-stat-val">{stats.rejected}</div>
+              <div className="mt-stat-label">Meta Rejected</div>
+              <div className="mt-stat-sub">Requires policy correction</div>
             </div>
-            <div className="stat-icon bg-light text-muted border">
-              <i className="bi bi-pause-circle-fill"></i>
+          </div>
+
+          {/* 5. Paused / Disabled */}
+          <div
+            className={`mt-stat-card ${activeFilter === 'PAUSED_DISABLED' ? 'active' : ''}`}
+            onClick={() => setActiveFilter('PAUSED_DISABLED')}
+          >
+            <div className="mt-stat-icon-wrap mt-stat-icon-gray-circle">
+              <i className="bi bi-pause-circle"></i>
+            </div>
+            <div>
+              <div className="mt-stat-val">{stats.paused_or_disabled}</div>
+              <div className="mt-stat-label">Paused / Disabled</div>
+              <div className="mt-stat-sub">Quality score affected</div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Filter & View Controller Bar */}
-      <div className="templates-filter-card">
-        <div className="row g-2 align-items-center">
-          {/* Search Input */}
-          <div className="col-12 col-md-3">
-            <div className="input-group">
-              <span className="input-group-text bg-white border-end-0 text-muted">
-                <i className="bi bi-search"></i>
-              </span>
-              <input
-                type="text"
-                className="form-control border-start-0"
-                placeholder="Search by template name or content..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchTemplates()}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary border-start-0 bg-white"
-                  onClick={() => { setSearchQuery(''); fetchTemplates(); }}
-                >
-                  <i className="bi bi-x-lg"></i>
-                </button>
-              )}
-            </div>
+        {/* Filter & View Controller Bar */}
+        <div className="mt-filter-bar">
+          {/* Search Box */}
+          <div className="mt-search-box">
+            <i className="bi bi-search mt-search-icon"></i>
+            <input
+              type="text"
+              className="mt-search-input"
+              placeholder="Search by template name or content..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchTemplates()}
+            />
           </div>
 
-          {/* Account / WABA Selector */}
-          <div className="col-12 col-md-2">
+          {/* Filter Selects & View Mode */}
+          <div className="mt-filter-selects">
             <select
-              className="form-select"
+              className="mt-filter-select"
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
             >
@@ -649,12 +638,9 @@ export default function Templates() {
                 </option>
               ))}
             </select>
-          </div>
 
-          {/* Status Filter */}
-          <div className="col-6 col-md-2">
             <select
-              className="form-select"
+              className="mt-filter-select"
               value={activeFilter}
               onChange={(e) => setActiveFilter(e.target.value)}
             >
@@ -664,12 +650,9 @@ export default function Templates() {
               <option value="REJECTED">Rejected</option>
               <option value="PAUSED_DISABLED">Paused / Disabled</option>
             </select>
-          </div>
 
-          {/* Category Filter */}
-          <div className="col-6 col-md-2">
             <select
-              className="form-select"
+              className="mt-filter-select"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
             >
@@ -678,12 +661,9 @@ export default function Templates() {
               <option value="UTILITY">Utility</option>
               <option value="AUTHENTICATION">Authentication</option>
             </select>
-          </div>
 
-          {/* Language Filter */}
-          <div className="col-6 col-md-2">
             <select
-              className="form-select"
+              className="mt-filter-select"
               value={languageFilter}
               onChange={(e) => setLanguageFilter(e.target.value)}
             >
@@ -692,14 +672,11 @@ export default function Templates() {
                 <option key={l.code} value={l.code}>{l.label}</option>
               ))}
             </select>
-          </div>
 
-          {/* View Toggle */}
-          <div className="col-6 col-md-1 d-flex justify-content-end">
-            <div className="btn-group btn-group-sm w-100" role="group">
+            <div className="mt-view-toggle">
               <button
                 type="button"
-                className={`btn ${viewMode === 'grid' ? 'btn-success' : 'btn-outline-secondary'}`}
+                className={`mt-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
                 onClick={() => setViewMode('grid')}
                 title="Grid Cards View"
               >
@@ -707,7 +684,7 @@ export default function Templates() {
               </button>
               <button
                 type="button"
-                className={`btn ${viewMode === 'table' ? 'btn-success' : 'btn-outline-secondary'}`}
+                className={`mt-view-btn ${viewMode === 'table' ? 'active' : ''}`}
                 onClick={() => setViewMode('table')}
                 title="Table View"
               >
@@ -717,216 +694,133 @@ export default function Templates() {
           </div>
         </div>
 
-        {/* Active Filters Pill Row */}
-        {hasActiveFilters && (
-          <div className="d-flex align-items-center flex-wrap gap-2 mt-2 pt-2 border-top">
-            <span className="text-muted small fw-semibold">Active filters:</span>
-            {activeFilter !== 'ALL' && (
-              <span className="badge bg-light text-dark border small d-flex align-items-center gap-1">
-                Status: <strong>{activeFilter}</strong>
-                <i className="bi bi-x cursor-pointer" onClick={() => setActiveFilter('ALL')}></i>
-              </span>
-            )}
-            {categoryFilter !== 'ALL' && (
-              <span className="badge bg-light text-dark border small d-flex align-items-center gap-1">
-                Category: <strong>{categoryFilter}</strong>
-                <i className="bi bi-x cursor-pointer" onClick={() => setCategoryFilter('ALL')}></i>
-              </span>
-            )}
-            {languageFilter !== 'ALL' && (
-              <span className="badge bg-light text-dark border small d-flex align-items-center gap-1">
-                Language: <strong>{languageFilter}</strong>
-                <i className="bi bi-x cursor-pointer" onClick={() => setLanguageFilter('ALL')}></i>
-              </span>
-            )}
-            {selectedAccountId !== 'ALL' && (
-              <span className="badge bg-light text-dark border small d-flex align-items-center gap-1">
-                Account #{selectedAccountId}
-                <i className="bi bi-x cursor-pointer" onClick={() => setSelectedAccountId('ALL')}></i>
-              </span>
-            )}
-            {searchQuery && (
-              <span className="badge bg-light text-dark border small d-flex align-items-center gap-1">
-                Search: "{searchQuery}"
-                <i className="bi bi-x cursor-pointer" onClick={() => { setSearchQuery(''); fetchTemplates(); }}></i>
-              </span>
-            )}
-            <button
-              type="button"
-              className="btn btn-link btn-sm text-danger text-decoration-none p-0 ms-auto small"
-              onClick={clearAllFilters}
-            >
-              Reset all filters
-            </button>
+        {/* Main Content Area */}
+        {loading ? (
+          <div className="row g-3">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="col-12 col-md-6 col-lg-4">
+                <div className="card p-4 border-0 shadow-sm skeleton-box" style={{ height: '220px' }}></div>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-
-      {/* Main Content Area */}
-      {loading ? (
-        <div className="row g-3">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="col-12 col-md-6 col-lg-4">
-              <div className="card p-4 border-0 shadow-sm skeleton-box" style={{ height: '220px' }}></div>
+        ) : templates.length === 0 ? (
+          <div className="empty-templates-state">
+            <div className="display-4 text-muted mb-3">
+              <i className="bi bi-chat-left-dots text-success opacity-50"></i>
             </div>
-          ))}
-        </div>
-      ) : templates.length === 0 ? (
-        <div className="empty-templates-state">
-          <div className="display-4 text-muted mb-3">
-            <i className="bi bi-chat-left-dots text-success opacity-50"></i>
-          </div>
-          <h5 className="fw-bold text-dark">No WhatsApp Templates Found</h5>
-          <p className="text-muted mb-4 small" style={{ maxWidth: '480px', margin: '0 auto' }}>
-            {hasActiveFilters
-              ? 'No templates match your active filters. Try clearing filters or resetting the search query.'
-              : 'Sync your pre-approved templates directly from your Meta Business Portfolio or create your first marketing template now.'}
-          </p>
-          <div className="d-flex justify-content-center gap-2">
-            {hasActiveFilters && (
-              <button onClick={clearAllFilters} className="btn btn-outline-secondary btn-sm">
-                <i className="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
+            <h5 className="fw-bold text-dark">No WhatsApp Templates Found</h5>
+            <p className="text-muted mb-4 small" style={{ maxWidth: '480px', margin: '0 auto' }}>
+              {hasActiveFilters
+                ? 'No templates match your active filters. Try clearing filters or resetting the search query.'
+                : 'Sync your pre-approved templates directly from your Meta Business Portfolio or create your first marketing template now.'}
+            </p>
+            <div className="d-flex justify-content-center gap-2">
+              {hasActiveFilters && (
+                <button onClick={clearAllFilters} className="btn btn-outline-secondary btn-sm">
+                  <i className="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
+                </button>
+              )}
+              <button onClick={handleSyncFromMeta} className="btn btn-outline-success btn-sm">
+                <i className="bi bi-arrow-repeat me-1"></i> Sync from Meta
               </button>
-            )}
-            <button onClick={handleSyncFromMeta} className="btn btn-outline-success btn-sm">
-              <i className="bi bi-arrow-repeat me-1"></i> Sync from Meta
-            </button>
-            <button onClick={() => setShowCreateModal(true)} className="btn btn-success btn-sm">
-              <i className="bi bi-plus-circle me-1"></i> Create New Template
-            </button>
+              <button onClick={() => setShowCreateModal(true)} className="btn btn-success btn-sm">
+                <i className="bi bi-plus-circle me-1"></i> Create New Template
+              </button>
+            </div>
           </div>
-        </div>
-      ) : viewMode === 'grid' ? (
-        /* GRID CARDS VIEW */
-        <div className="row g-3">
-          {templates.map(tpl => {
-            const comps = Array.isArray(tpl.components)
-              ? tpl.components
-              : (typeof tpl.components === 'string' ? JSON.parse(tpl.components || '[]') : []);
-            const headerComp = comps.find(c => c.type === 'HEADER' || c.type === 'header');
-            const bodyComp = comps.find(c => c.type === 'BODY' || c.type === 'body');
-            const footerComp = comps.find(c => c.type === 'FOOTER' || c.type === 'footer');
-            const btnsComp = comps.find(c => c.type === 'BUTTONS' || c.type === 'buttons');
-            const buttonsList = btnsComp?.buttons || [];
-            const buttonsCount = buttonsList.length;
+        ) : viewMode === 'grid' ? (
+          /* GRID CARDS VIEW */
+          <div className="mt-cards-grid">
+            {templates.map(tpl => {
+              const comps = Array.isArray(tpl.components)
+                ? tpl.components
+                : (typeof tpl.components === 'string' ? JSON.parse(tpl.components || '[]') : []);
+              const headerComp = comps.find(c => c.type === 'HEADER' || c.type === 'header');
+              const bodyComp = comps.find(c => c.type === 'BODY' || c.type === 'body');
+              const footerComp = comps.find(c => c.type === 'FOOTER' || c.type === 'footer');
+              const btnsComp = comps.find(c => c.type === 'BUTTONS' || c.type === 'buttons');
+              const buttonsList = btnsComp?.buttons || [];
 
-            const statusClass = tpl.status === 'APPROVED' ? 'badge-approved' :
-              tpl.status === 'PENDING' ? 'badge-pending' :
-              tpl.status === 'REJECTED' ? 'badge-rejected' : 'badge-paused';
+              const statusLower = (tpl.status || 'APPROVED').toLowerCase();
+              const categoryLower = (tpl.category || 'MARKETING').toLowerCase();
 
-            const catClass = tpl.category === 'MARKETING' ? 'badge-category-marketing' :
-              tpl.category === 'UTILITY' ? 'badge-category-utility' : 'badge-category-auth';
-
-            const acc = accounts.find(a => a.id === tpl.whatsapp_account_id);
-
-            return (
-              <div key={tpl.id} className="col-12 col-md-6 col-lg-4">
-                <div className="template-item-card">
+              return (
+                <div key={tpl.id} className="mt-template-card">
                   <div>
                     {/* Header: Name and Status */}
-                    <div className="d-flex align-items-start justify-content-between mb-2">
+                    <div className="mt-card-header">
                       <Link
                         to={`/templates/${tpl.id}`}
-                        className="aisensy-tpl-name text-truncate"
+                        className="mt-tpl-name"
                         title={tpl.name}
                       >
-                        <i className="bi bi-whatsapp text-success fs-6"></i>
+                        <i className="bi bi-whatsapp text-success"></i>
                         <span>{tpl.name}</span>
                       </Link>
-                      <span className={`badge-status ${statusClass} flex-shrink-0 ms-2`}>
-                        <span className="status-dot"></span>
+                      <span className={`mt-status-badge ${statusLower}`}>
+                        {tpl.status === 'APPROVED' ? <i className="bi bi-check-circle-fill"></i> : <span>●</span>}
                         <span>{tpl.status}</span>
                       </span>
                     </div>
 
-                    {/* Metadata Badges */}
-                    <div className="d-flex align-items-center flex-wrap gap-1 mb-2">
-                      <span className={`badge-category ${catClass}`}>
+                    {/* Metadata Badges: Category, Language, Doc */}
+                    <div className="mt-meta-pills">
+                      <span className={`mt-cat-badge ${categoryLower}`}>
                         {tpl.category === 'MARKETING' && <i className="bi bi-megaphone-fill"></i>}
                         {tpl.category === 'UTILITY' && <i className="bi bi-gear-fill"></i>}
                         {tpl.category === 'AUTHENTICATION' && <i className="bi bi-shield-lock-fill"></i>}
-                        {tpl.category || 'MARKETING'}
+                        <span>{tpl.category || 'MARKETING'}</span>
                       </span>
-                      <span className="badge bg-light text-secondary border small">
-                        <i className="bi bi-translate me-1"></i>{tpl.language}
+                      <span className="mt-lang-badge">
+                        <i className="bi bi-globe"></i>
+                        <span>{tpl.language}</span>
                       </span>
-                      {buttonsCount > 0 && (
-                        <span className="badge bg-light text-secondary border small">
-                          <i className="bi bi-hand-index-thumb me-1"></i>{buttonsCount} {buttonsCount === 1 ? 'Button' : 'Buttons'}
-                        </span>
-                      )}
-                      {acc && (
-                        <span className="badge bg-light text-success border small text-truncate" style={{ maxWidth: '140px' }} title={acc.account_name}>
-                          <i className="bi bi-person-badge me-1"></i>{acc.account_name}
-                        </span>
-                      )}
+                      <span className="mt-doc-badge" title="Documented template">
+                        <i className="bi bi-file-earmark-text"></i>
+                      </span>
                     </div>
 
                     {/* Meta Template ID & Copy */}
-                    {tpl.meta_template_id && (
-                      <div className="d-flex align-items-center justify-content-between text-muted small mb-2 px-1">
-                        <span style={{ fontSize: '0.74rem' }}>
-                          ID: <code className="text-secondary">{tpl.meta_template_id.substring(0, 14)}...</code>
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-link btn-sm p-0 text-muted"
-                          title="Copy Meta Template ID"
-                          onClick={() => copyToClipboard(tpl.meta_template_id, tpl.id)}
-                        >
-                          <i className={`bi ${copiedId === tpl.id ? 'bi-check2 text-success' : 'bi-clipboard'}`}></i>
-                        </button>
-                      </div>
-                    )}
+                    <div className="mt-id-row">
+                      <span>
+                        ID: {tpl.meta_template_id ? `${tpl.meta_template_id.substring(0, 14)}...` : `tpl_${tpl.id}`}
+                      </span>
+                      <button
+                        type="button"
+                        className="mt-copy-btn"
+                        title="Copy Meta Template ID"
+                        onClick={() => copyToClipboard(tpl.meta_template_id || String(tpl.id), tpl.id)}
+                      >
+                        <i className={`bi ${copiedId === tpl.id ? 'bi-check2 text-success' : 'bi-copy'}`}></i>
+                      </button>
+                    </div>
 
-                    {/* Rejection Alert if Rejected */}
-                    {tpl.status === 'REJECTED' && tpl.rejection_reason && (
-                      <div className="rejection-banner py-2 px-2 small mb-2">
-                        <div className="d-flex align-items-center gap-1 fw-bold text-danger">
-                          <i className="bi bi-exclamation-octagon-fill"></i>
-                          <span>Meta Moderation Policy Rejection:</span>
-                        </div>
-                        <div className="text-danger small mt-1">{tpl.rejection_reason}</div>
-                      </div>
-                    )}
-
-                    {/* Authentic WhatsApp Bubble Preview */}
-                    <div className="aisensy-chat-viewport">
-                      <div className="aisensy-bubble">
-                        <div className="aisensy-bubble-tail"></div>
-
-                        {/* Optional Header */}
-                        {headerComp && (
-                          <>
-                            {['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComp.format) ? (
-                              <div className="aisensy-bubble-media">
-                                <i className={`bi ${headerComp.format === 'IMAGE' ? 'bi-image' : headerComp.format === 'VIDEO' ? 'bi-play-circle' : 'bi-file-earmark-text'} text-primary`}></i>
-                                <span>WhatsApp {headerComp.format} Header</span>
-                              </div>
-                            ) : (
-                              headerComp.text && <div className="aisensy-bubble-header">{headerComp.text}</div>
-                            )}
-                          </>
+                    {/* WhatsApp Chat Viewport */}
+                    <div className="mt-chat-viewport">
+                      <div className="mt-bubble">
+                        {/* Header */}
+                        {headerComp && headerComp.text && (
+                          <div className="mt-bubble-header">{headerComp.text}</div>
                         )}
 
-                        {/* Message Body */}
-                        <div className="aisensy-bubble-body">
+                        {/* Body */}
+                        <div className="mt-bubble-body">
                           {renderHighlightedText(bodyComp?.text)}
                         </div>
 
-                        {/* Optional Footer */}
-                        {footerComp?.text && (
-                          <div className="aisensy-bubble-footer">{footerComp.text}</div>
+                        {/* Footer */}
+                        {footerComp && footerComp.text && (
+                          <div className="mt-bubble-footer">{footerComp.text}</div>
                         )}
 
-                        {/* Timestamp & Read Receipts */}
-                        <div className="aisensy-bubble-meta">
+                        {/* Timestamp & Double Blue Ticks */}
+                        <div className="mt-bubble-meta">
                           <span>12:45 PM</span>
-                          <span className="wa-ticks">✓✓</span>
+                          <span className="mt-ticks">✓✓</span>
                         </div>
                       </div>
 
-                      {/* Interactive Buttons Below Bubble */}
+                      {/* Interactive Buttons Below Bubble (if any) */}
                       {buttonsList.length > 0 && (
                         <div className="aisensy-action-buttons">
                           {buttonsList.map((btn, bIdx) => (
@@ -941,10 +835,10 @@ export default function Templates() {
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="pt-2 border-top d-flex align-items-center justify-content-between gap-2">
+                  <div className="mt-card-actions">
                     <button
                       type="button"
-                      className="btn btn-sm btn-success d-flex align-items-center justify-content-center gap-1 flex-grow-1 shadow-xs"
+                      className="mt-btn-quick-test"
                       onClick={() => handleOpenQuickTest(tpl)}
                       title="Send instant test message to your WhatsApp"
                     >
@@ -954,7 +848,7 @@ export default function Templates() {
 
                     <Link
                       to={`/templates/${tpl.id}`}
-                      className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 shadow-xs"
+                      className="mt-btn-studio"
                       title="Open full template studio & parameters"
                     >
                       <i className="bi bi-sliders"></i>
@@ -962,7 +856,12 @@ export default function Templates() {
                     </Link>
 
                     <div className="dropdown">
-                      <button className="btn btn-sm btn-light border px-2" data-bs-toggle="dropdown" title="More options">
+                      <button
+                        type="button"
+                        className="mt-btn-more"
+                        data-bs-toggle="dropdown"
+                        title="More options"
+                      >
                         <i className="bi bi-three-dots-vertical"></i>
                       </button>
                       <ul className="dropdown-menu dropdown-menu-end shadow-sm">
@@ -993,10 +892,9 @@ export default function Templates() {
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
       ) : (
         /* TABLE VIEW */
         <div className="table-responsive templates-table shadow-xs">
