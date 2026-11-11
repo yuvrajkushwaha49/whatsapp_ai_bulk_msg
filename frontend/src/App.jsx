@@ -26,6 +26,7 @@ import CampaignReport from './pages/CampaignReport';
 import AiAssistant from './pages/AiAssistant';
 import TeamManagement from './pages/TeamManagement';
 import Billing from './pages/Billing';
+import ActivityLogs from './pages/ActivityLogs';
 import Settings from './pages/Settings';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
@@ -97,6 +98,7 @@ export default function App() {
         <Route path="/ai-assistant" element={<AiAssistant />} />
         <Route path="/team" element={<TeamManagement />} />
         <Route path="/billing" element={<Billing />} />
+        <Route path="/activity-logs" element={<ActivityLogs />} />
         <Route path="/settings" element={<Settings />} />
 
         {/* SuperAdmin Only */}

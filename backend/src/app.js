@@ -17,6 +17,7 @@ import usersRouter from './modules/users/users.routes.js';
 import adminRouter from './modules/admin/admin.routes.js';
 import aiRouter from './modules/ai/ai.routes.js';
 import metaRouter from './modules/whatsapp/metaSetup.routes.js';
+import logsRouter from './modules/logs/logs.routes.js';
 
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { isUsingFallback } from './database/db.js';
@@ -97,6 +98,8 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/activity-logs', logsRouter);
+app.use('/api/logs', logsRouter);
 
 // 404 & Centralized Error Handler
 app.use(notFoundHandler);

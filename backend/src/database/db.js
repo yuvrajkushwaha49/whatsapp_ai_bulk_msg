@@ -213,6 +213,19 @@ async function initFallbackStore() {
       }
 
       seedInboxData(memoryStore);
+      seedAuditLogsData(memoryStore);
+
+      // Ensure Business 2 and users exist in loaded store
+      if (!memoryStore.businesses.find(b => b.id === 2)) {
+        memoryStore.businesses.push({ id: 2, name: 'TechSky Solutions', slug: 'techsky', timezone: 'Asia/Kolkata', status: 'active', created_at: new Date('2026-11-01T08:00:00Z') });
+      }
+      if (!memoryStore.users.find(u => u.id === 5)) {
+        const hash = await bcrypt.hash('Password123!', 10);
+        memoryStore.users.push(
+          { id: 5, business_id: 2, name: 'Vikram Malhotra (Owner)', email: 'vikram@techsky.io', password_hash: hash, role: 'owner', is_email_verified: 1, status: 'active', created_at: new Date('2026-11-01T08:30:00Z') },
+          { id: 6, business_id: 2, name: 'Sneha Roy (Marketer)', email: 'sneha@techsky.io', password_hash: hash, role: 'marketer', is_email_verified: 1, status: 'active', created_at: new Date('2026-11-02T10:00:00Z') }
+        );
+      }
 
       fallbackInitialized = true;
       saveMemoryStore();
@@ -236,14 +249,17 @@ async function initFallbackStore() {
   ];
 
   memoryStore.businesses = [
-    { id: 1, name: 'Acme Retail India', slug: 'acme-retail', timezone: 'Asia/Kolkata', status: 'active', created_at: new Date() }
+    { id: 1, name: 'Acme Retail India', slug: 'acme-retail', timezone: 'Asia/Kolkata', status: 'active', created_at: new Date('2026-10-31T06:00:00Z') },
+    { id: 2, name: 'TechSky Solutions', slug: 'techsky', timezone: 'Asia/Kolkata', status: 'active', created_at: new Date('2026-11-01T08:00:00Z') }
   ];
 
   memoryStore.users = [
     { id: 1, business_id: null, name: 'System SuperAdmin', email: 'superadmin@campaignflow.io', password_hash: hash, role: 'superadmin', is_email_verified: 1, status: 'active', created_at: new Date() },
     { id: 2, business_id: 1, name: 'Rahul Sharma (Owner)', email: 'owner@acmeretail.com', password_hash: hash, role: 'owner', is_email_verified: 1, status: 'active', created_at: new Date() },
     { id: 3, business_id: 1, name: 'Priya Patel (Marketer)', email: 'marketer@acmeretail.com', password_hash: hash, role: 'marketer', is_email_verified: 1, status: 'active', created_at: new Date() },
-    { id: 4, business_id: 1, name: 'Amit Verma (Support Agent)', email: 'agent@acmeretail.com', password_hash: hash, role: 'agent', is_email_verified: 1, status: 'active', created_at: new Date() }
+    { id: 4, business_id: 1, name: 'Amit Verma (Support Agent)', email: 'agent@acmeretail.com', password_hash: hash, role: 'agent', is_email_verified: 1, status: 'active', created_at: new Date() },
+    { id: 5, business_id: 2, name: 'Vikram Malhotra (Owner)', email: 'vikram@techsky.io', password_hash: hash, role: 'owner', is_email_verified: 1, status: 'active', created_at: new Date('2026-11-01T08:30:00Z') },
+    { id: 6, business_id: 2, name: 'Sneha Roy (Marketer)', email: 'sneha@techsky.io', password_hash: hash, role: 'marketer', is_email_verified: 1, status: 'active', created_at: new Date('2026-11-02T10:00:00Z') }
   ];
 
   memoryStore.subscriptions = [
@@ -474,6 +490,7 @@ async function initFallbackStore() {
   ];
 
   seedInboxData(memoryStore);
+  seedAuditLogsData(memoryStore);
 
   fallbackInitialized = true;
   saveMemoryStore();
@@ -678,12 +695,70 @@ export async function checkConnection() {
     const [rows] = await p.execute('SELECT 1 as connected');
     useFallback = false;
     console.log(`✅ [Database] Successfully connected to MySQL at ${host}:${port}`);
+
+    // Check and seed audit_logs if empty
+    try {
+      const [logCount] = await p.execute('SELECT COUNT(*) as count FROM audit_logs');
+      if (logCount[0]?.count === 0) {
+        await seedMySqlAuditLogs(p);
+      }
+    } catch (_) {}
+
     return true;
   } catch (err) {
     useFallback = true;
     await initFallbackStore();
     console.warn(`⚠️ [Database] MySQL not reachable at ${host}:${port} (${err.code || err.message}). Running in resilient Development/Mock DB Adapter mode.`);
     return false;
+  }
+}
+
+async function seedMySqlAuditLogs(p) {
+  try {
+    console.log('🌱 [Database] Seeding initial audit logs and multi-tenant test data into MySQL...');
+    await p.execute(`
+      INSERT INTO businesses (id, name, slug, timezone, status)
+      VALUES (2, 'TechSky Solutions', 'techsky', 'Asia/Kolkata', 'active')
+      ON DUPLICATE KEY UPDATE name=VALUES(name)
+    `);
+
+    const hash = await bcrypt.hash('Password123!', 10);
+    await p.execute(`
+      INSERT INTO users (id, business_id, name, email, password_hash, role, is_email_verified, status)
+      VALUES 
+      (5, 2, 'Vikram Malhotra (Owner)', 'vikram@techsky.io', ?, 'owner', TRUE, 'active'),
+      (6, 2, 'Sneha Roy (Marketer)', 'sneha@techsky.io', ?, 'marketer', TRUE, 'active')
+      ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role=VALUES(role)
+    `, [hash, hash]);
+
+    const seedLogs = [
+      [1, 2, 'USER_LOGIN', 'AUTH', 2, JSON.stringify({ message: 'Rahul Sharma logged in successfully from Chrome on macOS', method: 'password' }), '192.168.1.45', new Date(Date.now() - 15 * 60000)],
+      [1, 3, 'CAMPAIGN_LAUNCH', 'CAMPAIGNS', 1, JSON.stringify({ message: 'Launched broadcast campaign "Diwali Festive Blast" to 2,500 contacts via Kalaakchar WABA', recipients: 2500 }), '192.168.1.52', new Date(Date.now() - 2 * 3600000)],
+      [1, 3, 'TEMPLATE_SYNC', 'TEMPLATES', null, JSON.stringify({ message: 'Synchronized 16 official message templates from Meta Cloud API', syncedCount: 16 }), '192.168.1.52', new Date(Date.now() - 5 * 3600000)],
+      [1, 3, 'CONTACT_IMPORT', 'CONTACTS', null, JSON.stringify({ message: 'Imported 450 contacts from "Diwali_VIP_List.csv" into VIP Customer group', imported: 450 }), '192.168.1.52', new Date(Date.now() - 12 * 3600000)],
+      [1, 2, 'MEMBER_INVITE', 'TEAM', 4, JSON.stringify({ message: 'Invited Amit Verma (agent@acmeretail.com) as Support Agent', role: 'agent' }), '192.168.1.45', new Date(Date.now() - 24 * 3600000)],
+      [1, 2, 'ROLE_UPDATE', 'TEAM', 3, JSON.stringify({ message: 'Promoted Priya Patel from Support Agent to Marketing Specialist', newRole: 'marketer' }), '192.168.1.45', new Date(Date.now() - 36 * 3600000)],
+      [1, 2, 'PLAN_UPGRADE', 'BILLING', 3, JSON.stringify({ message: 'Upgraded subscription tier to Pro Automation ($79.00/month)', plan: 'Pro Automation', price: 79.00 }), '192.168.1.45', new Date(Date.now() - 48 * 3600000)],
+      [1, 2, 'WHATSAPP_CONNECT', 'WHATSAPP', 1, JSON.stringify({ message: 'Connected Meta Cloud API WhatsApp Phone Number +91 98765 43210 (WABA: 1763651071618866)', verified: true }), '192.168.1.45', new Date(Date.now() - 72 * 3600000)],
+
+      [2, 5, 'USER_LOGIN', 'AUTH', 5, JSON.stringify({ message: 'Vikram Malhotra logged into TechSky Solutions workspace', method: 'password' }), '103.21.12.8', new Date(Date.now() - 30 * 60000)],
+      [2, 6, 'CAMPAIGN_CREATED', 'CAMPAIGNS', 101, JSON.stringify({ message: 'Created campaign draft "Black Friday Early Access"', status: 'draft' }), '103.21.12.14', new Date(Date.now() - 3 * 3600000)],
+      [2, 6, 'GROUP_CREATED', 'CONTACTS', 201, JSON.stringify({ message: 'Created contact group "Enterprise SaaS Leads 2026"', groupName: 'Enterprise SaaS Leads 2026' }), '103.21.12.14', new Date(Date.now() - 6 * 3600000)],
+
+      [null, 1, 'SYSTEM_AUDIT', 'SYSTEM', null, JSON.stringify({ message: 'Automated platform security audit and token integrity check passed', status: 'healthy' }), '127.0.0.1', new Date(Date.now() - 10 * 3600000)],
+      [null, 1, 'SETTINGS_UPDATE', 'SYSTEM', null, JSON.stringify({ message: 'Platform global webhook endpoint secret rotated', scope: 'global' }), '127.0.0.1', new Date(Date.now() - 28 * 3600000)]
+    ];
+
+    for (const row of seedLogs) {
+      await p.execute(
+        `INSERT INTO audit_logs (business_id, user_id, action, entity_type, entity_id, details, ip_address, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        row
+      );
+    }
+    console.log('✅ [Database] Seeded MySQL audit_logs successfully!');
+  } catch (err) {
+    console.error('⚠️ [Database] Failed to seed MySQL audit_logs:', err.message);
   }
 }
 
@@ -834,6 +909,163 @@ function executeFallbackQuery(sql, params = []) {
   }
 
   return [];
+}
+
+function seedAuditLogsData(store) {
+  if (!store.audit_logs) store.audit_logs = [];
+  if (store.audit_logs.length === 0) {
+    const now = Date.now();
+    store.audit_logs = [
+      // Business 1 (Acme Retail India) logs
+      {
+        id: 1,
+        business_id: 1,
+        user_id: 2,
+        action: 'USER_LOGIN',
+        entity_type: 'AUTH',
+        entity_id: 2,
+        details: { message: 'Rahul Sharma logged in successfully from Chrome on macOS', method: 'password' },
+        ip_address: '192.168.1.45',
+        created_at: new Date(now - 15 * 60000)
+      },
+      {
+        id: 2,
+        business_id: 1,
+        user_id: 3,
+        action: 'CAMPAIGN_LAUNCH',
+        entity_type: 'CAMPAIGNS',
+        entity_id: 1,
+        details: { message: 'Launched broadcast campaign "Diwali Festive Blast" to 2,500 contacts via Kalaakchar WABA', recipients: 2500 },
+        ip_address: '192.168.1.52',
+        created_at: new Date(now - 2 * 3600000)
+      },
+      {
+        id: 3,
+        business_id: 1,
+        user_id: 3,
+        action: 'TEMPLATE_SYNC',
+        entity_type: 'TEMPLATES',
+        entity_id: null,
+        details: { message: 'Synchronized 16 official message templates from Meta Cloud API', syncedCount: 16 },
+        ip_address: '192.168.1.52',
+        created_at: new Date(now - 5 * 3600000)
+      },
+      {
+        id: 4,
+        business_id: 1,
+        user_id: 3,
+        action: 'CONTACT_IMPORT',
+        entity_type: 'CONTACTS',
+        entity_id: null,
+        details: { message: 'Imported 450 contacts from "Diwali_VIP_List.csv" into VIP Customer group', imported: 450 },
+        ip_address: '192.168.1.52',
+        created_at: new Date(now - 12 * 3600000)
+      },
+      {
+        id: 5,
+        business_id: 1,
+        user_id: 2,
+        action: 'MEMBER_INVITE',
+        entity_type: 'TEAM',
+        entity_id: 4,
+        details: { message: 'Invited Amit Verma (agent@acmeretail.com) as Support Agent', role: 'agent' },
+        ip_address: '192.168.1.45',
+        created_at: new Date(now - 24 * 3600000)
+      },
+      {
+        id: 6,
+        business_id: 1,
+        user_id: 2,
+        action: 'ROLE_UPDATE',
+        entity_type: 'TEAM',
+        entity_id: 3,
+        details: { message: 'Promoted Priya Patel from Support Agent to Marketing Specialist', newRole: 'marketer' },
+        ip_address: '192.168.1.45',
+        created_at: new Date(now - 36 * 3600000)
+      },
+      {
+        id: 7,
+        business_id: 1,
+        user_id: 2,
+        action: 'PLAN_UPGRADE',
+        entity_type: 'BILLING',
+        entity_id: 3,
+        details: { message: 'Upgraded subscription tier to Pro Automation ($79.00/month)', plan: 'Pro Automation', price: 79.00 },
+        ip_address: '192.168.1.45',
+        created_at: new Date(now - 48 * 3600000)
+      },
+      {
+        id: 8,
+        business_id: 1,
+        user_id: 2,
+        action: 'WHATSAPP_CONNECT',
+        entity_type: 'WHATSAPP',
+        entity_id: 1,
+        details: { message: 'Connected Meta Cloud API WhatsApp Phone Number +91 98765 43210 (WABA: 1763651071618866)', verified: true },
+        ip_address: '192.168.1.45',
+        created_at: new Date(now - 72 * 3600000)
+      },
+
+      // Business 2 (TechSky Solutions) logs
+      {
+        id: 9,
+        business_id: 2,
+        user_id: 5,
+        action: 'USER_LOGIN',
+        entity_type: 'AUTH',
+        entity_id: 5,
+        details: { message: 'Vikram Malhotra logged into TechSky Solutions workspace', method: 'password' },
+        ip_address: '103.21.12.8',
+        created_at: new Date(now - 30 * 60000)
+      },
+      {
+        id: 10,
+        business_id: 2,
+        user_id: 6,
+        action: 'CAMPAIGN_CREATED',
+        entity_type: 'CAMPAIGNS',
+        entity_id: 101,
+        details: { message: 'Created campaign draft "Black Friday Early Access"', status: 'draft' },
+        ip_address: '103.21.12.14',
+        created_at: new Date(now - 3 * 3600000)
+      },
+      {
+        id: 11,
+        business_id: 2,
+        user_id: 6,
+        action: 'GROUP_CREATED',
+        entity_type: 'CONTACTS',
+        entity_id: 201,
+        details: { message: 'Created contact group "Enterprise SaaS Leads 2026"', groupName: 'Enterprise SaaS Leads 2026' },
+        ip_address: '103.21.12.14',
+        created_at: new Date(now - 6 * 3600000)
+      },
+
+      // Global System logs (SuperAdmin view only)
+      {
+        id: 12,
+        business_id: null,
+        user_id: 1,
+        action: 'SYSTEM_AUDIT',
+        entity_type: 'SYSTEM',
+        entity_id: null,
+        details: { message: 'Automated platform security audit and token integrity check passed', status: 'healthy' },
+        ip_address: '127.0.0.1',
+        created_at: new Date(now - 10 * 3600000)
+      },
+      {
+        id: 13,
+        business_id: null,
+        user_id: 1,
+        action: 'SETTINGS_UPDATE',
+        entity_type: 'SYSTEM',
+        entity_id: null,
+        details: { message: 'Platform global webhook endpoint secret rotated', scope: 'global' },
+        ip_address: '127.0.0.1',
+        created_at: new Date(now - 28 * 3600000)
+      }
+    ];
+  }
 }
 
 export default {
