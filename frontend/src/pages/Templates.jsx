@@ -625,12 +625,16 @@ export default function Templates() {
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
             >
-              <option value="ALL">All Accounts & WABAs</option>
-              {accounts.map(acc => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.account_name} ({acc.display_phone_number || `WABA: ${acc.waba_id.slice(-6)}`})
-                </option>
-              ))}
+              <option value="ALL">All Accounts</option>
+              {accounts.map(acc => {
+                const name = acc.display_name || acc.verified_name || acc.account_name || 'WhatsApp Account';
+                const phone = acc.phone_number || acc.display_phone_number;
+                return (
+                  <option key={acc.id} value={acc.id}>
+                    {phone ? `${name} (${phone})` : name}
+                  </option>
+                );
+              })}
             </select>
 
             <select
@@ -1025,10 +1029,10 @@ export default function Templates() {
                     {/* Left Column: Form Controls */}
                     <div className="col-12 col-lg-7">
                       <form onSubmit={handleCreateSubmit}>
-                        {/* Target WhatsApp Account / WABA */}
+                        {/* Target WhatsApp Account */}
                         <div className="mb-3">
                           <label className="form-label small fw-bold">
-                            Target WhatsApp Business Account / WABA <span className="text-danger">*</span>
+                            Target WhatsApp Business Account <span className="text-danger">*</span>
                           </label>
                           <select
                             className="form-select"
@@ -1039,11 +1043,15 @@ export default function Templates() {
                             {accounts.length === 0 ? (
                               <option value="">No WhatsApp accounts connected</option>
                             ) : (
-                              accounts.map(acc => (
-                                <option key={acc.id} value={acc.id}>
-                                  {acc.account_name} — {acc.display_phone_number || 'No phone'} (WABA: {acc.waba_id})
-                                </option>
-                              ))
+                              accounts.map(acc => {
+                                const name = acc.display_name || acc.verified_name || acc.account_name || 'WhatsApp Account';
+                                const phone = acc.phone_number || acc.display_phone_number;
+                                return (
+                                  <option key={acc.id} value={acc.id}>
+                                    {phone ? `${name} (${phone})` : name}
+                                  </option>
+                                );
+                              })
                             )}
                           </select>
                           <div className="form-text small text-muted">
