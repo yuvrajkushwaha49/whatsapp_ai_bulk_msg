@@ -158,10 +158,23 @@ export default function Inbox() {
     }
   }, [selectedConversation?.id]);
 
+  // Helper to scroll strictly to the bottom of the chat
+  const scrollToBottom = (behavior = 'auto') => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+    }
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: behavior === 'smooth' ? 'smooth' : 'auto',
+        block: 'end'
+      });
+    }
+  };
+
   // Scroll to bottom when messages update (only if shouldScrollBottomRef is true)
   useEffect(() => {
     if (shouldScrollBottomRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      scrollToBottom('smooth');
     }
   }, [messages]);
 
@@ -321,17 +334,23 @@ export default function Inbox() {
     setHasMoreMessages(true);
     shouldScrollBottomRef.current = true;
     try {
-      const res = await inboxApi.getMessages(convId, { limit: 30 });
+      const res = await inboxApi.getMessages(convId, { limit: 10 });
       if (res.data?.success) {
         const msgs = res.data.data || [];
         setMessages(msgs);
-        if (msgs.length < 30) {
+        if (msgs.length < 10) {
           setHasMoreMessages(false);
         }
         // Decrease unread count locally in list
         setConversations(prev =>
           prev.map(c => (c.id === convId ? { ...c, unread_count: 0 } : c))
         );
+        // Guarantee immediate and post-render scroll to the very last message
+        requestAnimationFrame(() => {
+          scrollToBottom('auto');
+          setTimeout(() => scrollToBottom('auto'), 40);
+          setTimeout(() => scrollToBottom('auto'), 120);
+        });
       }
     } catch (err) {
       console.error('[Inbox] Error loading messages:', err);
@@ -352,7 +371,7 @@ export default function Inbox() {
 
     try {
       const res = await inboxApi.getMessages(selectedConversation.id, {
-        limit: 30,
+        limit: 10,
         before: oldest.created_at
       });
       if (res.data?.success) {
@@ -371,7 +390,7 @@ export default function Inbox() {
             }
           });
         }
-        if (older.length < 30) {
+        if (older.length < 10) {
           setHasMoreMessages(false);
         }
       }

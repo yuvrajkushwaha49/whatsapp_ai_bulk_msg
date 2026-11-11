@@ -386,7 +386,7 @@ export async function getConversation(businessId, conversationId) {
 export async function getMessages(businessId, conversationId, options = {}) {
   const numBusinessId = Number(businessId);
   const numConvId = Number(conversationId);
-  const limit = Math.min(Number(options.limit || 30), 100);
+  const limit = Math.min(Number(options.limit || 10), 100);
   const before = options.before;
 
   if (isUsingFallback()) {
