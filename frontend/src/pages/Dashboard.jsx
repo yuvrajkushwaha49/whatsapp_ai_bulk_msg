@@ -512,15 +512,15 @@ export default function Dashboard() {
           </div>
           <div className="aiwavo-donut-container">
             <div className="aiwavo-donut-wrapper">
-              <ResponsiveContainer width={140} height={140}>
+              <ResponsiveContainer width={130} height={130}>
                 <PieChart>
                   <Pie
                     isAnimationActive={false}
                     data={overviewTotal > 0 ? overviewBreakdown : [{ name: 'No Messages', pct: 100, count: 0, color: '#e2e8f0' }]}
                     cx="50%"
                     cy="50%"
-                    innerRadius={52}
-                    outerRadius={68}
+                    innerRadius={48}
+                    outerRadius={63}
                     dataKey="pct"
                     startAngle={90}
                     endAngle={-270}

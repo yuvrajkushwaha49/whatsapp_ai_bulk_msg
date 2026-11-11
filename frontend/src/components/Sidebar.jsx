@@ -22,7 +22,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
         const count = Number(stats.unreadMessages ?? stats.unread ?? 0);
         setUnreadCount(count);
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
       if (usageRes.data?.success && usageRes.data.data) {
         setUsage(usageRes.data.data);
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const menuItems = [
@@ -81,12 +81,12 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
     { to: '/campaigns', icon: 'bi-megaphone-fill', name: 'Campaigns', shortName: 'Campaigns' },
     // { to: '/campaigns/new', icon: 'bi-diagram-3-fill', name: 'Automation', shortName: 'Automation', hasChevron: true },
     { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
-    { 
-      to: '/inbox', 
-      icon: 'bi-chat-left-dots-fill', 
-      name: 'Message Queue', 
-      shortName: 'Queue', 
-      badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null 
+    {
+      to: '/inbox',
+      icon: 'bi-chat-left-dots-fill',
+      name: 'Message Queue',
+      shortName: 'Queue',
+      badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null
     },
     { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
     { to: '/billing', icon: 'bi-credit-card-fill', name: 'Billing & Plans', shortName: 'Billing' },
@@ -152,7 +152,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
       {/* Brand Header (Sticky at top of sidebar) */}
       <div className="sidebar-brand">
         <div
-          className="sidebar-brand-inner d-flex align-items-center gap-2"
+          className="sidebar-brand-inner d-flex align-items-center"
           onClick={!isOpen ? onToggle : undefined}
           title={!isOpen ? 'Click to expand sidebar' : undefined}
           style={{ cursor: !isOpen ? 'pointer' : 'default' }}
