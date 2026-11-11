@@ -178,6 +178,19 @@ export default function Inbox() {
     }
   }, [messages]);
 
+  // Guarantee absolute deduplication for chat messages feed
+  const uniqueMessages = useMemo(() => {
+    const seen = new Set();
+    return messages.filter(m => {
+      const key = m.id
+        ? `id_${m.id}`
+        : (m.meta_message_id ? `meta_${m.meta_message_id}` : `body_${m.direction}_${m.message_body}_${m.created_at || m.sent_at}`);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [messages]);
+
   // Auto-resize composer textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -427,6 +440,45 @@ export default function Inbox() {
     }
   };
 
+  // Helper to deduplicate and append messages safely
+  const addMessageSafely = (prevMessages, newMsg) => {
+    if (!newMsg) return prevMessages;
+    const isDuplicate = prevMessages.some(m => {
+      // 1. Check ID match (number or string)
+      if (m.id && newMsg.id && String(m.id) === String(newMsg.id)) {
+        return true;
+      }
+      // 2. Check Meta WAMID match
+      if (m.meta_message_id && newMsg.meta_message_id && String(m.meta_message_id) === String(newMsg.meta_message_id)) {
+        return true;
+      }
+      // 3. Prevent rapid duplicate outbound echoes within 5 seconds for same conversation
+      if (
+        m.direction === newMsg.direction &&
+        String(m.conversation_id || '') === String(newMsg.conversation_id || '') &&
+        m.message_body === newMsg.message_body &&
+        Math.abs(new Date(m.created_at || m.sent_at || Date.now()).getTime() - new Date(newMsg.created_at || newMsg.sent_at || Date.now()).getTime()) < 5000
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (isDuplicate) {
+      return prevMessages.map(m => {
+        if (
+          (m.id && newMsg.id && String(m.id) === String(newMsg.id)) ||
+          (m.meta_message_id && newMsg.meta_message_id && String(m.meta_message_id) === String(newMsg.meta_message_id))
+        ) {
+          return { ...m, ...newMsg };
+        }
+        return m;
+      });
+    }
+
+    return [...prevMessages, newMsg];
+  };
+
   // 3. Socket Handlers
   const handleIncomingSocketMessage = (data) => {
     const { conversation, message } = data;
@@ -434,15 +486,10 @@ export default function Inbox() {
 
     const currentSelected = selectedConversationRef.current;
 
-    // If belongs to currently viewed conversation, append immediately
+    // If belongs to currently viewed conversation, append safely without duplicates
     if (currentSelected && (message.conversation_id === currentSelected.id || data.conversationId === currentSelected.id)) {
       shouldScrollBottomRef.current = true;
-      setMessages(prev => {
-        if (prev.some(m => m.id === message.id || (m.meta_message_id && m.meta_message_id === message.meta_message_id))) {
-          return prev;
-        }
-        return [...prev, message];
-      });
+      setMessages(prev => addMessageSafely(prev, message));
     }
 
     // Update conversation in list
@@ -522,7 +569,7 @@ export default function Inbox() {
       if (res.data?.success) {
         const newMsg = res.data.data;
         shouldScrollBottomRef.current = true;
-        setMessages(prev => [...prev, newMsg]);
+        setMessages(prev => addMessageSafely(prev, newMsg));
         setInputText('');
         // Update list snippet
         setConversations(prev =>
@@ -611,7 +658,7 @@ export default function Inbox() {
       if (res.data?.success) {
         const newMsg = res.data.data;
         shouldScrollBottomRef.current = true;
-        setMessages(prev => [...prev, newMsg]);
+        setMessages(prev => addMessageSafely(prev, newMsg));
         setShowTemplateModal(false);
         setAlertMsg({
           type: 'success',
@@ -656,7 +703,7 @@ export default function Inbox() {
       if (res.data?.success) {
         const newMsg = res.data.data;
         shouldScrollBottomRef.current = true;
-        setMessages(prev => [...prev, newMsg]);
+        setMessages(prev => addMessageSafely(prev, newMsg));
         setShowMediaModal(false);
         setMediaUrl('');
         setMediaCaption('');
@@ -1159,7 +1206,7 @@ export default function Inbox() {
                     <span className="small text-secondary" style={{ fontSize: '0.75rem' }}>Loading earlier messages...</span>
                   </div>
                 )}
-                {!hasMoreMessages && messages.length >= 25 && (
+                {!hasMoreMessages && uniqueMessages.length >= 25 && (
                   <div className="text-center my-2">
                     <span className="badge bg-light text-secondary border px-2 py-1" style={{ fontSize: '0.68rem', fontWeight: 500 }}>
                       Start of conversation
@@ -1178,7 +1225,7 @@ export default function Inbox() {
                     <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
                     <span className="small">Loading conversation history...</span>
                   </div>
-                ) : messages.length === 0 ? (
+                ) : uniqueMessages.length === 0 ? (
                   <div className="text-center py-5 text-muted my-auto">
                     <div className="mb-2">
                       <i className="bi bi-chat-dots text-success opacity-75" style={{ fontSize: '2.5rem' }}></i>
@@ -1187,7 +1234,7 @@ export default function Inbox() {
                     <div className="small text-secondary mt-1">Send a message or template below to initiate communication.</div>
                   </div>
                 ) : (
-                  messages.map((m) => {
+                  uniqueMessages.map((m) => {
                     const isInbound = m.direction === 'INBOUND';
                     const isTemplate = m.message_type === 'template';
 

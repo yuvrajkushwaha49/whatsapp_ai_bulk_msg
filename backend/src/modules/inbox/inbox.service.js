@@ -627,7 +627,7 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
     );
   }
 
-  // Socket.IO Real-time broadcast to conversation and tenant
+  // Socket.IO Real-time broadcast to tenant
   const socketData = {
     conversationId: numConvId,
     message: {
@@ -636,7 +636,6 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
     }
   };
 
-  emitToConversation(numConvId, 'inbox:new_message', socketData);
   emitToTenant(numBusinessId, 'inbox:new_message', socketData);
 
   return createdMessage;
@@ -891,7 +890,6 @@ export async function sendTemplateMessage(businessId, user, conversationId, temp
     }
   };
 
-  emitToConversation(numConvId, 'inbox:new_message', socketData);
   emitToTenant(numBusinessId, 'inbox:new_message', socketData);
 
   return createdMessage;
@@ -1033,7 +1031,6 @@ export async function sendMediaMessage(businessId, user, conversationId, mediaPa
     }
   };
 
-  emitToConversation(numConvId, 'inbox:new_message', socketData);
   emitToTenant(numBusinessId, 'inbox:new_message', socketData);
 
   return createdMessage;

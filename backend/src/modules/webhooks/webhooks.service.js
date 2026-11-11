@@ -446,7 +446,6 @@ export async function processWebhookPayload(payload) {
               };
 
               emitToTenant(matchedBusinessId, 'inbox:new_message', payloadData);
-              emitToConversation(conversation.id, 'inbox:new_message', payloadData);
               emitToTenant(matchedBusinessId, 'inbox:conversation_updated', { conversation: payloadData.conversation });
             }
 
@@ -578,7 +577,6 @@ export async function processWebhookPayload(payload) {
                 };
 
                 emitToTenant(matchedBusinessId, 'inbox:new_message', socketPayload);
-                emitToConversation(conversationId, 'inbox:new_message', socketPayload);
                 emitToTenant(matchedBusinessId, 'inbox:conversation_updated', { conversation: socketPayload.conversation });
               }
             } catch (dbErr) {
