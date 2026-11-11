@@ -34,6 +34,7 @@
     gap: 0.65rem;
     scrollbar-width: thin;
   }
+
   .template-stat-card {
     min-width: 185px;
     flex: 0 0 auto;
@@ -151,6 +152,7 @@
   color: #065f46;
   border: 1px solid #a7f3d0;
 }
+
 .badge-approved .status-dot {
   background-color: #10b981;
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
@@ -161,6 +163,7 @@
   color: #92400e;
   border: 1px solid #fde68a;
 }
+
 .badge-pending .status-dot {
   background-color: #f59e0b;
   animation: pulse-dot 1.6s infinite ease-in-out;
@@ -171,6 +174,7 @@
   color: #991b1b;
   border: 1px solid #fecaca;
 }
+
 .badge-rejected .status-dot {
   background-color: #ef4444;
 }
@@ -181,14 +185,27 @@
   color: #475569;
   border: 1px solid #e2e8f0;
 }
+
 .badge-paused .status-dot {
   background-color: #94a3b8;
 }
 
 @keyframes pulse-dot {
-  0% { transform: scale(0.9); opacity: 0.6; }
-  50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
-  100% { transform: scale(0.9); opacity: 0.6; }
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+  }
+
+  100% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
 }
 
 /* Category Badges */
@@ -304,7 +321,7 @@
 .aisensy-chat-viewport,
 .card-wa-bubble {
   background-color: #efeae2;
-  background-image: 
+  background-image:
     radial-gradient(#d6cebe 0.75px, transparent 0.75px),
     linear-gradient(135deg, rgba(240, 235, 227, 0.95), rgba(230, 222, 214, 0.95));
   background-size: 16px 16px, 100% 100%;
@@ -490,7 +507,7 @@
 
 .wa-screen {
   background-color: #efeae2;
-  background-image: 
+  background-image:
     radial-gradient(#d1c7bc 1px, transparent 1px),
     radial-gradient(#d1c7bc 1px, #efeae2 1px);
   background-size: 20px 20px;
@@ -915,7 +932,7 @@
 /* Quick Test Modal Styles */
 .quick-test-preview {
   background-color: #efeae2;
-  background-image: 
+  background-image:
     radial-gradient(#d5cdc1 0.75px, transparent 0.75px),
     linear-gradient(135deg, rgba(240, 235, 227, 0.95), rgba(230, 222, 214, 0.95));
   background-size: 16px 16px, 100% 100%;
@@ -943,8 +960,13 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* =========================================================
@@ -952,7 +974,7 @@
    ========================================================= */
 
 .mt-page-container {
-  padding: 1.5rem 2rem 3rem 2rem;
+  padding: 0rem 1rem 1rem 1rem;
   background: #f8fafc;
   min-height: calc(100vh - 72px);
 }
@@ -1582,7 +1604,7 @@
    ========================================================= */
 
 .td-page-container {
-  padding: 1.5rem 2rem 3rem 2rem;
+  padding: 0rem 1rem 1rem 1rem;
   background: #f8fafc;
   min-height: calc(100vh - 72px);
 }
@@ -2206,7 +2228,7 @@
 
 .td-phone-screen-body {
   background-color: #efeae2;
-  background-image: 
+  background-image:
     radial-gradient(#d6cebe 0.75px, transparent 0.75px),
     linear-gradient(135deg, rgba(240, 235, 227, 0.95), rgba(230, 222, 214, 0.95));
   background-size: 16px 16px, 100% 100%;

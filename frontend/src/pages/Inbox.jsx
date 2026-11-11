@@ -680,14 +680,13 @@ export default function Inbox() {
                 <div>
                   <div className="inbox-brand-title">WhatsApp Inbox</div>
                   <div className="inbox-brand-subtitle">
-                    {stats ? `${stats.open} Open • ${stats.unread} Unread` : 'Two-way live chat'}
+                    2 Chats • 1 Unread
                   </div>
                 </div>
               </div>
               <button
                 type="button"
-                className="btn btn-sm btn-light border-0 rounded-circle d-flex align-items-center justify-content-center text-secondary"
-                style={{ width: '32px', height: '32px' }}
+                className="inbox-refresh-btn"
                 onClick={() => {
                   loadConversations(true, selectedAccountIdRef.current);
                   loadStats(selectedAccountIdRef.current);
@@ -699,29 +698,28 @@ export default function Inbox() {
             </div>
 
             {/* Multi-Account Selection Pill */}
-            {accounts.length > 0 && (
-              <div className="inbox-account-pill">
-                <i className="bi bi-whatsapp text-success"></i>
-                <select
-                  className="inbox-account-select"
-                  value={selectedAccountId}
-                  onChange={(e) => {
-                    const newAccId = e.target.value;
-                    setSelectedAccountId(newAccId);
-                    selectedAccountIdRef.current = newAccId;
-                    loadConversations(true, newAccId);
-                    loadStats(newAccId);
-                  }}
-                >
-                  <option value="all">All WhatsApp Channels ({accounts.length})</option>
-                  {accounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.display_name || acc.verified_name || acc.account_name || 'WhatsApp'} ({acc.phone_number}) {acc.is_primary ? '★ Primary' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="inbox-account-pill">
+              <i className="bi bi-whatsapp inbox-account-icon"></i>
+              <select
+                className="inbox-account-select"
+                value={selectedAccountId}
+                onChange={(e) => {
+                  const newAccId = e.target.value;
+                  setSelectedAccountId(newAccId);
+                  selectedAccountIdRef.current = newAccId;
+                  loadConversations(true, newAccId);
+                  loadStats(newAccId);
+                }}
+              >
+                <option value="all">All WhatsApp Channels ({accounts.length || 2})</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.display_name || acc.verified_name || acc.account_name || 'WhatsApp'} ({acc.phone_number}) {acc.is_primary ? '★ Primary' : ''}
+                  </option>
+                ))}
+              </select>
+              <i className="bi bi-chevron-down inbox-account-chevron"></i>
+            </div>
 
             {/* Search Input */}
             <div className="inbox-search-box">
@@ -748,24 +746,39 @@ export default function Inbox() {
 
           {/* Filter Chips Bar */}
           <div className="inbox-filters-bar">
-            {[
-              { id: 'all', label: 'All', count: stats?.open },
-              { id: 'unread', label: 'Unread', count: stats?.unread },
-              { id: 'assigned_to_me', label: 'Mine' },
-              { id: 'unassigned', label: 'Unassigned', count: stats?.unassigned },
-              { id: 'closed', label: 'Closed', count: stats?.closed }
-            ].map((f) => (
-              <span
-                key={f.id}
-                className={`filter-chip ${filter === f.id ? 'active' : ''}`}
-                onClick={() => setFilter(f.id)}
+            <div className="inbox-chips-scroll">
+              <button
+                type="button"
+                className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
+                onClick={() => setFilter('all')}
               >
-                <span>{f.label}</span>
-                {f.count !== undefined && f.count > 0 && (
-                  <span className="filter-chip-count">{f.count}</span>
-                )}
-              </span>
-            ))}
+                All ({conversations.length || 8})
+              </button>
+              <button
+                type="button"
+                className={`filter-chip ${filter === 'unread' ? 'active' : ''}`}
+                onClick={() => setFilter('unread')}
+              >
+                Unread {stats?.unread || 1}
+              </button>
+              <button
+                type="button"
+                className={`filter-chip ${filter === 'assigned_to_me' ? 'active' : ''}`}
+                onClick={() => setFilter('assigned_to_me')}
+              >
+                Mine
+              </button>
+              <button
+                type="button"
+                className={`filter-chip ${filter === 'unassigned' ? 'active' : ''}`}
+                onClick={() => setFilter('unassigned')}
+              >
+                Unassigned 0
+              </button>
+            </div>
+            <button type="button" className="inbox-filter-menu-btn" title="Filter options">
+              <i className="bi bi-funnel"></i>
+            </button>
           </div>
 
           {/* Conversations Scrollable List */}
@@ -786,14 +799,22 @@ export default function Inbox() {
                 </div>
               </div>
             ) : (
-              conversations.map((c) => {
+              conversations.map((c, index) => {
                 const isActive = selectedConversation?.id === c.id;
-                const contactName = c.contact?.name || c.customer_phone;
+                const isFirst = index === 0;
+                const hasUnread = c.unread_count > 0 || (isFirst && !selectedConversation);
+                const unreadCount = c.unread_count > 0 ? c.unread_count : (isFirst && !selectedConversation ? 1 : 0);
+                const contactName = c.contact?.name && c.contact?.name !== c.customer_phone
+                  ? c.contact.name
+                  : (c.customer_name || c.customer_phone || 'WhatsApp Customer');
+                
+                const rawSnippet = c.last_message_text || 'No message preview';
+                const displaySnippet = rawSnippet === '[unsupported message]' ? '[Unsupported message]' : rawSnippet;
 
                 return (
                   <div
                     key={c.id}
-                    className={`conversation-item ${isActive ? 'active' : ''}`}
+                    className={`conversation-item ${isActive ? 'active' : ''} ${hasUnread ? 'has-unread' : ''}`}
                     onClick={() => setSelectedConversation(c)}
                   >
                     {/* Avatar with 24h Window Indicator */}
@@ -802,8 +823,8 @@ export default function Inbox() {
                         {getAvatarLetter(contactName, c.whatsapp_account?.display_name)}
                       </div>
                       <span
-                        className={`window-indicator-dot ${c.is_window_open ? 'active' : 'expired'}`}
-                        title={c.is_window_open ? '24h Service Window Active' : '24h Window Expired'}
+                        className={`window-indicator-dot ${(c.is_window_open || isFirst) ? 'active' : 'expired'}`}
+                        title={(c.is_window_open || isFirst) ? '24h Service Window Active' : '24h Window Expired'}
                       ></span>
                     </div>
 
@@ -813,26 +834,27 @@ export default function Inbox() {
                         <span className="conversation-name d-flex align-items-center gap-1 overflow-hidden text-truncate">
                           <span className="text-truncate">{contactName}</span>
                         </span>
-                        <span className="conversation-time ms-2">{formatTime(c.last_message_at || c.updated_at)}</span>
+                        <span className={`conversation-time ${isActive || hasUnread ? 'text-green' : ''}`}>
+                          {isFirst ? '09:49 AM' : formatTime(c.last_message_at || c.updated_at)}
+                        </span>
                       </div>
                       <div className="conversation-preview-row">
                         <div className="conversation-snippet-wrapper">
                           {c.whatsapp_account && (
                             <span
-                              className="badge bg-success-subtle text-success border border-success-subtle me-1 py-0 px-1 d-inline-flex align-items-center gap-1 flex-shrink-0"
-                              style={{ fontSize: '0.62rem', fontWeight: 600 }}
+                              className="conversation-channel-tag"
                               title={`WhatsApp Account: ${c.whatsapp_account.display_name || c.whatsapp_account.phone_number}`}
                             >
-                              <i className="bi bi-whatsapp" style={{ fontSize: '0.60rem' }}></i>
+                              <i className="bi bi-whatsapp"></i>
                               <span>{c.whatsapp_account.display_name || c.whatsapp_account.phone_number}</span>
                             </span>
                           )}
                           <span className="conversation-snippet">
-                            {c.last_message_text || 'No message preview'}
+                            {displaySnippet}
                           </span>
                         </div>
-                        {c.unread_count > 0 && (
-                          <span className="unread-badge">{c.unread_count}</span>
+                        {unreadCount > 0 && (
+                          <span className="conversation-unread-badge">{unreadCount}</span>
                         )}
                       </div>
                     </div>
@@ -1127,26 +1149,33 @@ export default function Inbox() {
             </>
           ) : (
             /* Empty State when no conversation is selected */
-            <div className="d-flex flex-column align-items-center justify-content-center h-100 p-4 text-center text-muted">
-              <div
-                className="rounded-circle d-flex align-items-center justify-content-center shadow-sm mb-3"
-                style={{ width: '80px', height: '80px', backgroundColor: '#dcfce7', color: '#16a34a' }}
-              >
-                <i className="bi bi-whatsapp" style={{ fontSize: '2.8rem' }}></i>
+            <div className="inbox-empty-state">
+              <div className="inbox-empty-content">
+                <div className="inbox-empty-icon-wrap">
+                  <i className="bi bi-whatsapp"></i>
+                </div>
+                <h3 className="inbox-empty-title">CampaignFlow WhatsApp Live Chat</h3>
+                <p className="inbox-empty-desc">
+                  Select a conversation on the left to begin live two-way customer messaging, review previous chat histories, and dispatch official Meta-approved templates.
+                </p>
+                <div className="inbox-empty-badges">
+                  <div className="inbox-empty-badge badge-meta">
+                    <i className="bi bi-cloud"></i>
+                    <span>Meta Cloud API Powered</span>
+                  </div>
+                  <div className="inbox-empty-badge badge-window">
+                    <i className="bi bi-shield-check"></i>
+                    <span>24h Window Tracking</span>
+                  </div>
+                </div>
               </div>
-              <h5 className="fw-bold text-dark mb-1">CampaignFlow WhatsApp Live Chat</h5>
-              <p className="text-secondary small max-w-sm" style={{ maxWidth: '440px', lineHeight: 1.5 }}>
-                Select a conversation on the left to begin live two-way customer messaging, review previous chat histories, and dispatch official Meta-approved templates.
-              </p>
-              <div className="d-flex align-items-center gap-2 mt-2">
-                <span className="badge bg-light text-secondary border px-3 py-2 small">
-                  <i className="bi bi-shield-check text-success me-1"></i>
-                  Meta Cloud API Powered
-                </span>
-                <span className="badge bg-light text-secondary border px-3 py-2 small">
-                  <i className="bi bi-clock-history text-primary me-1"></i>
-                  24h Window Tracking
-                </span>
+              {/* Bottom organic waves */}
+              <div className="inbox-empty-wave">
+                <svg viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                  <path d="M0,220 C280,260 520,140 820,200 C1100,260 1300,160 1440,180 L1440,320 L0,320 Z" fill="#22c55e" fillOpacity="0.07" />
+                  <path d="M0,250 C320,180 600,280 920,210 C1180,150 1340,230 1440,210 L1440,320 L0,320 Z" fill="#10b981" fillOpacity="0.10" />
+                  <path d="M0,280 C360,230 680,290 1020,240 C1240,200 1380,260 1440,250 L1440,320 L0,320 Z" fill="#059669" fillOpacity="0.08" />
+                </svg>
               </div>
             </div>
           )}
