@@ -653,14 +653,14 @@ export default function CampaignBuilder() {
           <div className="cc-card">
             <div className="cc-card-header">
               <h2 className="cc-card-title">Step 1: Campaign Details & Sending Accounts</h2>
-              <button
+              {/* <button
                 type="button"
                 onClick={() => setShowAddAccountModal(true)}
                 className="cc-btn-connect-account"
               >
                 <i className="bi bi-plus-circle"></i>
                 <span>Add / Connect WhatsApp Account Manually</span>
-              </button>
+              </button> */}
             </div>
 
             <div className="row g-4 mb-4">
