@@ -46,6 +46,27 @@ export default function CampaignBuilder() {
   const [csvAppliedMessage, setCsvAppliedMessage] = useState(null);
   const [csvColumnMapping, setCsvColumnMapping] = useState({ phone: '', name: '', email: '', tag: '' });
 
+  // Helper date getters for scheduling
+  const getTodayString = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const getDefaultTimeString = () => {
+    const future = new Date(Date.now() + 30 * 60 * 1000);
+    const h = String(future.getHours()).padStart(2, '0');
+    const m = String(Math.ceil(future.getMinutes() / 5) * 5 % 60).padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
+  // Campaign Schedule Dispatch State
+  const [scheduleMode, setScheduleMode] = useState('immediate'); // 'immediate' | 'scheduled'
+  const [scheduleDate, setScheduleDate] = useState(getTodayString());
+  const [scheduleTime, setScheduleTime] = useState(getDefaultTimeString());
+
   // Resources
   const [accounts, setAccounts] = useState([]);
   const [tags, setTags] = useState([]);
@@ -485,12 +506,39 @@ export default function CampaignBuilder() {
     }
   };
 
+  const scheduledPreviewText = useMemo(() => {
+    if (scheduleMode !== 'scheduled' || !scheduleDate || !scheduleTime) return null;
+    try {
+      const target = new Date(`${scheduleDate}T${scheduleTime}`);
+      if (isNaN(target.getTime())) return null;
+      return `Will launch on ${target.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at ${target.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+    } catch (_) {
+      return null;
+    }
+  }, [scheduleMode, scheduleDate, scheduleTime]);
+
   const handleLaunchCampaign = async () => {
     try {
       setLoading(true);
       setError('');
 
-      // 1. Create campaign record with multi-sender account IDs and audience selection
+      let scheduledAt = null;
+      if (scheduleMode === 'scheduled') {
+        if (!scheduleDate || !scheduleTime) {
+          setError('Please select both a valid date and time to schedule the campaign.');
+          setLoading(false);
+          return;
+        }
+        const targetDate = new Date(`${scheduleDate}T${scheduleTime}`);
+        if (isNaN(targetDate.getTime()) || targetDate.getTime() <= Date.now() + 60000) {
+          setError('Scheduled time must be at least 2 minutes in the future.');
+          setLoading(false);
+          return;
+        }
+        scheduledAt = targetDate.toISOString();
+      }
+
+      // 1. Create campaign record with multi-sender account IDs, audience selection, and schedule
       const payload = {
         name: campaignName,
         purpose,
@@ -498,6 +546,7 @@ export default function CampaignBuilder() {
         whatsappAccountIds: selectedAccountIds,
         templateId,
         variableMappings,
+        scheduledAt,
         ...((audienceMode === 'specific' || audienceMode === 'csv')
           ? { contactIds: selectedContactIds }
           : (audienceMode === 'groups')
@@ -508,13 +557,15 @@ export default function CampaignBuilder() {
       const createRes = await api.post('/campaigns', payload);
       const campaignId = createRes.data?.data?.id;
 
-      // 2. Start campaign queue dispatch
-      await api.post(`/campaigns/${campaignId}/start`);
+      if (scheduleMode === 'immediate') {
+        // 2. Start campaign queue dispatch immediately
+        await api.post(`/campaigns/${campaignId}/start`);
+      }
 
       // 3. Navigate to campaign report page
       navigate(`/campaigns/${campaignId}`);
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Failed to launch campaign broadcast');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to process campaign broadcast');
     } finally {
       setLoading(false);
     }
@@ -629,7 +680,7 @@ export default function CampaignBuilder() {
             <div className={`cc-step-circle ${step === 5 ? 'active' : ''}`}>
               5
             </div>
-            <div className={`cc-step-label ${step === 5 ? 'active' : ''}`}>Launch Broadcast</div>
+            <div className={`cc-step-label ${step === 5 ? 'active' : ''}`}>Launch & Schedule</div>
           </div>
         </div>
 
@@ -1810,10 +1861,17 @@ export default function CampaignBuilder() {
       {/* Step 5: Launch / Schedule */}
       {step === 5 && (
         <div className="cf-card mb-4">
-          <div className="cf-card-header bg-success-subtle">
-            <h5 className="mb-0 text-success">Step 5: Launch Broadcast Campaign</h5>
+          <div className="cf-card-header bg-success-subtle d-flex align-items-center justify-content-between">
+            <h5 className="mb-0 text-success">
+              <i className="bi bi-rocket-takeoff-fill me-2"></i>
+              Step 5: Review & Schedule Broadcast
+            </h5>
+            <span className="badge bg-success-subtle text-success border border-success-subtle">
+              Final Step
+            </span>
           </div>
           <div className="cf-card-body">
+            {/* Summary Confirmation */}
             <div className="p-4 border rounded-3 bg-light mb-4">
               <h5 className="fw-bold text-dark mb-3">Broadcast Summary Confirmation</h5>
               <div className="row g-2 small">
@@ -1844,27 +1902,183 @@ export default function CampaignBuilder() {
                 <div className="col-sm-8">{selectedTemplateObj?.name}</div>
 
                 <div className="col-sm-4 text-muted">Background Dispatch:</div>
-                <div className="col-sm-8 text-dark">BullMQ + Redis Worker (Rate-limited with jitter)</div>
+                <div className="col-sm-8 text-dark">Automated Scheduler + BullMQ Worker (Rate-limited with jitter)</div>
+              </div>
+            </div>
+
+            {/* Dispatch Timing Options */}
+            <div className="card border rounded-3 mb-4 shadow-xs" style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
+              <div className="card-body p-4">
+                <h6 className="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                  <i className="bi bi-clock-history text-primary"></i>
+                  When should this campaign be dispatched?
+                </h6>
+
+                <div className="row g-3 mb-3">
+                  {/* Send Immediately Option */}
+                  <div className="col-12 col-md-6">
+                    <div
+                      onClick={() => setScheduleMode('immediate')}
+                      className={`p-3 rounded-3 border h-100 ${
+                        scheduleMode === 'immediate'
+                          ? 'border-success bg-white shadow-sm'
+                          : 'border-light-subtle bg-white text-muted'
+                      }`}
+                      style={{ cursor: 'pointer', transition: 'all 0.2s ease', borderWidth: scheduleMode === 'immediate' ? '2px' : '1px' }}
+                    >
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className={`rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 ${
+                            scheduleMode === 'immediate' ? 'bg-success text-white' : 'bg-light text-secondary border'
+                          }`}
+                          style={{ width: '42px', height: '42px' }}
+                        >
+                          <i className="bi bi-send-fill fs-5"></i>
+                        </div>
+                        <div className="flex-grow-1">
+                          <div className="fw-bold text-dark">Send Immediately</div>
+                          <div className="small text-muted">Start broadcast right now as soon as you confirm</div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="dispatch_mode"
+                          checked={scheduleMode === 'immediate'}
+                          onChange={() => setScheduleMode('immediate')}
+                          className="form-check-input ms-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Schedule for Later Option */}
+                  <div className="col-12 col-md-6">
+                    <div
+                      onClick={() => setScheduleMode('scheduled')}
+                      className={`p-3 rounded-3 border h-100 ${
+                        scheduleMode === 'scheduled'
+                          ? 'border-primary bg-white shadow-sm'
+                          : 'border-light-subtle bg-white text-muted'
+                      }`}
+                      style={{ cursor: 'pointer', transition: 'all 0.2s ease', borderWidth: scheduleMode === 'scheduled' ? '2px' : '1px' }}
+                    >
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className={`rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 ${
+                            scheduleMode === 'scheduled' ? 'bg-primary text-white' : 'bg-light text-secondary border'
+                          }`}
+                          style={{ width: '42px', height: '42px' }}
+                        >
+                          <i className="bi bi-calendar-event-fill fs-5"></i>
+                        </div>
+                        <div className="flex-grow-1">
+                          <div className="fw-bold text-dark">Schedule for Later</div>
+                          <div className="small text-muted">Automate broadcast for a specific date and time</div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="dispatch_mode"
+                          checked={scheduleMode === 'scheduled'}
+                          onChange={() => setScheduleMode('scheduled')}
+                          className="form-check-input ms-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date & Time Picker when Schedule is chosen */}
+                {scheduleMode === 'scheduled' && (
+                  <div className="p-3 bg-white border rounded-3 mt-3 shadow-xs">
+                    <div className="row g-3">
+                      <div className="col-12 col-sm-6">
+                        <label className="form-label small fw-semibold text-dark">
+                          <i className="bi bi-calendar3 me-1 text-primary"></i> Broadcast Date <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          min={getTodayString()}
+                          value={scheduleDate}
+                          onChange={(e) => setScheduleDate(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="col-12 col-sm-6">
+                        <label className="form-label small fw-semibold text-dark">
+                          <i className="bi bi-clock me-1 text-primary"></i> Broadcast Time <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          className="form-control"
+                          value={scheduleTime}
+                          onChange={(e) => setScheduleTime(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 pt-2 border-top">
+                      <div className="small text-muted d-flex align-items-center gap-1">
+                        <i className="bi bi-globe2 text-secondary"></i>
+                        <span>Timezone: <strong>{Intl.DateTimeFormat().resolvedOptions().timeZone}</strong> (Local System Time)</span>
+                      </div>
+                      {scheduledPreviewText && (
+                        <div className="badge bg-primary-subtle text-primary border border-primary-subtle p-2 px-3 fw-medium">
+                          <i className="bi bi-calendar-check me-1"></i>
+                          {scheduledPreviewText}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="d-flex justify-content-between">
               <button type="button" onClick={() => setStep(4)} className="btn btn-outline-secondary">
-                Back
+                <i className="bi bi-arrow-left me-1"></i> Back
               </button>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={handleLaunchCampaign}
-                className="btn btn-success btn-lg d-flex align-items-center gap-2 px-4 shadow"
-              >
-                {loading ? 'Dispatching...' : (
-                  <>
-                    <i className="bi bi-send-fill"></i>
-                    <span>Launch WhatsApp Broadcast Now</span>
-                  </>
-                )}
-              </button>
+              
+              {scheduleMode === 'scheduled' ? (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={handleLaunchCampaign}
+                  className="btn btn-primary btn-lg d-flex align-items-center gap-2 px-4 shadow"
+                >
+                  {loading ? (
+                    <>
+                      <div className="spinner-border spinner-border-sm" role="status"></div>
+                      <span>Scheduling...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-calendar-check-fill"></i>
+                      <span>Schedule Campaign Broadcast</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={handleLaunchCampaign}
+                  className="btn btn-success btn-lg d-flex align-items-center gap-2 px-4 shadow"
+                >
+                  {loading ? (
+                    <>
+                      <div className="spinner-border spinner-border-sm" role="status"></div>
+                      <span>Dispatching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-send-fill"></i>
+                      <span>Launch WhatsApp Broadcast Now</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

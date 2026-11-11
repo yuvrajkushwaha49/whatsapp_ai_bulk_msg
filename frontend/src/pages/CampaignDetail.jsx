@@ -373,14 +373,14 @@ export default function CampaignDetail() {
           </div>
 
           <div className="d-flex flex-wrap align-items-center gap-2">
-            {campaign?.status === 'draft' && (
+            {['draft', 'scheduled'].includes(campaign?.status) && (
               <button
                 onClick={handleStartCampaign}
                 disabled={actionLoading}
                 className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm"
               >
                 <i className="bi bi-play-fill fs-6"></i>
-                <span>{actionLoading ? 'Starting...' : 'Send Broadcast'}</span>
+                <span>{actionLoading ? 'Starting...' : (campaign?.status === 'scheduled' ? 'Launch Now' : 'Send Broadcast')}</span>
               </button>
             )}
 
@@ -434,6 +434,34 @@ export default function CampaignDetail() {
             </button>
           </div>
         </div>
+
+        {/* Scheduled Campaign Alert Banner */}
+        {campaign?.status === 'scheduled' && (
+          <div className="alert alert-primary border-primary-subtle d-flex flex-wrap align-items-center justify-content-between p-3 rounded-3 mb-4 shadow-xs gap-3">
+            <div className="d-flex align-items-center gap-3">
+              <div className="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '42px', height: '42px' }}>
+                <i className="bi bi-clock-history fs-4"></i>
+              </div>
+              <div>
+                <h6 className="fw-bold mb-1 text-dark">Automated Broadcast Scheduled</h6>
+                <div className="small text-muted">
+                  This campaign is queued to automatically start broadcasting on{' '}
+                  <strong className="text-dark">
+                    {campaign?.scheduled_at ? new Date(campaign.scheduled_at).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }) : 'the configured schedule'}
+                  </strong>.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleStartCampaign}
+              disabled={actionLoading}
+              className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm px-3"
+            >
+              <i className="bi bi-send-fill"></i>
+              <span>{actionLoading ? 'Launching...' : 'Launch Now (Skip Schedule)'}</span>
+            </button>
+          </div>
+        )}
 
       {/* KPI Stats Cards */}
       <div className="row g-3 mb-4">

@@ -2,6 +2,7 @@ import http from 'http';
 import app from './app.js';
 import { checkConnection } from './database/db.js';
 import { initSocketServer } from './socket.js';
+import { startCampaignScheduler, stopCampaignScheduler } from './services/campaignScheduler.js';
 import logger from './utils/logger.js';
 import dotenv from 'dotenv';
 
@@ -16,6 +17,9 @@ async function startServer() {
   const httpServer = http.createServer(app);
   initSocketServer(httpServer);
 
+  // Initialize automated background campaign scheduler
+  startCampaignScheduler(15000);
+
   httpServer.listen(PORT, () => {
     logger.info(`✨ CampaignFlow Backend API listening on port ${PORT}`);
     logger.info(`🌐 Health check available at http://localhost:${PORT}/api/health`);
@@ -23,6 +27,7 @@ async function startServer() {
 
   const handleShutdown = (signal) => {
     logger.info(`🛑 Received ${signal}. Shutting down gracefully...`);
+    stopCampaignScheduler();
     httpServer.close(() => {
       logger.info('👋 Server closed. Exiting process.');
       process.exit(0);

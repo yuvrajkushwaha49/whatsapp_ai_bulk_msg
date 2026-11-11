@@ -230,7 +230,7 @@ export async function preflightCheck(businessId, { campaignId, whatsappAccountId
   };
 }
 
-export async function createCampaign(businessId, { name, purpose, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [], groupIds = [], variableMappings = {} }) {
+export async function createCampaign(businessId, { name, purpose, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [], groupIds = [], variableMappings = {}, scheduledAt = null }) {
   const audience = await previewAudience(businessId, { tagIds, contactIds, groupIds });
 
   // Support single or multiple sending accounts
@@ -244,6 +244,10 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
     sender_account_ids: accountIdsList
   };
 
+  const isScheduled = Boolean(scheduledAt && new Date(scheduledAt).getTime() > Date.now());
+  const initialStatus = isScheduled ? 'scheduled' : 'draft';
+  const parsedScheduledAt = isScheduled ? new Date(scheduledAt) : null;
+
   if (isUsingFallback()) {
     const store = getMemoryStore();
     const newId = store.campaigns.length + 1;
@@ -254,12 +258,13 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
       template_id: Number(templateId),
       name,
       purpose,
-      status: 'draft',
+      status: initialStatus,
       total_recipients: audience.estimatedCount,
       sent_count: 0,
       delivered_count: 0,
       read_count: 0,
       failed_count: 0,
+      scheduled_at: parsedScheduledAt,
       variable_mappings: enrichedMappings,
       created_at: new Date()
     };
@@ -293,13 +298,24 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
     });
 
     campaign.total_recipients = eligibleContacts.length;
+
+    if (isScheduled) {
+      createNotification({
+        businessId: Number(businessId),
+        title: 'Campaign Scheduled',
+        message: `Campaign "${name}" has been scheduled for broadcast on ${parsedScheduledAt.toLocaleString()}.`,
+        type: 'info',
+        link: `/campaigns/${newId}`
+      }).catch(() => {});
+    }
+
     return campaign;
   }
 
   const result = await executeQuery(
-    `INSERT INTO campaigns (business_id, whatsapp_account_id, template_id, name, purpose, status, total_recipients, variable_mappings)
-     VALUES (?, ?, ?, ?, ?, 'draft', ?, ?)`,
-    [businessId, primaryAccountId, templateId, name, purpose, audience.estimatedCount, JSON.stringify(enrichedMappings)]
+    `INSERT INTO campaigns (business_id, whatsapp_account_id, template_id, name, purpose, status, total_recipients, variable_mappings, scheduled_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [businessId, primaryAccountId, templateId, name, purpose, initialStatus, audience.estimatedCount, JSON.stringify(enrichedMappings), parsedScheduledAt]
   );
   const campaignId = result.insertId;
 
@@ -329,7 +345,7 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
 
   const contacts = await executeQuery(contactSelectSql, params);
 
-  logger.info(`[CreateCampaign] Found ${contacts.length} recipients for Campaign #${campaignId}`);
+  logger.info(`[CreateCampaign] Found ${contacts.length} recipients for Campaign #${campaignId} (Status: ${initialStatus})`);
 
   for (const c of contacts) {
     await executeQuery(
@@ -345,7 +361,25 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
     [contacts.length, campaignId]
   );
 
-  return { id: campaignId, name, total_recipients: contacts.length, status: 'draft' };
+  if (isScheduled) {
+    createAuditLog({
+      businessId,
+      action: 'CAMPAIGN_SCHEDULE',
+      entityType: 'CAMPAIGNS',
+      entityId: campaignId,
+      details: { message: `Campaign "${name}" scheduled for broadcast at ${parsedScheduledAt.toISOString()}` }
+    }).catch(() => {});
+
+    createNotification({
+      businessId,
+      title: 'Campaign Scheduled',
+      message: `Campaign "${name}" has been scheduled for broadcast on ${parsedScheduledAt.toLocaleString()}.`,
+      type: 'info',
+      link: `/campaigns/${campaignId}`
+    }).catch(() => {});
+  }
+
+  return { id: campaignId, name, total_recipients: contacts.length, status: initialStatus, scheduled_at: parsedScheduledAt };
 }
 
 export async function startCampaign(businessId, campaignId) {
