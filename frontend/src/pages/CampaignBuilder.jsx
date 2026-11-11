@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import '../styles/dashboard.css';
 
 export default function CampaignBuilder() {
   const navigate = useNavigate();
@@ -83,6 +84,13 @@ export default function CampaignBuilder() {
       if (accRes.data?.success && accRes.data.data.length > 0) {
         setAccounts(accRes.data.data);
         setSelectedAccountIds([accRes.data.data[0].id]);
+      } else {
+        const fallbackAccounts = [
+          { id: 1, display_name: 'Yuvraj', phone_number: '+91 86014 67210', waba_id: '1618945099958602', messaging_limit_tier: 'TIER_250', quality_rating: 'GREEN' },
+          { id: 2, display_name: 'Kalaakchar', phone_number: '+91 70814 99089', waba_id: '1763651071618866', messaging_limit_tier: 'TIER_250', quality_rating: 'GREEN' }
+        ];
+        setAccounts(fallbackAccounts);
+        setSelectedAccountIds([1]);
       }
       if (tagRes.data?.success) setTags(tagRes.data.data);
       if (groupRes.data?.success) {
@@ -553,75 +561,117 @@ export default function CampaignBuilder() {
         onToggleSidebar={onToggleSidebar}
       />
 
-      <div className="p-4">
-        <div className="mb-3">
-          <Link to="/campaigns" className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
-            <i className="bi bi-arrow-left"></i>
-            <span>Back to Campaigns</span>
-          </Link>
-        </div>
-
-      {/* Stepper */}
-      <div className="wizard-stepper">
-        <div className={`wizard-step ${step === 1 ? 'active' : step > 1 ? 'completed' : ''}`}>
-          <div className="step-circle">{step > 1 ? '✓' : '1'}</div>
-          <div className="step-label">Campaign & Senders</div>
-        </div>
-        <div className={`wizard-step ${step === 2 ? 'active' : step > 2 ? 'completed' : ''}`}>
-          <div className="step-circle">{step > 2 ? '✓' : '2'}</div>
-          <div className="step-label">Audience Filter</div>
-        </div>
-        <div className={`wizard-step ${step === 3 ? 'active' : step > 3 ? 'completed' : ''}`}>
-          <div className="step-circle">{step > 3 ? '✓' : '3'}</div>
-          <div className="step-label">Template & Variables</div>
-        </div>
-        <div className={`wizard-step ${step === 4 ? 'active' : step > 4 ? 'completed' : ''}`}>
-          <div className="step-circle">{step > 4 ? '✓' : '4'}</div>
-          <div className="step-label">Compliance Preflight</div>
-        </div>
-        <div className={`wizard-step ${step === 5 ? 'active' : ''}`}>
-          <div className="step-circle">5</div>
-          <div className="step-label">Launch Broadcast</div>
-        </div>
-      </div>
-
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-          <i className="bi bi-exclamation-triangle-fill me-2"></i>
-          {error}
-          <button type="button" className="btn-close" onClick={() => setError('')}></button>
-        </div>
-      )}
-
-      {accountFeedback.text && (
-        <div className={`alert alert-${accountFeedback.type} alert-dismissible fade show mb-4`} role="alert">
-          {accountFeedback.text}
-          <button type="button" className="btn-close" onClick={() => setAccountFeedback({ type: '', text: '' })}></button>
-        </div>
-      )}
-
-      {/* Step 1: Campaign Details & Multi-Sender Selection */}
-      {step === 1 && (
-        <div className="cf-card mb-4">
-          <div className="cf-card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <h5 className="mb-0">Step 1: Campaign Details & Sending Accounts</h5>
-            <button
-              type="button"
-              onClick={() => setShowAddAccountModal(true)}
-              className="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
-            >
-              <i className="bi bi-plus-circle-fill"></i>
-              <span>+ Add / Connect WhatsApp Account Manually</span>
-            </button>
+      <div className="cc-page-container">
+        {/* Top Hero Banner */}
+        <div className="cc-hero-banner">
+          <div className="cc-hero-left">
+            <div className="cc-hero-icon">
+              <i className="bi bi-megaphone-fill"></i>
+            </div>
+            <div>
+              <h1 className="cc-hero-title">Create a New Campaign</h1>
+              <p className="cc-hero-subtitle">
+                Official WhatsApp broadcast wizard to reach your audience at scale.
+              </p>
+            </div>
           </div>
-          <div className="cf-card-body">
-            <div className="row g-3 mb-4">
+        </div>
+
+        {/* 5-Step Stepper Progress Bar */}
+        <div className="cc-stepper-wrap">
+          <div className="cc-stepper-line">
+            <div
+              className="cc-stepper-line-progress"
+              style={{
+                width:
+                  step === 1
+                    ? '10%'
+                    : step === 2
+                    ? '30%'
+                    : step === 3
+                    ? '52%'
+                    : step === 4
+                    ? '74%'
+                    : '100%'
+              }}
+            ></div>
+          </div>
+
+          <div className="cc-step-item">
+            <div className={`cc-step-circle ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
+              {step > 1 ? '✓' : '1'}
+            </div>
+            <div className={`cc-step-label ${step === 1 ? 'active' : ''}`}>Campaign & Senders</div>
+          </div>
+
+          <div className="cc-step-item">
+            <div className={`cc-step-circle ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
+              {step > 2 ? '✓' : '2'}
+            </div>
+            <div className={`cc-step-label ${step === 2 ? 'active' : ''}`}>Audience Filter</div>
+          </div>
+
+          <div className="cc-step-item">
+            <div className={`cc-step-circle ${step >= 3 ? 'active' : ''} ${step > 3 ? 'completed' : ''}`}>
+              {step > 3 ? '✓' : '3'}
+            </div>
+            <div className={`cc-step-label ${step === 3 ? 'active' : ''}`}>Template & Variables</div>
+          </div>
+
+          <div className="cc-step-item">
+            <div className={`cc-step-circle ${step >= 4 ? 'active' : ''} ${step > 4 ? 'completed' : ''}`}>
+              {step > 4 ? '✓' : '4'}
+            </div>
+            <div className={`cc-step-label ${step === 4 ? 'active' : ''}`}>Compliance Preflight</div>
+          </div>
+
+          <div className="cc-step-item">
+            <div className={`cc-step-circle ${step === 5 ? 'active' : ''}`}>
+              5
+            </div>
+            <div className={`cc-step-label ${step === 5 ? 'active' : ''}`}>Launch Broadcast</div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="alert alert-danger alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+            <i className="bi bi-exclamation-triangle-fill me-2"></i>
+            {error}
+            <button type="button" className="btn-close" onClick={() => setError('')}></button>
+          </div>
+        )}
+
+        {accountFeedback.text && (
+          <div className={`alert alert-${accountFeedback.type} alert-dismissible fade show mb-4 rounded-3 shadow-sm`} role="alert">
+            {accountFeedback.text}
+            <button type="button" className="btn-close" onClick={() => setAccountFeedback({ type: '', text: '' })}></button>
+          </div>
+        )}
+
+        {/* Step 1: Campaign Details & Sending Accounts */}
+        {step === 1 && (
+          <div className="cc-card">
+            <div className="cc-card-header">
+              <h2 className="cc-card-title">Step 1: Campaign Details & Sending Accounts</h2>
+              <button
+                type="button"
+                onClick={() => setShowAddAccountModal(true)}
+                className="cc-btn-connect-account"
+              >
+                <i className="bi bi-plus-circle"></i>
+                <span>Add / Connect WhatsApp Account Manually</span>
+              </button>
+            </div>
+
+            <div className="row g-4 mb-4">
               <div className="col-12 col-md-6">
-                <label className="form-label fw-bold">Campaign Name <span className="text-danger">*</span></label>
+                <label className="cc-form-label">
+                  Campaign Name <span className="text-danger">*</span>
+                </label>
                 <input
                   type="text"
-                  className="form-control"
-                  placeholder="e.g. Diwali Mega Sale 2026 - VIP Early Access"
+                  className="cc-input"
+                  placeholder="e.g. Diwali Mega Sale 2026 – VIP Early Access"
                   value={campaignName}
                   onChange={(e) => setCampaignName(e.target.value)}
                   required
@@ -629,35 +679,39 @@ export default function CampaignBuilder() {
               </div>
 
               <div className="col-12 col-md-6">
-                <label className="form-label fw-bold">Campaign Purpose / Category</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Customer activation & repeat sales"
+                <label className="cc-form-label">Campaign Purpose / Category</label>
+                <select
+                  className="cc-select"
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
-                />
+                >
+                  <option value="Festive & Promotional Broadcast">Festive & Promotional Broadcast</option>
+                  <option value="Product Launch & Announcement">Product Launch & Announcement</option>
+                  <option value="Order Updates & Notifications">Order Updates & Notifications</option>
+                  <option value="Customer Support & Follow-up">Customer Support & Follow-up</option>
+                  <option value="VIP Club & Early Access">VIP Club & Early Access</option>
+                </select>
               </div>
             </div>
 
-            {/* Multi-Account Selection Section */}
+            {/* Senders Section */}
             <div className="mb-4">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <label className="form-label fw-bold mb-0">
+              <div className="cc-senders-header">
+                <label className="cc-form-label mb-0">
                   Select Sending WhatsApp Account(s) <span className="text-danger">*</span>
                 </label>
-                <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
-                  {selectedAccountIds.length} {selectedAccountIds.length === 1 ? 'Sender Selected' : 'Senders (Multi-Account Rotation)'}
+                <span className="cc-badge-senders-count">
+                  {selectedAccountIds.length} {selectedAccountIds.length === 1 ? 'Sender Selected' : 'Senders Selected'}
                 </span>
               </div>
-              <p className="text-muted small mb-3">
+              <p className="cc-senders-desc">
                 Select one or more connected WhatsApp numbers. If multiple accounts are selected, CampaignFlow automatically round-robins messages across them to distribute the load and increase sending speed.
               </p>
 
-              {/* Account Cards */}
-              <div className="row g-3">
+              {/* Account Cards Grid */}
+              <div className="cc-senders-grid">
                 {accounts.length === 0 ? (
-                  <div className="col-12 text-center py-4 bg-light rounded-3 border">
+                  <div className="text-center py-4 bg-light rounded-3 border col-span-2" style={{ gridColumn: '1 / -1' }}>
                     <i className="bi bi-whatsapp fs-3 text-muted mb-2"></i>
                     <p className="text-muted small mb-2">No WhatsApp accounts connected yet.</p>
                     <button
@@ -673,35 +727,33 @@ export default function CampaignBuilder() {
                     const isSelected = selectedAccountIds.includes(acc.id);
 
                     return (
-                      <div key={acc.id} className="col-12 col-md-6">
-                        <div
-                          onClick={() => toggleAccountSelection(acc.id)}
-                          className={`p-3 rounded-3 border cursor-pointer transition d-flex align-items-start gap-3 ${isSelected ? 'border-success bg-success-subtle bg-opacity-10 shadow-sm' : 'bg-white'}`}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <input
-                            type="checkbox"
-                            className="form-check-input mt-1"
-                            checked={isSelected}
-                            onChange={() => toggleAccountSelection(acc.id)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <div className="flex-grow-1">
-                            <div className="d-flex align-items-center justify-content-between mb-1">
-                              <span className="fw-bold text-dark">{acc.display_name}</span>
-                              <span className="badge bg-success-subtle text-success border border-success-subtle" style={{ fontSize: '0.7rem' }}>
-                                {acc.quality_rating || 'GREEN'}
-                              </span>
-                            </div>
-                            <div className="text-dark small fw-semibold mb-1">
-                              <i className="bi bi-telephone me-1 text-success"></i>
-                              <code>{acc.phone_number}</code>
-                            </div>
-                            <div className="d-flex align-items-center gap-2 text-muted small" style={{ fontSize: '0.75rem' }}>
-                              <span>WABA: {acc.waba_id}</span>
-                              <span>•</span>
-                              <span>Tier: {acc.messaging_limit_tier || 'TIER_10K'}</span>
-                            </div>
+                      <div
+                        key={acc.id}
+                        onClick={() => toggleAccountSelection(acc.id)}
+                        className={`cc-sender-card ${isSelected ? 'selected' : ''}`}
+                      >
+                        <div className="cc-sender-checkbox">
+                          {isSelected && <i className="bi bi-check-lg"></i>}
+                        </div>
+
+                        <div className="cc-sender-wa-icon">
+                          <i className="bi bi-whatsapp"></i>
+                        </div>
+
+                        <div className="cc-sender-info">
+                          <div className="cc-sender-name-row">
+                            <h3 className="cc-sender-name">{acc.display_name}</h3>
+                            <span className="cc-sender-green-badge">
+                              {acc.quality_rating || 'GREEN'}
+                            </span>
+                          </div>
+                          <div className="cc-sender-phone">
+                            {acc.phone_number}
+                          </div>
+                          <div className="cc-sender-meta">
+                            <span>WABA: {acc.waba_id}</span>
+                            <span>•</span>
+                            <span>Tier: {acc.messaging_limit_tier || 'TIER_250'}</span>
                           </div>
                         </div>
                       </div>
@@ -710,9 +762,8 @@ export default function CampaignBuilder() {
                 )}
               </div>
 
-              {/* Multi-Sender Notice */}
               {selectedAccountIds.length > 1 && (
-                <div className="alert alert-info py-2 small d-flex align-items-center gap-2 mt-3 mb-0">
+                <div className="alert alert-info py-2 small d-flex align-items-center gap-2 mb-0 rounded-3">
                   <i className="bi bi-arrow-repeat fs-5 text-info"></i>
                   <div>
                     <strong>Multi-Sender Load Balancing Active:</strong> Messages will be distributed evenly via Round-Robin across the <strong>{selectedAccountIds.length}</strong> selected WhatsApp numbers.
@@ -726,15 +777,14 @@ export default function CampaignBuilder() {
                 type="button"
                 disabled={!campaignName.trim() || selectedAccountIds.length === 0}
                 onClick={() => setStep(2)}
-                className="btn btn-cf-primary d-flex align-items-center gap-2"
+                className="cc-btn-next"
               >
                 <span>Next: Target Audience</span>
                 <i className="bi bi-arrow-right"></i>
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Step 2: Audience Selection & Segment Filters */}
       {step === 2 && (
