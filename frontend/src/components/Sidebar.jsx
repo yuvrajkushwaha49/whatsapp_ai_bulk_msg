@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import { getSocket, initSocket } from '../services/socket';
+import logoImg from '../assets/logo.png';
 
 export default function Sidebar({ isOpen, onClose, onToggle }) {
   const { isSuperAdmin } = useAuth();
@@ -159,10 +160,11 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
             <i className="bi bi-whatsapp"></i>
           </div>
           <div className="sidebar-brand-text">
-            <div className="brand-font fs-5 text-white fw-bold tracking-wide">AIWAVO</div>
-            <div className="sidebar-brand-subtitle">
-              WhatsApp Automation Platform
-            </div>
+            <img
+              src={logoImg}
+              alt="AIWAVO"
+              className="sidebar-brand-logo"
+            />
           </div>
         </div>
 
