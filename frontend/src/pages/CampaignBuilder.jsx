@@ -556,7 +556,7 @@ export default function CampaignBuilder() {
   return (
     <div>
       <AiwavoHeader
-        title="Create Campaign"
+        title="Campaigns"
         subtitle="Official WhatsApp broadcast wizard with multi-account rotation & compliance checks"
         onToggleSidebar={onToggleSidebar}
       />

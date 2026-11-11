@@ -12,7 +12,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
     { to: '/contacts', icon: 'bi-people-fill', name: 'Contacts', shortName: 'Contacts' },
     // { to: '/imports', icon: 'bi-file-earmark-excel-fill', name: 'Excel Manager', shortName: 'Excel' },
     { to: '/campaigns', icon: 'bi-megaphone-fill', name: 'Campaigns', shortName: 'Campaigns' },
-    { to: '/campaigns/new', icon: 'bi-diagram-3-fill', name: 'Automation', shortName: 'Automation', hasChevron: true },
+    // { to: '/campaigns/new', icon: 'bi-diagram-3-fill', name: 'Automation', shortName: 'Automation', hasChevron: true },
     { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
     { to: '/inbox', icon: 'bi-chat-left-dots-fill', name: 'Message Queue', shortName: 'Queue', badge: '12' },
     { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
@@ -119,7 +119,8 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
                   const active =
                     isActive ||
                     (item.to === '/contacts' &&
-                      (location.pathname.startsWith('/contacts') || location.pathname.startsWith('/imports')));
+                      (location.pathname.startsWith('/contacts') || location.pathname.startsWith('/imports'))) ||
+                    (item.to === '/campaigns' && location.pathname.startsWith('/campaigns'));
                   return `sidebar-link ${active ? 'active' : ''}`;
                 }}
                 onClick={handleLinkClick}
