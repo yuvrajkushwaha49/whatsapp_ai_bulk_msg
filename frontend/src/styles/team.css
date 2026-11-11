@@ -1,0 +1,418 @@
+/* ==========================================================================
+   TEAM & USERS PAGE STYLES - CampaignFlow Pixel-Perfect Redesign
+   ========================================================================== */
+
+.team-page-container {
+  padding: 1.5rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* 1. Hero Banner */
+.team-hero-banner {
+  background: linear-gradient(135deg, #e8fdf0 0%, #f0fdf4 35%, #ecfdf5 70%, #dcfce7 100%);
+  border-radius: 16px;
+  padding: 1.25rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.team-hero-banner::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 380px;
+  height: 220px;
+  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.team-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  position: relative;
+  z-index: 1;
+}
+
+.team-hero-icon {
+  width: 48px;
+  height: 48px;
+  background: #00a859;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 168, 89, 0.25);
+}
+
+.team-hero-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.015em;
+}
+
+.team-hero-subtitle {
+  color: #475569;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.team-btn-invite {
+  background: #00a859;
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 168, 89, 0.25);
+  transition: all 0.15s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.team-btn-invite:hover {
+  background: #00924c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 168, 89, 0.35);
+}
+
+/* 2. Generic Card Container */
+.team-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.team-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.team-card-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.team-card-title svg {
+  color: #10b981;
+}
+
+/* 3. Search Box */
+.team-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.team-search-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.team-search-input {
+  padding: 0.5rem 1rem 0.5rem 2.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  color: #0f172a;
+  background: #ffffff;
+  width: 250px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.team-search-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* 4. Table Shared Styles */
+.team-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.team-table th {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.team-table td {
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.team-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 5. Permission Matrix Specifics */
+.role-pill {
+  display: inline-block;
+  padding: 0.28rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  min-width: 82px;
+}
+
+.role-pill.pill-owner {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.role-pill.pill-admin {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.role-pill.pill-marketing {
+  background: #6366f1;
+  color: #ffffff;
+}
+
+.role-pill.pill-agent {
+  background: #64748b;
+  color: #ffffff;
+}
+
+.perm-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.perm-cell.perm-allow {
+  color: #15803d;
+}
+
+.perm-cell.perm-limited {
+  color: #64748b;
+}
+
+.perm-cell.perm-denied {
+  color: #dc2626;
+}
+
+/* 6. Collaborators Table Specifics */
+.member-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.member-avatar.av-owner {
+  background: #10b981;
+}
+
+.member-avatar.av-marketer {
+  background: #2563eb;
+}
+
+.member-avatar.av-agent {
+  background: #64748b;
+}
+
+.member-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.member-name {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.88rem;
+}
+
+.member-crown {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.member-email {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+/* Role Dropdown / Select styling */
+.member-role-select {
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 10px 10px;
+  padding-right: 1.6rem;
+  display: inline-block;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.member-role-select.role-sel-owner {
+  background-color: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+  cursor: default;
+}
+
+.member-role-select.role-sel-marketing {
+  background-color: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #6d28d9;
+}
+
+.member-role-select.role-sel-agent {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+.member-role-select.role-sel-admin {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+/* Status Pill */
+.member-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.member-status-pill.status-active {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.member-status-pill .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+}
+
+.member-joined-date {
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+/* Action Icon Buttons */
+.member-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.btn-action-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-action-icon:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.btn-action-icon.btn-delete {
+  border-color: #fee2e2;
+  color: #ef4444;
+}
+
+.btn-action-icon.btn-delete:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .team-page-container {
+    padding: 1rem;
+  }
+  .team-hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .team-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .team-search-input {
+    width: 100%;
+  }
+}
