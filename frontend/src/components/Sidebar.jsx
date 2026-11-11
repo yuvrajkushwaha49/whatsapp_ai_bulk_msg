@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
+import { getSocket, initSocket } from '../services/socket';
 
 export default function Sidebar({ isOpen, onClose, onToggle }) {
   const { isSuperAdmin } = useAuth();
@@ -9,13 +10,51 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
 
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await api.get('/whatsapp/inbox/stats?accountId=all');
+      if (res.data?.success && res.data?.data) {
+        const stats = res.data.data;
+        const count = Number(stats.unreadMessages ?? stats.unread ?? 0);
+        setUnreadCount(count);
+      }
+    } catch (_) {}
+  };
 
   useEffect(() => {
     const isSuper = isSuperAdmin ? isSuperAdmin() : false;
     if (!isSuper) {
       fetchSidebarBilling();
     }
+    fetchUnreadCount();
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handleUnreadChange = () => {
+      fetchUnreadCount();
+    };
+
+    window.addEventListener('inbox:unread_count_changed', handleUnreadChange);
+
+    let socket = getSocket();
+    if (!socket) {
+      socket = initSocket();
+    }
+    if (socket) {
+      socket.on('inbox:new_message', handleUnreadChange);
+      socket.on('inbox:conversation_updated', handleUnreadChange);
+    }
+
+    return () => {
+      window.removeEventListener('inbox:unread_count_changed', handleUnreadChange);
+      if (socket) {
+        socket.off('inbox:new_message', handleUnreadChange);
+        socket.off('inbox:conversation_updated', handleUnreadChange);
+      }
+    };
+  }, []);
 
   const fetchSidebarBilling = async () => {
     try {
@@ -40,7 +79,13 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
     { to: '/campaigns', icon: 'bi-megaphone-fill', name: 'Campaigns', shortName: 'Campaigns' },
     // { to: '/campaigns/new', icon: 'bi-diagram-3-fill', name: 'Automation', shortName: 'Automation', hasChevron: true },
     { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
-    { to: '/inbox', icon: 'bi-chat-left-dots-fill', name: 'Message Queue', shortName: 'Queue', badge: '12' },
+    { 
+      to: '/inbox', 
+      icon: 'bi-chat-left-dots-fill', 
+      name: 'Message Queue', 
+      shortName: 'Queue', 
+      badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null 
+    },
     { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
     { to: '/billing', icon: 'bi-credit-card-fill', name: 'Billing & Plans', shortName: 'Billing' },
     { to: '/team', icon: 'bi-people-fill', name: 'Team & Users', shortName: 'Team' },
@@ -155,11 +200,11 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
               >
                 <div className="sidebar-link-icon-wrap">
                   <i className={`bi ${item.icon}`}></i>
-                  {item.badge && (
+                  {item.badge ? (
                     <span className="badge aiwavo-mini-badge">
                       {item.badge}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <span className="sidebar-link-full-text">{item.name}</span>
                 <span className="sidebar-link-mini-text">{item.shortName}</span>
@@ -167,11 +212,11 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
                 {item.hasChevron && (
                   <i className="bi bi-chevron-down ms-auto sidebar-chevron"></i>
                 )}
-                {item.badge && (
+                {item.badge ? (
                   <span className="badge ms-auto aiwavo-queue-badge sidebar-link-full-badge">
                     {item.badge}
                   </span>
-                )}
+                ) : null}
               </NavLink>
             </li>
           ))}

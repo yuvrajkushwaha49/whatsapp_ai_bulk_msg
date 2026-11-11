@@ -1331,7 +1331,10 @@ export async function getInboxStats(businessId, user, accountId = null) {
     const open = convs.filter(c => c.status !== 'closed').length;
     const closed = convs.filter(c => c.status === 'closed').length;
     const unread = convs.filter(c => (c.unread_count || 0) > 0 && c.status !== 'closed').length;
-    const assignedToMe = convs.filter(c => c.assigned_user_id === user.id && c.status !== 'closed').length;
+    const unreadMessages = convs
+      .filter(c => c.status !== 'closed')
+      .reduce((sum, c) => sum + (Number(c.unread_count) || 0), 0);
+    const assignedToMe = convs.filter(c => c.assigned_user_id === user?.id && c.status !== 'closed').length;
     const unassigned = convs.filter(c => !c.assigned_user_id && c.status !== 'closed').length;
     const windowActive = convs.filter(c => c.service_window_expires_at && now < new Date(c.service_window_expires_at)).length;
 
@@ -1340,6 +1343,7 @@ export async function getInboxStats(businessId, user, accountId = null) {
       open,
       closed,
       unread,
+      unreadMessages,
       assignedToMe,
       unassigned,
       windowActive
@@ -1351,12 +1355,13 @@ export async function getInboxStats(businessId, user, accountId = null) {
       SUM(CASE WHEN status != 'closed' THEN 1 ELSE 0 END) as open,
       SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed,
       SUM(CASE WHEN unread_count > 0 AND status != 'closed' THEN 1 ELSE 0 END) as unread,
+      SUM(CASE WHEN status != 'closed' THEN COALESCE(unread_count, 0) ELSE 0 END) as unread_messages,
       SUM(CASE WHEN assigned_user_id = ? AND status != 'closed' THEN 1 ELSE 0 END) as assignedToMe,
       SUM(CASE WHEN assigned_user_id IS NULL AND status != 'closed' THEN 1 ELSE 0 END) as unassigned,
       SUM(CASE WHEN service_window_expires_at > NOW() THEN 1 ELSE 0 END) as windowActive
     FROM whatsapp_conversations 
     WHERE business_id = ?`;
-  const statsParams = [user.id, numBusinessId];
+  const statsParams = [user?.id || 0, numBusinessId];
 
   if (accountId && accountId !== 'all') {
     statsQuery += ' AND whatsapp_account_id = ?';
@@ -1370,6 +1375,7 @@ export async function getInboxStats(businessId, user, accountId = null) {
     open: Number(stats?.open || 0),
     closed: Number(stats?.closed || 0),
     unread: Number(stats?.unread || 0),
+    unreadMessages: Number(stats?.unread_messages || stats?.unread || 0),
     assignedToMe: Number(stats?.assignedToMe || 0),
     unassigned: Number(stats?.unassigned || 0),
     windowActive: Number(stats?.windowActive || 0)

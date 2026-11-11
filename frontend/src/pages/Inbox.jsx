@@ -354,10 +354,17 @@ export default function Inbox() {
         if (msgs.length < 10) {
           setHasMoreMessages(false);
         }
-        // Decrease unread count locally in list
+        // Mark as read on backend and locally
+        const targetConv = conversations.find(c => c.id === convId);
+        if (targetConv?.unread_count > 0 || selectedConversationRef.current?.unread_count > 0) {
+          inboxApi.markRead(convId).catch(console.error);
+          window.dispatchEvent(new CustomEvent('inbox:unread_count_changed'));
+          loadStats();
+        }
         setConversations(prev =>
           prev.map(c => (c.id === convId ? { ...c, unread_count: 0 } : c))
         );
+        setSelectedConversation(prev => (prev?.id === convId ? { ...prev, unread_count: 0 } : prev));
         // Guarantee immediate and post-render scroll to the very last message
         requestAnimationFrame(() => {
           scrollToBottom('auto');
@@ -762,6 +769,11 @@ export default function Inbox() {
     try {
       await inboxApi.markUnread(selectedConversation.id);
       setSelectedConversation(prev => ({ ...prev, unread_count: 1 }));
+      setConversations(prev =>
+        prev.map(c => (c.id === selectedConversation.id ? { ...c, unread_count: 1 } : c))
+      );
+      window.dispatchEvent(new CustomEvent('inbox:unread_count_changed'));
+      loadStats();
       loadConversations(false);
     } catch (err) {
       console.error('[Inbox] Mark unread error:', err);
@@ -975,28 +987,28 @@ export default function Inbox() {
                 className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
                 onClick={() => setFilter('all')}
               >
-                All ({conversations.length || 8})
+                All ({stats?.total ?? conversations.length})
               </button>
               <button
                 type="button"
                 className={`filter-chip ${filter === 'unread' ? 'active' : ''}`}
                 onClick={() => setFilter('unread')}
               >
-                Unread {stats?.unread || 1}
+                Unread ({stats?.unread ?? 0})
               </button>
               <button
                 type="button"
                 className={`filter-chip ${filter === 'assigned_to_me' ? 'active' : ''}`}
                 onClick={() => setFilter('assigned_to_me')}
               >
-                Mine
+                Mine ({stats?.assignedToMe ?? 0})
               </button>
               <button
                 type="button"
                 className={`filter-chip ${filter === 'unassigned' ? 'active' : ''}`}
                 onClick={() => setFilter('unassigned')}
               >
-                Unassigned 0
+                Unassigned ({stats?.unassigned ?? 0})
               </button>
             </div>
             <button type="button" className="inbox-filter-menu-btn" title="Filter options">
@@ -1038,7 +1050,17 @@ export default function Inbox() {
                     <div
                       key={c.id}
                       className={`conversation-item ${isActive ? 'active' : ''} ${hasUnread ? 'has-unread' : ''}`}
-                      onClick={() => setSelectedConversation(c)}
+                      onClick={() => {
+                        setSelectedConversation(c);
+                        if (c.unread_count > 0) {
+                          inboxApi.markRead(c.id).catch(console.error);
+                          setConversations(prev =>
+                            prev.map(item => (item.id === c.id ? { ...item, unread_count: 0 } : item))
+                          );
+                          window.dispatchEvent(new CustomEvent('inbox:unread_count_changed'));
+                          loadStats();
+                        }
+                      }}
                     >
                       {/* Avatar with 24h Window Indicator */}
                       <div className="conversation-avatar-wrapper">
