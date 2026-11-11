@@ -22,9 +22,26 @@ export async function handleWebhookEvent(req, res, next) {
     const signature = req.headers['x-hub-signature-256'];
     const rawBody = req.rawBody || JSON.stringify(req.body);
 
-    if (signature && !verifyMetaSignature(rawBody, signature)) {
-      logger.error('[Webhook] Meta signature verification failed');
-      return res.status(401).json({ success: false, error: 'Invalid HMAC signature' });
+    if (signature) {
+      let isValid = verifyMetaSignature(rawBody, signature);
+      if (!isValid) {
+        try {
+          const { executeQuery } = await import('../../database/db.js');
+          const { decryptToken } = await import('../../utils/crypto.js');
+          const configs = await executeQuery('SELECT encrypted_meta_app_secret FROM platform_meta_configs LIMIT 1');
+          if (configs && configs[0]?.encrypted_meta_app_secret) {
+            const dbSecret = decryptToken(configs[0].encrypted_meta_app_secret);
+            if (dbSecret) {
+              isValid = verifyMetaSignature(rawBody, signature, dbSecret);
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (!isValid) {
+        logger.error('[Webhook] Meta signature verification failed');
+        return res.status(401).json({ success: false, error: 'Invalid HMAC signature' });
+      }
     }
 
     // 2. Acknowledge Meta immediately with 200

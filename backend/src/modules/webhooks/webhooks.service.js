@@ -59,7 +59,7 @@ export async function processWebhookPayload(payload) {
         }
       }
 
-      // If no account matches, check known live WABA / Phone IDs before dropping
+      // If no account matches, check known live WABA / Phone IDs or check provider_message_id in DB
       if (!matchedBusinessId) {
         if (
           (entryWabaId && (String(entryWabaId) === '1618945099958602' || String(entryWabaId) === '28532933229644434')) ||
@@ -70,7 +70,21 @@ export async function processWebhookPayload(payload) {
         } else if (process.env.NODE_ENV === 'test' && !metaPhoneId) {
           matchedBusinessId = 1;
           matchedAccountId = 1;
-        } else {
+        } else if (value.statuses && value.statuses.length > 0) {
+          // Fallback: check if the provider message ID exists in our database
+          try {
+            const firstMsgId = value.statuses[0].id;
+            const cr = await executeQuery('SELECT business_id FROM campaign_recipients WHERE provider_message_id = ? LIMIT 1', [firstMsgId]);
+            if (cr && cr.length > 0) {
+              matchedBusinessId = cr[0].business_id;
+            } else {
+              const msg = await executeQuery('SELECT business_id FROM messages WHERE provider_message_id = ? LIMIT 1', [firstMsgId]);
+              if (msg && msg.length > 0) matchedBusinessId = msg[0].business_id;
+            }
+          } catch (_) {}
+        }
+        
+        if (!matchedBusinessId) {
           logger.warn(`[Webhook] Unrecognized WhatsApp account: phone_number_id="${metaPhoneId}", waba_id="${entryWabaId}". Safely dropping event for strict tenant isolation.`);
           continue;
         }
@@ -93,9 +107,15 @@ export async function processWebhookPayload(payload) {
             // Update campaign recipients
             const recipient = store.campaign_recipients.find(r => r.provider_message_id === providerMsgId);
             if (recipient) {
-              recipient.status = status;
-              if (status === 'delivered') recipient.delivered_at = timestamp;
-              if (status === 'read') recipient.read_at = timestamp;
+              if (recipient.status !== 'read' || status === 'read') {
+                recipient.status = status;
+              }
+              if (status === 'delivered' || status === 'read') {
+                recipient.delivered_at = recipient.delivered_at || timestamp;
+              }
+              if (status === 'read') {
+                recipient.read_at = recipient.read_at || timestamp;
+              }
               if (status === 'failed') {
                 const msg = errDetail?.error_data?.details || errDetail?.message || errDetail?.title || 'Meta delivery error';
                 recipient.error_message = msg;
@@ -104,8 +124,10 @@ export async function processWebhookPayload(payload) {
 
               const campaign = store.campaigns.find(c => c.id === recipient.campaign_id);
               if (campaign) {
-                if (status === 'delivered') campaign.delivered_count = (campaign.delivered_count || 0) + 1;
-                if (status === 'read') campaign.read_count = (campaign.read_count || 0) + 1;
+                const recs = store.campaign_recipients.filter(r => r.campaign_id === campaign.id);
+                campaign.delivered_count = recs.filter(r => r.status === 'delivered' || r.status === 'read').length;
+                campaign.read_count = recs.filter(r => r.status === 'read').length;
+                campaign.failed_count = recs.filter(r => r.status === 'failed').length;
               }
             }
 
@@ -113,9 +135,15 @@ export async function processWebhookPayload(payload) {
             if (store.whatsapp_messages) {
               const inboxMsg = store.whatsapp_messages.find(m => m.meta_message_id === providerMsgId);
               if (inboxMsg) {
-                inboxMsg.message_status = status;
-                if (status === 'delivered') inboxMsg.delivered_at = timestamp;
-                if (status === 'read') inboxMsg.read_at = timestamp;
+                if (inboxMsg.message_status !== 'read' || status === 'read') {
+                  inboxMsg.message_status = status;
+                }
+                if (status === 'delivered' || status === 'read') {
+                  inboxMsg.delivered_at = inboxMsg.delivered_at || timestamp;
+                }
+                if (status === 'read') {
+                  inboxMsg.read_at = inboxMsg.read_at || timestamp;
+                }
                 if (status === 'failed') {
                   inboxMsg.failed_at = timestamp;
                   inboxMsg.failure_reason = errDetail?.error_data?.details || errDetail?.message || errDetail?.title || 'Delivery error';
@@ -139,39 +167,42 @@ export async function processWebhookPayload(payload) {
             }
             saveMemoryStore();
           } else {
-            // Update recipient status
-            let updateSql = 'UPDATE campaign_recipients SET status = ?';
-            const params = [status];
-
-            if (status === 'delivered') {
-              updateSql += ', delivered_at = NOW()';
-            } else if (status === 'read') {
-              updateSql += ', read_at = NOW()';
-            } else if (status === 'failed') {
-              const errMsg = errDetail?.error_data?.details || errDetail?.message || errDetail?.title || 'Meta delivery error';
-              updateSql += ', error_message = ?';
-              params.push(errMsg);
-            }
-
-            updateSql += ' WHERE provider_message_id = ?';
-            params.push(providerMsgId);
-
-            await executeQuery(updateSql, params);
+            // Update recipient status (idempotent, won't downgrade 'read' to 'delivered')
+            const errMsg = status === 'failed' ? (errDetail?.error_data?.details || errDetail?.message || errDetail?.title || 'Meta delivery error') : null;
+            await executeQuery(
+              `UPDATE campaign_recipients
+               SET status = CASE WHEN status = 'read' AND ? = 'delivered' THEN 'read' ELSE ? END,
+                   delivered_at = CASE WHEN ? IN ('delivered', 'read') THEN COALESCE(delivered_at, ?) ELSE delivered_at END,
+                   read_at = CASE WHEN ? = 'read' THEN COALESCE(read_at, ?) ELSE read_at END,
+                   error_message = CASE WHEN ? = 'failed' THEN COALESCE(?, error_message) ELSE error_message END,
+                   updated_at = NOW()
+               WHERE provider_message_id = ?`,
+              [status, status, status, timestamp, status, timestamp, status, errMsg, providerMsgId]
+            );
 
             // Also update messages table
             await executeQuery(
-              'UPDATE messages SET status = ?, updated_at = NOW() WHERE provider_message_id = ?',
-              [status, providerMsgId]
+              `UPDATE messages 
+               SET status = CASE WHEN status = 'read' AND ? = 'delivered' THEN 'read' ELSE ? END,
+                   updated_at = NOW() 
+               WHERE provider_message_id = ?`,
+              [status, status, providerMsgId]
             );
 
             // Update inbox whatsapp_messages table
-            let inboxUpdateSql = 'UPDATE whatsapp_messages SET message_status = ?, updated_at = NOW()';
-            const inboxParams = [status];
-            if (status === 'delivered') inboxUpdateSql += ', delivered_at = NOW()';
-            else if (status === 'read') inboxUpdateSql += ', read_at = NOW()';
-            else if (status === 'failed') {
-              inboxUpdateSql += ', failed_at = NOW(), failure_reason = ?';
-              inboxParams.push(statusObj.errors?.[0]?.message || 'Delivery error');
+            let inboxUpdateSql = `UPDATE whatsapp_messages 
+               SET message_status = CASE WHEN message_status = 'read' AND ? = 'delivered' THEN 'read' ELSE ? END, 
+                   updated_at = NOW()`;
+            const inboxParams = [status, status];
+            if (status === 'delivered') {
+              inboxUpdateSql += ', delivered_at = COALESCE(delivered_at, ?)';
+              inboxParams.push(timestamp);
+            } else if (status === 'read') {
+              inboxUpdateSql += ', read_at = COALESCE(read_at, ?), delivered_at = COALESCE(delivered_at, ?)';
+              inboxParams.push(timestamp, timestamp);
+            } else if (status === 'failed') {
+              inboxUpdateSql += ', failed_at = ?, failure_reason = ?';
+              inboxParams.push(timestamp, statusObj.errors?.[0]?.message || 'Delivery error');
             }
             inboxUpdateSql += ' WHERE meta_message_id = ?';
             inboxParams.push(providerMsgId);
@@ -199,23 +230,32 @@ export async function processWebhookPayload(payload) {
               });
             }
 
-            // Update aggregated campaign counts
-            if (status === 'delivered') {
-              await executeQuery(
-                `UPDATE campaigns c 
-                 JOIN campaign_recipients cr ON c.id = cr.campaign_id 
-                 SET c.delivered_count = c.delivered_count + 1 
-                 WHERE cr.provider_message_id = ?`,
-                [providerMsgId]
-              );
-            } else if (status === 'read') {
-              await executeQuery(
-                `UPDATE campaigns c 
-                 JOIN campaign_recipients cr ON c.id = cr.campaign_id 
-                 SET c.read_count = c.read_count + 1 
-                 WHERE cr.provider_message_id = ?`,
-                [providerMsgId]
-              );
+            // Accurately synchronize aggregated campaign counts from campaign_recipients
+            await executeQuery(
+              `UPDATE campaigns c
+               JOIN (
+                 SELECT campaign_id,
+                        COUNT(CASE WHEN status IN ('sent', 'delivered', 'read') THEN 1 END) as sent_cnt,
+                        COUNT(CASE WHEN status IN ('delivered', 'read') THEN 1 END) as del_cnt,
+                        COUNT(CASE WHEN status = 'read' THEN 1 END) as rd_cnt,
+                        COUNT(CASE WHEN status = 'failed' THEN 1 END) as fail_cnt
+                 FROM campaign_recipients
+                 WHERE campaign_id = (SELECT campaign_id FROM campaign_recipients WHERE provider_message_id = ? LIMIT 1)
+                 GROUP BY campaign_id
+               ) sub ON c.id = sub.campaign_id
+               SET c.delivered_count = sub.del_cnt,
+                   c.read_count = sub.rd_cnt,
+                   c.failed_count = sub.fail_cnt,
+                   c.updated_at = NOW()`,
+              [providerMsgId]
+            );
+
+            // Also emit campaign status update
+            if (matchedBusinessId) {
+              emitToTenant(matchedBusinessId, 'campaign:status_update', {
+                providerMessageId: providerMsgId,
+                status
+              });
             }
           }
         }

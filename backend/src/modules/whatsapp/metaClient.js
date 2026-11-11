@@ -635,6 +635,11 @@ export class MetaCloudApiClient {
     }
 
     try {
+      // Clean up any stale or corrupted override callback URLs
+      await axios.delete(`${META_BASE_URL}/${targetWabaId}/subscribed_apps`, {
+        headers: { Authorization: `Bearer ${this.accessToken}` }
+      }).catch(() => {});
+
       const response = await axios.post(
         `${META_BASE_URL}/${targetWabaId}/subscribed_apps`,
         {},

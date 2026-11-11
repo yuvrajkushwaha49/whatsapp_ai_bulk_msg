@@ -18,17 +18,21 @@ export default function CampaignList() {
 
   useEffect(() => {
     fetchCampaigns();
+    const interval = setInterval(() => {
+      fetchCampaigns(true);
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const res = await api.get('/campaigns');
       if (res.data?.success) setCampaigns(res.data.data || []);
     } catch (err) {
       console.error('Failed to load campaigns', err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 

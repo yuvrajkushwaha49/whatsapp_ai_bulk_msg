@@ -14,6 +14,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import api from '../services/api';
+import { initSocket } from '../services/socket';
 import AiwavoHeader from '../components/AiwavoHeader';
 import ResendCampaignModal from '../components/ResendCampaignModal';
 import '../styles/campaigns.css';
@@ -65,8 +66,22 @@ export default function CampaignDetail() {
     // Auto-refresh when status is active/running
     const interval = setInterval(() => {
       fetchCampaignDetails(true);
-    }, 6000);
-    return () => clearInterval(interval);
+    }, 5000);
+
+    const socket = initSocket();
+    const handleStatusUpdate = () => {
+      fetchCampaignDetails(true);
+    };
+    if (socket) {
+      socket.on('campaign:status_update', handleStatusUpdate);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (socket) {
+        socket.off('campaign:status_update', handleStatusUpdate);
+      }
+    };
   }, [id]);
 
   const showToast = (type, text) => {
