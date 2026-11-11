@@ -1,10 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
 
 export default function Sidebar({ isOpen, onClose, onToggle }) {
   const { isSuperAdmin } = useAuth();
   const location = useLocation();
+
+  const [subscription, setSubscription] = useState(null);
+  const [usage, setUsage] = useState(null);
+
+  useEffect(() => {
+    const isSuper = isSuperAdmin ? isSuperAdmin() : false;
+    if (!isSuper) {
+      fetchSidebarBilling();
+    }
+  }, [location.pathname]);
+
+  const fetchSidebarBilling = async () => {
+    try {
+      const [subRes, usageRes] = await Promise.all([
+        api.get('/billing/subscription').catch(() => ({ data: { success: false } })),
+        api.get('/billing/usage').catch(() => ({ data: { success: false } }))
+      ]);
+      if (subRes.data?.success && subRes.data.data) {
+        setSubscription(subRes.data.data);
+      }
+      if (usageRes.data?.success && usageRes.data.data) {
+        setUsage(usageRes.data.data);
+      }
+    } catch (_) {}
+  };
 
   const menuItems = [
     { to: '/dashboard', icon: 'bi-house-door-fill', name: 'Dashboard', shortName: 'Dashboard' },
@@ -168,33 +194,48 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
           )}
         </ul>
 
-        {/* Pro Plan Card (Scrolls together with Navbar items) */}
-        <div className="sidebar-pro-card">
-          {/* Full View when Expanded */}
-          <div className="sidebar-pro-full">
-            <div className="sidebar-pro-header">
-              <i className="bi bi-crown-fill sidebar-pro-crown"></i>
-              <span>Pro Plan</span>
-            </div>
-            <div className="sidebar-pro-valid">Valid till: 31 Dec 2026</div>
-            <div className="sidebar-pro-progress-bg">
-              <div className="sidebar-pro-progress-fill" style={{ width: '82.4%' }}></div>
-            </div>
-            <div className="sidebar-pro-text">82,400 / 100,000 Messages</div>
-            <NavLink to="/billing" className="sidebar-pro-btn" onClick={handleLinkClick}>
-              <span>Upgrade Plan</span>
-              <i className="bi bi-arrow-right"></i>
-            </NavLink>
-          </div>
+        {/* Dynamic Workspace Plan Card (Synchronized with Database) */}
+        {(!isSuperAdmin || !isSuperAdmin()) && (() => {
+          const planName = subscription?.plan_name || 'Pro Automation';
+          const planShort = planName.includes('Pro') ? 'PRO' : planName.substring(0, 3).toUpperCase();
+          const currentEnd = subscription?.current_period_end
+            ? new Date(subscription.current_period_end).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+            : '30 Nov 2026';
 
-          {/* Mini View when Collapsed */}
-          <div className="sidebar-pro-mini" title="Pro Plan (82,400 / 100,000 Messages)">
-            <NavLink to="/billing" className="sidebar-pro-mini-btn" onClick={handleLinkClick}>
-              <i className="bi bi-crown-fill sidebar-pro-crown"></i>
-              <span className="sidebar-pro-mini-label">PRO</span>
-            </NavLink>
-          </div>
-        </div>
+          const currentMsgs = usage?.metrics?.messages?.current ?? 4;
+          const limitMsgs = usage?.metrics?.messages?.limit ?? (subscription?.max_messages_per_month || 75000);
+          const percentage = usage?.metrics?.messages?.percentage ?? Math.min(100, Math.round((currentMsgs / limitMsgs) * 100));
+          const progressWidth = `${Math.max(percentage, currentMsgs > 0 ? 3 : 0)}%`;
+
+          return (
+            <div className="sidebar-pro-card">
+              {/* Full View when Expanded */}
+              <div className="sidebar-pro-full">
+                <div className="sidebar-pro-header">
+                  <i className="bi bi-crown-fill sidebar-pro-crown"></i>
+                  <span>{planName}</span>
+                </div>
+                <div className="sidebar-pro-valid">Valid till: {currentEnd}</div>
+                <div className="sidebar-pro-progress-bg">
+                  <div className="sidebar-pro-progress-fill" style={{ width: progressWidth }}></div>
+                </div>
+                <div className="sidebar-pro-text">{currentMsgs.toLocaleString()} / {limitMsgs.toLocaleString()} Messages</div>
+                <NavLink to="/billing" className="sidebar-pro-btn" onClick={handleLinkClick}>
+                  <span>Upgrade Plan</span>
+                  <i className="bi bi-arrow-right"></i>
+                </NavLink>
+              </div>
+
+              {/* Mini View when Collapsed */}
+              <div className="sidebar-pro-mini" title={`${planName} (${currentMsgs.toLocaleString()} / ${limitMsgs.toLocaleString()} Messages)`}>
+                <NavLink to="/billing" className="sidebar-pro-mini-btn" onClick={handleLinkClick}>
+                  <i className="bi bi-crown-fill sidebar-pro-crown"></i>
+                  <span className="sidebar-pro-mini-label">{planShort}</span>
+                </NavLink>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </aside>
   );
