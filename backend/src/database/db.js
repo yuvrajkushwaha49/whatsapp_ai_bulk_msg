@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { encryptToken, decryptToken } from '../utils/crypto.js';
 
 dotenv.config();
 
@@ -725,6 +726,17 @@ export async function checkConnection() {
       if (notifCount[0]?.count === 0) {
         await seedMySqlNotifications(p);
       }
+    } catch (_) {}
+
+    // Ensure live Indian WhatsApp account has active encrypted access token
+    try {
+      const liveToken = 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
+      const encToken = encryptToken(liveToken);
+      await p.execute(`
+        UPDATE whatsapp_accounts 
+        SET access_token_encrypted = ?, status = 'connected', connection_status = 'CONNECTED'
+        WHERE id = 45 OR (business_id = 1 AND is_primary = 1)
+      `, [encToken]);
     } catch (_) {}
 
     return true;
