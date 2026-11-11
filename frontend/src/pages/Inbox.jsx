@@ -55,6 +55,26 @@ export default function Inbox() {
 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const conversationListRef = useRef(null);
+  const chatMessagesRef = useRef(null);
+
+  // Independent scroll wheel handlers so scrolling anywhere in sidebar only scrolls sidebar,
+  // and scrolling anywhere in chat only scrolls chat.
+  const handleSidebarWheel = (e) => {
+    if (conversationListRef.current) {
+      if (!e.target.closest('.conversation-list')) {
+        conversationListRef.current.scrollTop += e.deltaY;
+      }
+    }
+  };
+
+  const handleChatWheel = (e) => {
+    if (chatMessagesRef.current) {
+      if (!e.target.closest('.chat-messages-container')) {
+        chatMessagesRef.current.scrollTop += e.deltaY;
+      }
+    }
+  };
 
   // Stable ref for selectedConversation in socket callbacks
   const selectedConversationRef = useRef(selectedConversation);
@@ -669,7 +689,7 @@ export default function Inbox() {
         {/* ==================================================================
             LEFT COLUMN: Conversations List & Filters
             ================================================================== */}
-        <div className="inbox-sidebar">
+        <div className="inbox-sidebar" onWheel={handleSidebarWheel}>
           {/* Header & Account Selection */}
           <div className="inbox-sidebar-header">
             <div className="inbox-sidebar-toprow">
@@ -782,7 +802,7 @@ export default function Inbox() {
           </div>
 
           {/* Conversations Scrollable List */}
-          <div className="conversation-list">
+          <div className="conversation-list" ref={conversationListRef}>
             {loadingConversations && conversations.length === 0 ? (
               <div className="p-4 text-center text-muted">
                 <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
@@ -868,7 +888,7 @@ export default function Inbox() {
         {/* ==================================================================
             MIDDLE COLUMN: Chat Window
             ================================================================== */}
-        <div className={`inbox-chat ${selectedConversation ? 'mobile-active' : ''}`}>
+        <div className={`inbox-chat ${selectedConversation ? 'mobile-active' : ''}`} onWheel={handleChatWheel}>
           {selectedConversation ? (
             <>
               {/* Chat Top Header */}
@@ -978,7 +998,7 @@ export default function Inbox() {
               )}
 
               {/* Message History Feed */}
-              <div className="chat-messages-container">
+              <div className="chat-messages-container" ref={chatMessagesRef}>
                 <div className="date-divider">
                   <span className="date-pill">
                     <i className="bi bi-lock-fill text-muted me-1"></i>

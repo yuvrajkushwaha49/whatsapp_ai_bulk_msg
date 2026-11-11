@@ -60,7 +60,7 @@ export default function AppLayout() {
       />
 
       {/* Main Content Area */}
-      <div className="main-content">
+      <div className={`main-content ${isInbox ? 'main-content-inbox' : ''}`}>
         <main
           className={`content-container ${
             isInbox ? 'inbox-container-reset' : ''

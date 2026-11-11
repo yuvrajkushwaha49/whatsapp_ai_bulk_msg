@@ -435,6 +435,14 @@ h6,
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.main-content.main-content-inbox {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
 /* Navbar */
 .top-navbar {
   height: 64px;
@@ -475,13 +483,15 @@ h6,
 .content-container.inbox-container-reset {
   padding: 0 !important;
   overflow: hidden !important;
-  height: 100vh;
+  height: 100vh !important;
+  max-height: 100vh !important;
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overscroll-behavior: none !important;
 }
 
 /* Card Styling */
