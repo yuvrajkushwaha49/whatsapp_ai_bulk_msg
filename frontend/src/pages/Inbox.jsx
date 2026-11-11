@@ -819,11 +819,21 @@ export default function Inbox() {
   // Format Helpers
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    let d = new Date(dateStr);
+    if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+      d = new Date(dateStr.replace(' ', 'T') + 'Z');
+    }
+    if (isNaN(d.getTime())) return '';
+
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
     if (isToday) {
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
     }
     const isThisYear = d.getFullYear() === now.getFullYear();
     if (isThisYear) {
@@ -1013,11 +1023,10 @@ export default function Inbox() {
               </div>
             ) : (
               <>
-                {conversations.map((c, index) => {
+                {conversations.map((c) => {
                   const isActive = selectedConversation?.id === c.id;
-                  const isFirst = index === 0;
-                  const hasUnread = c.unread_count > 0 || (isFirst && !selectedConversation);
-                  const unreadCount = c.unread_count > 0 ? c.unread_count : (isFirst && !selectedConversation ? 1 : 0);
+                  const hasUnread = Boolean(c.unread_count && c.unread_count > 0);
+                  const unreadCount = c.unread_count || 0;
                   const contactName = c.contact?.name && c.contact?.name !== c.customer_phone
                     ? c.contact.name
                     : (c.customer_name || c.customer_phone || 'WhatsApp Customer');
@@ -1037,8 +1046,8 @@ export default function Inbox() {
                           {getAvatarLetter(contactName, c.whatsapp_account?.display_name)}
                         </div>
                         <span
-                          className={`window-indicator-dot ${(c.is_window_open || isFirst) ? 'active' : 'expired'}`}
-                          title={(c.is_window_open || isFirst) ? '24h Service Window Active' : '24h Window Expired'}
+                          className={`window-indicator-dot ${c.is_window_open ? 'active' : 'expired'}`}
+                          title={c.is_window_open ? '24h Service Window Active' : '24h Window Expired'}
                         ></span>
                       </div>
 
@@ -1049,7 +1058,7 @@ export default function Inbox() {
                             <span className="text-truncate">{contactName}</span>
                           </span>
                           <span className={`conversation-time ${isActive || hasUnread ? 'text-green' : ''}`}>
-                            {isFirst ? '09:49 AM' : formatTime(c.last_message_at || c.updated_at)}
+                            {formatTime(c.last_message_at || c.updated_at)}
                           </span>
                         </div>
                         <div className="conversation-preview-row">

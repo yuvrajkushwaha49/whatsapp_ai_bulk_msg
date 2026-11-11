@@ -622,7 +622,7 @@ export async function sendTextMessage(businessId, user, conversationId, textBody
     };
 
     await executeQuery(
-      'UPDATE whatsapp_conversations SET last_message_id = ?, last_message_text = ?, last_message_at = NOW(), updated_at = NOW() WHERE id = ?',
+      'UPDATE whatsapp_conversations SET last_message_id = ?, last_message_text = ?, last_message_at = UTC_TIMESTAMP(), updated_at = UTC_TIMESTAMP() WHERE id = ?',
       [insertRes.insertId, cleanText, numConvId]
     );
   }
@@ -877,7 +877,7 @@ export async function sendTemplateMessage(businessId, user, conversationId, temp
     };
 
     await executeQuery(
-      'UPDATE whatsapp_conversations SET last_message_id = ?, last_message_text = ?, last_message_at = NOW(), updated_at = NOW() WHERE id = ?',
+      'UPDATE whatsapp_conversations SET last_message_id = ?, last_message_text = ?, last_message_at = UTC_TIMESTAMP(), updated_at = UTC_TIMESTAMP() WHERE id = ?',
       [insertRes.insertId, displayBody, numConvId]
     );
   }
@@ -1018,7 +1018,7 @@ export async function sendMediaMessage(businessId, user, conversationId, mediaPa
     };
 
     await executeQuery(
-      'UPDATE whatsapp_conversations SET last_message_id = ?, last_message_text = ?, last_message_at = NOW(), updated_at = NOW() WHERE id = ?',
+      'UPDATE whatsapp_conversations SET last_message_id = ?, last_message_text = ?, last_message_at = UTC_TIMESTAMP(), updated_at = UTC_TIMESTAMP() WHERE id = ?',
       [insertRes.insertId, displayBody, numConvId]
     );
   }
