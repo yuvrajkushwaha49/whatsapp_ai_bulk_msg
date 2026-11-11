@@ -1,0 +1,340 @@
+/* Resend Campaign Modal & Action Button Styles */
+
+.mc-action-btn-green {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.mc-action-btn-green:hover {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+}
+
+/* Modal Overlay */
+.resend-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: resendFadeIn 0.2s ease;
+}
+
+@keyframes resendFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.resend-modal-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 580px;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  animation: resendScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes resendScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.resend-modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafbfc;
+}
+
+.resend-modal-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: #00a859;
+  border: 1px solid #a7f3d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.resend-modal-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.resend-modal-sub {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 2px 0 0 0;
+}
+
+.resend-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+  line-height: 1;
+}
+
+.resend-modal-close-btn:hover {
+  color: #0f172a;
+}
+
+.resend-modal-body {
+  padding: 22px 24px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.resend-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+/* Option Cards (Target Audience) */
+.resend-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.resend-option-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.resend-option-card:hover {
+  border-color: #cbd5e1;
+  background: #fafbfc;
+}
+
+.resend-option-card.selected {
+  border-color: #00a859;
+  background: #f0fdf4;
+  box-shadow: 0 0 0 1px #00a859;
+}
+
+.resend-option-radio {
+  margin-top: 3px;
+  accent-color: #00a859;
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+}
+
+.resend-option-info {
+  flex: 1;
+}
+
+.resend-option-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resend-option-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.resend-option-card.selected .resend-option-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.resend-option-desc {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 3px;
+  margin-bottom: 0;
+  line-height: 1.35;
+}
+
+/* Mode Switch Tabs */
+.resend-mode-container {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.resend-mode-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.resend-mode-tab.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.resend-mode-tab.active i {
+  color: #00a859;
+}
+
+/* Campaign Name Input */
+.resend-name-input-wrap {
+  margin-bottom: 18px;
+}
+
+.resend-name-input {
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 0.86rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.resend-name-input:focus {
+  outline: none;
+  border-color: #00a859;
+  box-shadow: 0 0 0 3px rgba(0, 168, 89, 0.12);
+}
+
+/* Summary Banner */
+.resend-summary-box {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #166534;
+  font-size: 0.82rem;
+}
+
+.resend-summary-box i {
+  font-size: 1.15rem;
+  color: #00a859;
+  flex-shrink: 0;
+}
+
+/* Modal Footer */
+.resend-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #fafbfc;
+}
+
+.resend-btn-cancel {
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.resend-btn-cancel:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.resend-btn-submit {
+  padding: 8px 22px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  border: 1px solid #00a859;
+  background: #00a859;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.resend-btn-submit:hover:not(:disabled) {
+  background: #00934e;
+  border-color: #00934e;
+  box-shadow: 0 4px 10px rgba(0, 168, 89, 0.25);
+  transform: translateY(-1px);
+}
+
+.resend-btn-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import ResendCampaignModal from '../components/ResendCampaignModal';
 import '../styles/dashboard.css';
+import '../styles/campaigns.css';
 
 export default function CampaignList() {
   const outletContext = useOutletContext();
@@ -11,6 +13,8 @@ export default function CampaignList() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [resendTargetCampaign, setResendTargetCampaign] = useState(null);
+  const [toastMsg, setToastMsg] = useState(null);
 
   useEffect(() => {
     fetchCampaigns();
@@ -52,6 +56,16 @@ export default function CampaignList() {
       navigator.clipboard.writeText(`${window.location.origin}/campaigns/${camp.id}`);
     }
     alert(`Campaign "${camp.name}" link copied to clipboard.`);
+  };
+
+  const handleOpenResend = (camp) => {
+    setResendTargetCampaign(camp);
+  };
+
+  const handleResendSuccess = (result) => {
+    setToastMsg(result?.message || 'Campaign successfully re-dispatched!');
+    fetchCampaigns();
+    setTimeout(() => setToastMsg(null), 5000);
   };
 
   const formatDate = (dateString) => {
@@ -134,6 +148,14 @@ export default function CampaignList() {
       />
 
       <div className="mc-page-container">
+        {toastMsg && (
+          <div className="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-3 shadow-sm" role="alert">
+            <i className="bi bi-check-circle-fill text-success fs-5"></i>
+            <div>{toastMsg}</div>
+            <button type="button" className="btn-close" onClick={() => setToastMsg(null)} aria-label="Close"></button>
+          </div>
+        )}
+
         {/* Top Hero Banner */}
         <div className="mc-hero-banner">
           <div className="mc-hero-left">
@@ -333,6 +355,15 @@ export default function CampaignList() {
 
                             <button
                               type="button"
+                              onClick={() => handleOpenResend(camp)}
+                              className="mc-action-btn-green"
+                              title="Resend Broadcast"
+                            >
+                              <i className="bi bi-arrow-repeat"></i>
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => handleDuplicate(camp)}
                               className="mc-action-btn-blue"
                               title="Copy / Duplicate"
@@ -359,6 +390,13 @@ export default function CampaignList() {
           </div>
         </div>
       </div>
+
+      <ResendCampaignModal
+        isOpen={Boolean(resendTargetCampaign)}
+        campaign={resendTargetCampaign}
+        onClose={() => setResendTargetCampaign(null)}
+        onSuccess={handleResendSuccess}
+      />
     </div>
   );
 }

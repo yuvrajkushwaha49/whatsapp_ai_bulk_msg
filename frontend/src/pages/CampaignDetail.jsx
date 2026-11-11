@@ -15,6 +15,8 @@ import {
 } from 'recharts';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import ResendCampaignModal from '../components/ResendCampaignModal';
+import '../styles/campaigns.css';
 
 const PIE_COLORS = {
   Sent: '#0d6efd',
@@ -35,6 +37,16 @@ export default function CampaignDetail() {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
+  const [showResendModal, setShowResendModal] = useState(false);
+
+  const handleResendSuccess = (result) => {
+    setToastMsg(result?.message || 'Campaign successfully re-dispatched!');
+    if (result?.data?.campaignId && result.data.campaignId !== Number(id)) {
+      navigate(`/campaigns/${result.data.campaignId}`);
+    } else {
+      fetchCampaignDetails();
+    }
+  };
 
   // Active Tab: 'overview' | 'recipients' | 'template' | 'logs'
   const [activeTab, setActiveTab] = useState('overview');
@@ -378,6 +390,15 @@ export default function CampaignDetail() {
                 <span>Cancel</span>
               </button>
             )}
+
+            <button
+              onClick={() => setShowResendModal(true)}
+              className="btn btn-outline-success btn-sm d-flex align-items-center gap-1 shadow-sm"
+              title="Resend broadcast to all or failed recipients"
+            >
+              <i className="bi bi-arrow-repeat fs-6"></i>
+              <span>Resend Campaign</span>
+            </button>
 
             <button
               onClick={handleExportCSV}
@@ -969,6 +990,13 @@ export default function CampaignDetail() {
         </div>
       )}
       </div>
+
+      <ResendCampaignModal
+        isOpen={showResendModal}
+        campaign={campaign}
+        onClose={() => setShowResendModal(false)}
+        onSuccess={handleResendSuccess}
+      />
     </div>
   );
 }

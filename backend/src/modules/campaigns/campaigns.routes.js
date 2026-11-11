@@ -13,6 +13,7 @@ router.post('/preview', campaignsController.preview);
 router.post('/preflight', campaignsController.preflight);
 router.get('/:id', campaignsController.details);
 router.post('/:id/start', requireRole(['owner', 'admin', 'marketer']), campaignsController.start);
+router.post('/:id/resend', requireRole(['owner', 'admin', 'marketer']), campaignsController.resend);
 router.post('/:id/pause', requireRole(['owner', 'admin', 'marketer']), campaignsController.pause);
 router.post('/:id/cancel', requireRole(['owner', 'admin']), campaignsController.cancel);
 

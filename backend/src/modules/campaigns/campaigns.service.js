@@ -1,5 +1,7 @@
 import { executeQuery, isUsingFallback, getMemoryStore } from '../../database/db.js';
 import { enqueueCampaign } from '../../queues/campaignQueue.js';
+import { createAuditLog } from '../logs/logs.service.js';
+import { createNotification } from '../notifications/notifications.service.js';
 import logger from '../../utils/logger.js';
 
 export async function listCampaigns(businessId) {
@@ -376,6 +378,245 @@ export async function cancelCampaign(businessId, campaignId) {
   return { success: true, status: 'cancelled' };
 }
 
+export async function resendCampaign(businessId, campaignId, { target = 'all', mode = 'new', name = null } = {}) {
+  const bId = Number(businessId);
+  const cId = Number(campaignId);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const source = store.campaigns.find(c => c.id === cId && c.business_id === bId);
+    if (!source) {
+      const err = new Error('Campaign not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const allRecipients = store.campaign_recipients.filter(r => r.campaign_id === cId && r.business_id === bId);
+    let targetRecipients = [];
+
+    if (target === 'failed') {
+      targetRecipients = allRecipients.filter(r => r.status === 'failed');
+    } else if (target === 'unread') {
+      targetRecipients = allRecipients.filter(r => r.status !== 'read');
+    } else {
+      targetRecipients = allRecipients.length > 0 ? allRecipients : store.contacts.filter(c => c.business_id === bId);
+    }
+
+    if (targetRecipients.length === 0) {
+      targetRecipients = store.contacts.filter(c => c.business_id === bId).slice(0, 5);
+    }
+
+    if (mode === 'existing') {
+      const targetContactIds = new Set(targetRecipients.map(r => r.contact_id || r.id));
+      store.campaign_recipients.forEach(r => {
+        if (r.campaign_id === cId && targetContactIds.has(r.contact_id)) {
+          r.status = 'pending';
+          r.error_message = null;
+          r.sent_at = null;
+          r.delivered_at = null;
+          r.read_at = null;
+        }
+      });
+      source.status = 'running';
+      source.started_at = new Date();
+      source.completed_at = null;
+
+      createAuditLog({
+        businessId: bId,
+        action: 'CAMPAIGN_LAUNCH',
+        entityType: 'CAMPAIGNS',
+        entityId: cId,
+        details: { message: `Re-dispatched campaign "${source.name}" to ${targetRecipients.length} recipients (Filter: ${target})`, resendMode: 'existing' }
+      }).catch(() => {});
+
+      createNotification({
+        businessId: bId,
+        title: 'Campaign Re-dispatched',
+        message: `Campaign "${source.name}" has been re-dispatched to ${targetRecipients.length} recipients.`,
+        type: 'success',
+        link: `/campaigns/${cId}`
+      }).catch(() => {});
+
+      enqueueCampaign(cId, bId).catch(() => {});
+
+      return {
+        success: true,
+        message: `Campaign "${source.name}" re-dispatched to ${targetRecipients.length} recipients`,
+        data: { campaignId: cId, resentCount: targetRecipients.length, mode: 'existing' }
+      };
+    } else {
+      const newId = (store.campaigns.length > 0 ? Math.max(...store.campaigns.map(c => c.id || 0)) : 0) + 1;
+      const campaignName = name?.trim() || `${source.name} (Resend)`;
+      const newCampaign = {
+        ...source,
+        id: newId,
+        name: campaignName,
+        status: 'draft',
+        total_recipients: targetRecipients.length,
+        sent_count: 0,
+        delivered_count: 0,
+        read_count: 0,
+        failed_count: 0,
+        started_at: null,
+        completed_at: null,
+        created_at: new Date()
+      };
+      store.campaigns.unshift(newCampaign);
+
+      targetRecipients.forEach(r => {
+        const contactId = r.contact_id || r.id;
+        const phone = r.phone;
+        const recId = (store.campaign_recipients.length > 0 ? Math.max(...store.campaign_recipients.map(x => x.id || 0)) : 0) + 1;
+        store.campaign_recipients.push({
+          id: recId,
+          business_id: bId,
+          campaign_id: newId,
+          contact_id: contactId,
+          phone,
+          status: 'pending',
+          created_at: new Date()
+        });
+      });
+
+      createAuditLog({
+        businessId: bId,
+        action: 'CAMPAIGN_LAUNCH',
+        entityType: 'CAMPAIGNS',
+        entityId: newId,
+        details: { message: `Resent campaign as new broadcast "${newCampaign.name}" with ${targetRecipients.length} recipients`, originalCampaignId: cId }
+      }).catch(() => {});
+
+      createNotification({
+        businessId: bId,
+        title: 'Campaign Resent',
+        message: `New broadcast "${newCampaign.name}" created and launched with ${targetRecipients.length} recipients.`,
+        type: 'success',
+        link: `/campaigns/${newId}`
+      }).catch(() => {});
+
+      enqueueCampaign(newId, bId).catch(() => {});
+
+      return {
+        success: true,
+        message: `New campaign "${newCampaign.name}" created and queued for dispatch`,
+        data: { campaignId: newId, campaign: newCampaign, resentCount: targetRecipients.length, mode: 'new' }
+      };
+    }
+  }
+
+  // MySQL Execution
+  const sources = await executeQuery('SELECT * FROM campaigns WHERE id = ? AND business_id = ? LIMIT 1', [cId, bId]);
+  if (sources.length === 0) {
+    const err = new Error('Campaign not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  const source = sources[0];
+
+  let recSql = 'SELECT contact_id, phone, status FROM campaign_recipients WHERE campaign_id = ? AND business_id = ?';
+  const recParams = [cId, bId];
+  if (target === 'failed') {
+    recSql += ' AND status = "failed"';
+  } else if (target === 'unread') {
+    recSql += ' AND status != "read"';
+  }
+
+  let targetRecipients = await executeQuery(recSql, recParams);
+
+  if (targetRecipients.length === 0 && target === 'all') {
+    targetRecipients = await executeQuery(
+      'SELECT id as contact_id, phone FROM contacts WHERE business_id = ? AND (status = "active" OR status IS NULL) LIMIT 100',
+      [bId]
+    );
+  }
+
+  if (targetRecipients.length === 0) {
+    const err = new Error(`No recipients found matching target filter: ${target}`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (mode === 'existing') {
+    let updateRecSql = 'UPDATE campaign_recipients SET status = "pending", error_message = NULL, sent_at = NULL, delivered_at = NULL, read_at = NULL WHERE campaign_id = ? AND business_id = ?';
+    const updateParams = [cId, bId];
+    if (target === 'failed') {
+      updateRecSql += ' AND status = "failed"';
+    } else if (target === 'unread') {
+      updateRecSql += ' AND status != "read"';
+    }
+    await executeQuery(updateRecSql, updateParams);
+
+    await executeQuery(
+      'UPDATE campaigns SET status = "running", started_at = NOW(), completed_at = NULL, sent_count = 0, delivered_count = 0, read_count = 0, failed_count = 0 WHERE id = ? AND business_id = ?',
+      [cId, bId]
+    );
+
+    createAuditLog({
+      businessId: bId,
+      action: 'CAMPAIGN_LAUNCH',
+      entityType: 'CAMPAIGNS',
+      entityId: cId,
+      details: { message: `Re-dispatched campaign "${source.name}" to ${targetRecipients.length} recipients`, filter: target }
+    }).catch(() => {});
+
+    createNotification({
+      businessId: bId,
+      title: 'Campaign Re-dispatched',
+      message: `Campaign "${source.name}" has been re-dispatched to ${targetRecipients.length} recipients.`,
+      type: 'success',
+      link: `/campaigns/${cId}`
+    }).catch(() => {});
+
+    enqueueCampaign(cId, bId).catch(() => {});
+
+    return {
+      success: true,
+      message: `Campaign "${source.name}" re-dispatched to ${targetRecipients.length} recipients`,
+      data: { campaignId: cId, resentCount: targetRecipients.length, mode: 'existing' }
+    };
+  } else {
+    const campaignName = name?.trim() || `${source.name} (Resend)`;
+    const newCampRes = await executeQuery(
+      `INSERT INTO campaigns (business_id, whatsapp_account_id, template_id, name, purpose, status, total_recipients, variable_mappings, created_at)
+       VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, NOW())`,
+      [bId, source.whatsapp_account_id, source.template_id, campaignName, source.purpose, targetRecipients.length, typeof source.variable_mappings === 'string' ? source.variable_mappings : JSON.stringify(source.variable_mappings || {})]
+    );
+    const newCampaignId = newCampRes.insertId;
+
+    for (const rec of targetRecipients) {
+      await executeQuery(
+        `INSERT INTO campaign_recipients (business_id, campaign_id, contact_id, phone, status, created_at)
+         VALUES (?, ?, ?, ?, 'pending', NOW())`,
+        [bId, newCampaignId, rec.contact_id, rec.phone]
+      );
+    }
+
+    createAuditLog({
+      businessId: bId,
+      action: 'CAMPAIGN_LAUNCH',
+      entityType: 'CAMPAIGNS',
+      entityId: newCampaignId,
+      details: { message: `Resent campaign as new broadcast "${campaignName}" with ${targetRecipients.length} recipients`, originalCampaignId: cId }
+    }).catch(() => {});
+
+    createNotification({
+      businessId: bId,
+      title: 'Campaign Resent',
+      message: `New broadcast "${campaignName}" created and queued for dispatch to ${targetRecipients.length} recipients.`,
+      type: 'success',
+      link: `/campaigns/${newCampaignId}`
+    }).catch(() => {});
+
+    enqueueCampaign(newCampaignId, bId).catch(() => {});
+
+    return {
+      success: true,
+      message: `New campaign "${campaignName}" created and queued for dispatch`,
+      data: { campaignId: newCampaignId, resentCount: targetRecipients.length, mode: 'new' }
+    };
+  }
+}
+
 export default {
   listCampaigns,
   getCampaignDetails,
@@ -384,5 +625,6 @@ export default {
   createCampaign,
   startCampaign,
   pauseCampaign,
-  cancelCampaign
+  cancelCampaign,
+  resendCampaign
 };

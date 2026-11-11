@@ -72,6 +72,15 @@ export async function cancel(req, res, next) {
   }
 }
 
+export async function resend(req, res, next) {
+  try {
+    const result = await campaignsService.resendCampaign(req.businessId, req.params.id, req.body);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   list,
   details,
@@ -80,5 +89,6 @@ export default {
   create,
   start,
   pause,
-  cancel
+  cancel,
+  resend
 };

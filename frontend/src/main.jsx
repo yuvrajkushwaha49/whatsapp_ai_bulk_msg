@@ -10,6 +10,7 @@ import './styles/team.css';
 import './styles/logs.css';
 import './styles/settings.css';
 import './styles/notifications.css';
+import './styles/campaigns.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
