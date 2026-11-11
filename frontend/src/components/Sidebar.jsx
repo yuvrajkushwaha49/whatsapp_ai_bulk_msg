@@ -75,12 +75,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
 
   const menuItems = [
     { to: '/dashboard', icon: 'bi-house-door-fill', name: 'Dashboard', shortName: 'Dashboard' },
-    { to: '/whatsapp', icon: 'bi-whatsapp', name: 'WhatsApp Accounts', shortName: 'Accounts' },
-    { to: '/contacts', icon: 'bi-people-fill', name: 'Contacts', shortName: 'Contacts' },
-    // { to: '/imports', icon: 'bi-file-earmark-excel-fill', name: 'Excel Manager', shortName: 'Excel' },
     { to: '/campaigns', icon: 'bi-megaphone-fill', name: 'Campaigns', shortName: 'Campaigns' },
-    // { to: '/campaigns/new', icon: 'bi-diagram-3-fill', name: 'Automation', shortName: 'Automation', hasChevron: true },
-    { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
     {
       to: '/inbox',
       icon: 'bi-chat-left-dots-fill',
@@ -88,9 +83,12 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
       shortName: 'Queue',
       badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null
     },
-    { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
-    { to: '/billing', icon: 'bi-credit-card-fill', name: 'Billing & Plans', shortName: 'Billing' },
+    { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
+    { to: '/whatsapp', icon: 'bi-whatsapp', name: 'WhatsApp Accounts', shortName: 'Accounts' },
+    { to: '/contacts', icon: 'bi-people-fill', name: 'Contacts', shortName: 'Contacts' },
     { to: '/team', icon: 'bi-people-fill', name: 'Team & Users', shortName: 'Team' },
+    { to: '/billing', icon: 'bi-credit-card-fill', name: 'Billing & Plans', shortName: 'Billing' },
+    { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
     { to: '/settings', icon: 'bi-gear-fill', name: 'Settings', shortName: 'Settings' }
   ];
 
