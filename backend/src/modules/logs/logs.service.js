@@ -309,3 +309,4 @@ function computeStats(logsList) {
     teamEvents: teamCount
   };
 }
+

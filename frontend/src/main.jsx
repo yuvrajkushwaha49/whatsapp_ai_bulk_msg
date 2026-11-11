@@ -8,6 +8,7 @@ import './styles/dashboard.css';
 import './styles/billing.css';
 import './styles/team.css';
 import './styles/logs.css';
+import './styles/settings.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

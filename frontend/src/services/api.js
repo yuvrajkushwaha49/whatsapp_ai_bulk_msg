@@ -32,7 +32,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const isVerifyPassword = error.config?.url?.includes('/verify-password');
+    const isLogin = error.config?.url?.includes('/login');
+
+    if (error.response && error.response.status === 401 && !isVerifyPassword && !isLogin) {
       // Clear token if expired or invalid
       localStorage.removeItem('cf_token');
       localStorage.removeItem('cf_user');

@@ -50,6 +50,19 @@ export async function me(req, res, next) {
   }
 }
 
+export async function verifyPassword(req, res, next) {
+  try {
+    const result = await authService.verifyUserPassword(req.user.id, req.body.password);
+    res.json({
+      success: true,
+      message: 'Password verified successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   register,
   login,
