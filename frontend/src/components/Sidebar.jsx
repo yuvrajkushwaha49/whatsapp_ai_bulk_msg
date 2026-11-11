@@ -16,7 +16,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
     { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
     { to: '/inbox', icon: 'bi-chat-left-dots-fill', name: 'Message Queue', shortName: 'Queue', badge: '12' },
     { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
-    { to: '/billing', icon: 'bi-bar-chart-fill', name: 'Reports', shortName: 'Reports', hasChevron: true },
+    { to: '/billing', icon: 'bi-credit-card-fill', name: 'Billing & Plans', shortName: 'Billing' },
     { to: '/team', icon: 'bi-people-fill', name: 'Team & Users', shortName: 'Team' },
     { to: '/settings', icon: 'bi-gear-fill', name: 'Settings', shortName: 'Settings' }
   ];
@@ -120,7 +120,8 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
                     isActive ||
                     (item.to === '/contacts' &&
                       (location.pathname.startsWith('/contacts') || location.pathname.startsWith('/imports'))) ||
-                    (item.to === '/campaigns' && location.pathname.startsWith('/campaigns'));
+                    (item.to === '/campaigns' && location.pathname.startsWith('/campaigns')) ||
+                    (item.to === '/billing' && location.pathname.startsWith('/billing'));
                   return `sidebar-link ${active ? 'active' : ''}`;
                 }}
                 onClick={handleLinkClick}
