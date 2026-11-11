@@ -323,6 +323,14 @@
   padding: 4px 0;
   overscroll-behavior: contain !important;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+.conversation-list::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari and Opera */
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .conversation-item {
