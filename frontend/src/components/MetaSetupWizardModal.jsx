@@ -78,7 +78,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
     if (popupRef.current && !popupRef.current.closed) {
       try {
         popupRef.current.close();
-      } catch (e) {}
+      } catch (e) { }
     }
     setScreen('welcome');
     setWaitingSeconds(0);
@@ -157,7 +157,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                 if (parsed.data.phone_number_id) lastPhoneRef.current = String(parsed.data.phone_number_id);
               }
             }
-          } catch (_) {}
+          } catch (_) { }
           return;
         }
 
@@ -202,9 +202,9 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
           } catch (callbackErr) {
             console.error('Callback error:', callbackErr);
             console.error('Callback error response data:', callbackErr.response?.data);
-            const msg = callbackErr.response?.data?.error?.message || 
-                        callbackErr.response?.data?.message || 
-                        'Failed to exchange authorization code with Meta Cloud API.';
+            const msg = callbackErr.response?.data?.error?.message ||
+              callbackErr.response?.data?.message ||
+              'Failed to exchange authorization code with Meta Cloud API.';
             setError(msg);
             setScreen('welcome');
           }
@@ -229,10 +229,10 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
             if (isConnectingRef.current) {
               isConnectingRef.current = false;
               setScreen('welcome');
-              setError('Facebook popup window band ho gaya. Agar wahan "This content isn\'t available" dikh raha tha, to Meta Developer App ko Live karein ya apna Facebook account App Roles me add karein.');
+              setError('The Facebook pop-up window has closed. If you saw "This content isn\'t available" there, please set your Meta Developer App to \'Live\' or add your Facebook account under \'App Roles\'.');
             }
           }
-        } catch (_) {}
+        } catch (_) { }
       }, 500);
 
     } catch (err) {
@@ -577,7 +577,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                       <strong className="text-dark small">Facebook popup me "This content isn't available at the moment" dikh raha hai?</strong>
                     </div>
                     <p className="small text-muted mb-2">
-                      Yeh Meta ka standard error hai. Iska matlab aapka Meta Developer App (<code>{readiness?.appId || '1165054629187576'}</code>) 
+                      Yeh Meta ka standard error hai. Iska matlab aapka Meta Developer App (<code>{readiness?.appId || '1165054629187576'}</code>)
                       abhi <strong>"In development"</strong> mode me hai aur jis Facebook ID se aap login hain wo Meta App me registered nahi hai.
                     </p>
                     <div className="small fw-semibold text-dark mb-1">Isko 2 minute me kaise theek karein:</div>
