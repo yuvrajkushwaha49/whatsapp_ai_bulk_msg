@@ -26,6 +26,26 @@ router.get('/businesses', async (req, res, next) => {
   }
 });
 
+router.post('/businesses', async (req, res, next) => {
+  try {
+    const { businessName, name, email, password, timezone } = req.body;
+    const result = await adminService.createBusinessWithOwner({
+      businessName,
+      name,
+      email,
+      password,
+      timezone
+    });
+    res.status(201).json({
+      success: true,
+      message: 'Business and Owner account created successfully',
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/whatsapp-accounts', async (req, res, next) => {
   try {
     const accounts = await adminService.listAllWhatsAppAccounts();
@@ -69,6 +89,40 @@ router.patch('/businesses/:id/status', async (req, res, next) => {
   try {
     const result = await adminService.updateBusinessStatus(req.params.id, req.body.status);
     res.json({ success: true, message: 'Business status updated', data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ==============================================================================
+// Super Admin Multi-Tenant Billing & Plan Control
+// ==============================================================================
+router.get('/billing/tenants', async (req, res, next) => {
+  try {
+    const tenants = await adminService.listAdminBillingTenants();
+    res.json({ success: true, data: tenants });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/billing/plans', async (req, res, next) => {
+  try {
+    const plans = await adminService.listAdminPlans();
+    res.json({ success: true, data: plans });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/billing/tenants/:businessId/plan', async (req, res, next) => {
+  try {
+    const { planId } = req.body;
+    if (!planId) {
+      return res.status(400).json({ success: false, message: 'planId is required' });
+    }
+    const result = await adminService.updateTenantPlan(req.params.businessId, planId);
+    res.json({ success: true, message: 'Tenant plan updated successfully', data: result });
   } catch (err) {
     next(err);
   }

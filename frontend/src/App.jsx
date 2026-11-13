@@ -5,6 +5,7 @@ import { useAuth } from './hooks/useAuth';
 // Layouts
 import AppLayout from './layouts/AppLayout';
 import AuthLayout from './layouts/AuthLayout';
+import AdminLayout from './layouts/AdminLayout';
 
 // Pages
 import Login from './pages/Login';
@@ -29,6 +30,16 @@ import Billing from './pages/Billing';
 import ActivityLogs from './pages/ActivityLogs';
 import Settings from './pages/Settings';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+
+// Super Admin Suite Pages
+import AdminOverview from './pages/admin/AdminOverview';
+import AdminTenants from './pages/admin/AdminTenants';
+import AdminNumbers from './pages/admin/AdminNumbers';
+import AdminBilling from './pages/admin/AdminBilling';
+import AdminLogs from './pages/admin/AdminLogs';
+import AdminMeta from './pages/admin/AdminMeta';
+import AdminMetaMonitoring from './pages/admin/AdminMetaMonitoring';
+import AdminAccounts from './pages/admin/AdminAccounts';
 
 import WhatsAppOAuthCallback from './pages/WhatsAppOAuthCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -101,15 +112,35 @@ export default function App() {
         <Route path="/activity-logs" element={<ActivityLogs />} />
         <Route path="/settings" element={<Settings />} />
 
-        {/* SuperAdmin Only */}
+        {/* SuperAdmin Legacy Console inside client layout */}
         <Route
-          path="/admin"
+          path="/superadmin"
           element={
             <ProtectedRoute requireSuperAdmin={true}>
               <SuperAdminDashboard />
             </ProtectedRoute>
           }
         />
+      </Route>
+
+      {/* Dedicated SuperAdmin Platform Management Suite */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute requireSuperAdmin={true}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminOverview />} />
+        <Route path="dashboard" element={<AdminOverview />} />
+        <Route path="tenants" element={<AdminTenants />} />
+        <Route path="numbers" element={<AdminNumbers />} />
+        <Route path="billing" element={<AdminBilling />} />
+        <Route path="logs" element={<AdminLogs />} />
+        <Route path="meta" element={<AdminMeta />} />
+        <Route path="meta-monitoring" element={<AdminMetaMonitoring />} />
+        <Route path="accounts" element={<AdminAccounts />} />
       </Route>
 
       {/* Fallback */}

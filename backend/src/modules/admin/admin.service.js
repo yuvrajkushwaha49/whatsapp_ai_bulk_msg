@@ -1,5 +1,6 @@
-import { executeQuery, isUsingFallback, getMemoryStore } from '../../database/db.js';
+import { executeQuery, isUsingFallback, getMemoryStore, saveMemoryStore } from '../../database/db.js';
 import logger from '../../utils/logger.js';
+import * as authService from '../auth/auth.service.js';
 
 export async function getSuperAdminDashboard() {
   if (isUsingFallback()) {
@@ -86,11 +87,14 @@ export async function listAllBusinesses() {
     const store = getMemoryStore();
     return store.businesses.map(b => {
       const userCount = store.users.filter(u => u.business_id === b.id).length;
+      const owner = store.users.find(u => u.business_id === b.id && u.role === 'owner');
       const sub = store.subscriptions.find(s => s.business_id === b.id);
       const plan = sub ? store.subscription_plans.find(p => p.id === sub.plan_id) : null;
       return {
         ...b,
         userCount,
+        owner_name: owner?.name || 'N/A',
+        owner_email: owner?.email || 'N/A',
         planName: plan?.name || 'Free Trial',
         subscriptionStatus: sub?.status || 'active'
       };
@@ -101,7 +105,9 @@ export async function listAllBusinesses() {
     SELECT b.*, 
       COUNT(DISTINCT u.id) as userCount,
       COALESCE(p.name, 'Free Trial') as planName,
-      COALESCE(s.status, 'active') as subscriptionStatus
+      COALESCE(s.status, 'active') as subscriptionStatus,
+      (SELECT name FROM users WHERE business_id = b.id AND role = 'owner' LIMIT 1) as owner_name,
+      (SELECT email FROM users WHERE business_id = b.id AND role = 'owner' LIMIT 1) as owner_email
     FROM businesses b
     LEFT JOIN users u ON b.id = u.business_id
     LEFT JOIN subscriptions s ON b.id = s.business_id
@@ -440,6 +446,127 @@ export async function reassignWhatsAppAccount(accountId, targetBusinessId) {
   return { id: numAccountId, business_id: numBusinessId };
 }
 
+export async function createBusinessWithOwner({ businessName, name, email, password, timezone = 'Asia/Kolkata' }) {
+  if (!businessName || !name || !email || !password) {
+    const error = new Error('Business Name, Owner Name, Email, and Password are required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const result = await authService.register({
+    businessName,
+    name,
+    email,
+    password,
+    timezone
+  });
+
+  return {
+    business: result.business,
+    owner: result.user
+  };
+}
+
+export async function listAdminBillingTenants() {
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    return store.businesses.map(b => {
+      const sub = store.subscriptions.find(s => s.business_id === b.id);
+      const plan = sub ? store.subscription_plans.find(p => p.id === sub.plan_id) : null;
+      const owner = store.users.find(u => u.business_id === b.id && u.role === 'owner');
+      return {
+        business_id: b.id,
+        business_name: b.name,
+        business_slug: b.slug,
+        status: b.status,
+        owner_name: owner?.name || 'N/A',
+        owner_email: owner?.email || 'N/A',
+        subscription_id: sub?.id || null,
+        plan_id: plan?.id || 1,
+        plan_name: plan?.name || 'Free Trial',
+        monthly_price: plan?.monthly_price || '0.00',
+        max_messages_per_month: plan?.max_messages_per_month || 500,
+        max_contacts: plan?.max_contacts || 250,
+        subscription_status: sub?.status || 'active',
+        current_period_start: sub?.current_period_start || b.created_at,
+        current_period_end: sub?.current_period_end || null
+      };
+    });
+  }
+
+  return executeQuery(`
+    SELECT 
+      b.id as business_id,
+      b.name as business_name,
+      b.slug as business_slug,
+      b.status,
+      (SELECT name FROM users WHERE business_id = b.id AND role = 'owner' LIMIT 1) as owner_name,
+      (SELECT email FROM users WHERE business_id = b.id AND role = 'owner' LIMIT 1) as owner_email,
+      s.id as subscription_id,
+      COALESCE(p.id, 1) as plan_id,
+      COALESCE(p.name, 'Free Trial') as plan_name,
+      COALESCE(p.monthly_price, '0.00') as monthly_price,
+      COALESCE(p.max_messages_per_month, 500) as max_messages_per_month,
+      COALESCE(p.max_contacts, 250) as max_contacts,
+      COALESCE(s.status, 'active') as subscription_status,
+      s.current_period_start,
+      s.current_period_end
+    FROM businesses b
+    LEFT JOIN subscriptions s ON b.id = s.business_id
+    LEFT JOIN subscription_plans p ON s.plan_id = p.id
+    ORDER BY b.id ASC
+  `);
+}
+
+export async function listAdminPlans() {
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    return store.subscription_plans || [];
+  }
+  return executeQuery('SELECT * FROM subscription_plans ORDER BY id ASC');
+}
+
+export async function updateTenantPlan(businessId, planId) {
+  const numBizId = Number(businessId);
+  const numPlanId = Number(planId);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    let sub = store.subscriptions.find(s => s.business_id === numBizId);
+    if (!sub) {
+      sub = {
+        id: store.subscriptions.length + 1,
+        business_id: numBizId,
+        plan_id: numPlanId,
+        status: 'active',
+        current_period_start: new Date()
+      };
+      store.subscriptions.push(sub);
+    } else {
+      sub.plan_id = numPlanId;
+      sub.status = 'active';
+      sub.updated_at = new Date();
+    }
+    saveMemoryStore();
+    return { success: true, businessId: numBizId, planId: numPlanId };
+  }
+
+  const existing = await executeQuery('SELECT id FROM subscriptions WHERE business_id = ? LIMIT 1', [numBizId]);
+  if (existing.length > 0) {
+    await executeQuery(
+      'UPDATE subscriptions SET plan_id = ?, status = "active", updated_at = NOW() WHERE business_id = ?',
+      [numPlanId, numBizId]
+    );
+  } else {
+    await executeQuery(
+      'INSERT INTO subscriptions (business_id, plan_id, status, current_period_start) VALUES (?, ?, "active", NOW())',
+      [numBizId, numPlanId]
+    );
+  }
+
+  return { success: true, businessId: numBizId, planId: numPlanId };
+}
+
 export default {
   getSuperAdminDashboard,
   listAllBusinesses,
@@ -448,5 +575,9 @@ export default {
   getNumberAllocationMatrix,
   updateWhatsAppAccountAdminStatus,
   reassignWhatsAppAccount,
-  updateBusinessAllowedNumbers
+  updateBusinessAllowedNumbers,
+  createBusinessWithOwner,
+  listAdminBillingTenants,
+  listAdminPlans,
+  updateTenantPlan
 };
