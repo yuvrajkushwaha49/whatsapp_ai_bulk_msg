@@ -567,6 +567,235 @@ export async function updateTenantPlan(businessId, planId) {
   return { success: true, businessId: numBizId, planId: numPlanId };
 }
 
+export async function createSubscriptionPlan(data) {
+  const {
+    name,
+    slug,
+    monthly_price = 0,
+    max_contacts = 1000,
+    max_campaigns_per_month = 10,
+    max_messages_per_month = 5000,
+    max_team_members = 2,
+    features = [],
+    is_active = 1
+  } = data;
+
+  if (!name || !slug) {
+    const err = new Error('Plan name and slug are required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+  const featuresJson = typeof features === 'string'
+    ? JSON.stringify(features.split(',').map(s => s.trim()).filter(Boolean))
+    : JSON.stringify(Array.isArray(features) ? features : []);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const existing = store.subscription_plans.find(p => p.slug === cleanSlug);
+    if (existing) {
+      const err = new Error(`Plan slug "${cleanSlug}" already exists`);
+      err.statusCode = 409;
+      throw err;
+    }
+    const newPlan = {
+      id: store.subscription_plans.length + 1,
+      name,
+      slug: cleanSlug,
+      monthly_price: Number(monthly_price).toFixed(2),
+      max_contacts: Number(max_contacts),
+      max_campaigns_per_month: Number(max_campaigns_per_month),
+      max_messages_per_month: Number(max_messages_per_month),
+      max_team_members: Number(max_team_members),
+      features: JSON.parse(featuresJson),
+      is_active: Number(is_active) ? 1 : 0,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+    store.subscription_plans.push(newPlan);
+    saveMemoryStore();
+    return newPlan;
+  }
+
+  const existing = await executeQuery('SELECT id FROM subscription_plans WHERE slug = ? LIMIT 1', [cleanSlug]);
+  if (existing.length > 0) {
+    const err = new Error(`Plan slug "${cleanSlug}" already exists`);
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const result = await executeQuery(
+    `INSERT INTO subscription_plans 
+     (name, slug, monthly_price, max_contacts, max_campaigns_per_month, max_messages_per_month, max_team_members, features, is_active, created_at, updated_at) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    [name, cleanSlug, monthly_price, max_contacts, max_campaigns_per_month, max_messages_per_month, max_team_members, featuresJson, is_active ? 1 : 0]
+  );
+
+  return {
+    id: result.insertId,
+    name,
+    slug: cleanSlug,
+    monthly_price,
+    max_contacts,
+    max_campaigns_per_month,
+    max_messages_per_month,
+    max_team_members,
+    features: JSON.parse(featuresJson),
+    is_active: is_active ? 1 : 0
+  };
+}
+
+export async function updateSubscriptionPlan(planId, data) {
+  const numId = Number(planId);
+  const {
+    name,
+    monthly_price,
+    max_contacts,
+    max_campaigns_per_month,
+    max_messages_per_month,
+    max_team_members,
+    features,
+    is_active
+  } = data;
+
+  const featuresJson = features !== undefined
+    ? (typeof features === 'string' ? JSON.stringify(features.split(',').map(s => s.trim()).filter(Boolean)) : JSON.stringify(features))
+    : null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const plan = store.subscription_plans.find(p => p.id === numId);
+    if (!plan) {
+      const err = new Error('Plan not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    if (name !== undefined) plan.name = name;
+    if (monthly_price !== undefined) plan.monthly_price = Number(monthly_price).toFixed(2);
+    if (max_contacts !== undefined) plan.max_contacts = Number(max_contacts);
+    if (max_campaigns_per_month !== undefined) plan.max_campaigns_per_month = Number(max_campaigns_per_month);
+    if (max_messages_per_month !== undefined) plan.max_messages_per_month = Number(max_messages_per_month);
+    if (max_team_members !== undefined) plan.max_team_members = Number(max_team_members);
+    if (featuresJson !== null) plan.features = JSON.parse(featuresJson);
+    if (is_active !== undefined) plan.is_active = Number(is_active) ? 1 : 0;
+    plan.updated_at = new Date();
+    saveMemoryStore();
+    return plan;
+  }
+
+  await executeQuery(
+    `UPDATE subscription_plans SET 
+       name = COALESCE(?, name),
+       monthly_price = COALESCE(?, monthly_price),
+       max_contacts = COALESCE(?, max_contacts),
+       max_campaigns_per_month = COALESCE(?, max_campaigns_per_month),
+       max_messages_per_month = COALESCE(?, max_messages_per_month),
+       max_team_members = COALESCE(?, max_team_members),
+       features = COALESCE(?, features),
+       is_active = COALESCE(?, is_active),
+       updated_at = NOW()
+     WHERE id = ?`,
+    [
+      name !== undefined ? name : null,
+      monthly_price !== undefined ? monthly_price : null,
+      max_contacts !== undefined ? max_contacts : null,
+      max_campaigns_per_month !== undefined ? max_campaigns_per_month : null,
+      max_messages_per_month !== undefined ? max_messages_per_month : null,
+      max_team_members !== undefined ? max_team_members : null,
+      featuresJson,
+      is_active !== undefined ? (is_active ? 1 : 0) : null,
+      numId
+    ]
+  );
+
+  const updated = await executeQuery('SELECT * FROM subscription_plans WHERE id = ?', [numId]);
+  return updated && updated.length > 0 ? updated[0] : null;
+}
+
+export async function deleteSubscriptionPlan(planId) {
+  const numId = Number(planId);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const inUse = store.subscriptions.some(s => s.plan_id === numId);
+    if (inUse) {
+      const err = new Error('Cannot delete this plan because active client tenants are subscribed to it. You can deactivate it instead.');
+      err.statusCode = 400;
+      throw err;
+    }
+    const idx = store.subscription_plans.findIndex(p => p.id === numId);
+    if (idx !== -1) store.subscription_plans.splice(idx, 1);
+    saveMemoryStore();
+    return { success: true, id: numId };
+  }
+
+  const subs = await executeQuery('SELECT id, business_id FROM subscriptions WHERE plan_id = ? LIMIT 1', [numId]);
+  if (subs && subs.length > 0) {
+    const err = new Error('Cannot delete this plan because active client tenants are currently subscribed to it. You can deactivate the plan instead.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  await executeQuery('DELETE FROM subscription_plans WHERE id = ?', [numId]);
+  return { success: true, id: numId };
+}
+
+export async function updateTenantSubscription(businessId, { planId, status, current_period_end }) {
+  const numBizId = Number(businessId);
+  const numPlanId = planId ? Number(planId) : null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    let sub = store.subscriptions.find(s => s.business_id === numBizId);
+    if (!sub) {
+      sub = {
+        id: store.subscriptions.length + 1,
+        business_id: numBizId,
+        plan_id: numPlanId || 1,
+        status: status || 'active',
+        current_period_start: new Date(),
+        current_period_end: current_period_end ? new Date(current_period_end) : null
+      };
+      store.subscriptions.push(sub);
+    } else {
+      if (numPlanId) sub.plan_id = numPlanId;
+      if (status) sub.status = status;
+      if (current_period_end !== undefined) sub.current_period_end = current_period_end ? new Date(current_period_end) : null;
+      sub.updated_at = new Date();
+    }
+    saveMemoryStore();
+    return sub;
+  }
+
+  const existing = await executeQuery('SELECT id FROM subscriptions WHERE business_id = ? LIMIT 1', [numBizId]);
+  if (existing && existing.length > 0) {
+    await executeQuery(
+      `UPDATE subscriptions SET 
+         plan_id = COALESCE(?, plan_id),
+         status = COALESCE(?, status),
+         current_period_end = COALESCE(?, current_period_end),
+         updated_at = NOW()
+       WHERE business_id = ?`,
+      [
+        numPlanId,
+        status || null,
+        current_period_end || null,
+        numBizId
+      ]
+    );
+  } else {
+    await executeQuery(
+      `INSERT INTO subscriptions (business_id, plan_id, status, current_period_start, current_period_end) 
+       VALUES (?, ?, ?, NOW(), ?)`,
+      [numBizId, numPlanId || 1, status || 'active', current_period_end || null]
+    );
+  }
+
+  const updated = await executeQuery('SELECT * FROM subscriptions WHERE business_id = ?', [numBizId]);
+  return updated && updated.length > 0 ? updated[0] : null;
+}
+
 export default {
   getSuperAdminDashboard,
   listAllBusinesses,
@@ -579,5 +808,9 @@ export default {
   createBusinessWithOwner,
   listAdminBillingTenants,
   listAdminPlans,
-  updateTenantPlan
+  updateTenantPlan,
+  createSubscriptionPlan,
+  updateSubscriptionPlan,
+  deleteSubscriptionPlan,
+  updateTenantSubscription
 };

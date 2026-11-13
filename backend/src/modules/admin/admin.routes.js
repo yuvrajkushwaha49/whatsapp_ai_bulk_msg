@@ -115,6 +115,33 @@ router.get('/billing/plans', async (req, res, next) => {
   }
 });
 
+router.post('/billing/plans', async (req, res, next) => {
+  try {
+    const created = await adminService.createSubscriptionPlan(req.body);
+    res.status(201).json({ success: true, message: 'Subscription plan created successfully', data: created });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/billing/plans/:id', async (req, res, next) => {
+  try {
+    const updated = await adminService.updateSubscriptionPlan(req.params.id, req.body);
+    res.json({ success: true, message: 'Subscription plan updated successfully', data: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/billing/plans/:id', async (req, res, next) => {
+  try {
+    const result = await adminService.deleteSubscriptionPlan(req.params.id);
+    res.json({ success: true, message: 'Subscription plan deleted successfully', data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch('/billing/tenants/:businessId/plan', async (req, res, next) => {
   try {
     const { planId } = req.body;
@@ -123,6 +150,15 @@ router.patch('/billing/tenants/:businessId/plan', async (req, res, next) => {
     }
     const result = await adminService.updateTenantPlan(req.params.businessId, planId);
     res.json({ success: true, message: 'Tenant plan updated successfully', data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/billing/tenants/:businessId/subscription', async (req, res, next) => {
+  try {
+    const result = await adminService.updateTenantSubscription(req.params.businessId, req.body);
+    res.json({ success: true, message: 'Tenant subscription updated successfully', data: result });
   } catch (err) {
     next(err);
   }
