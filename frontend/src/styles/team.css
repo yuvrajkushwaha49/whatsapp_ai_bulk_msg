@@ -3,9 +3,10 @@
    ========================================================================== */
 
 .team-page-container {
-  padding: 1.5rem 2rem;
+  padding: 1rem;
   max-width: 1400px;
   margin: 0 auto;
+  padding-top: 0px;
 }
 
 /* 1. Hero Banner */
@@ -404,16 +405,18 @@
   .team-page-container {
     padding: 1rem;
   }
+
   .team-hero-banner {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .team-card-header {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .team-search-input {
     width: 100%;
   }
 }
-

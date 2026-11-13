@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
-  const [email, setEmail] = useState('owner@acmeretail.com');
-  const [password, setPassword] = useState('Password123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,12 +28,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const setDemoCredentials = (demoEmail) => {
-    setEmail(demoEmail);
-    setPassword('Password123!');
-    setError('');
   };
 
   return (
@@ -61,6 +55,7 @@ export default function Login() {
               placeholder="you@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
               required
             />
           </div>
@@ -69,7 +64,6 @@ export default function Login() {
         <div className="mb-4">
           <div className="d-flex justify-content-between align-items-center mb-1">
             <label className="form-label small fw-semibold text-secondary mb-0">Password</label>
-            <span className="small text-muted" style={{ fontSize: '0.75rem' }}>Demo: <code>Password123!</code></span>
           </div>
           <div className="input-group">
             <span className="input-group-text bg-light border-end-0">
@@ -78,9 +72,10 @@ export default function Login() {
             <input
               type={showPassword ? 'text' : 'password'}
               className="form-control border-start-0 border-end-0 ps-0"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
             <button
@@ -110,34 +105,6 @@ export default function Login() {
           )}
         </button>
       </form>
-
-      {/* Quick Demo Logins */}
-      <div className="mt-4 pt-3 border-top">
-        <div className="text-muted small fw-semibold mb-2 text-center">Click a role to auto-fill credentials:</div>
-        <div className="d-flex flex-wrap gap-1 justify-content-center">
-          <button 
-            type="button" 
-            className="btn btn-sm btn-outline-success" 
-            onClick={() => setDemoCredentials('owner@acmeretail.com')}
-          >
-            🏢 Business Owner
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-sm btn-outline-primary" 
-            onClick={() => setDemoCredentials('marketer@acmeretail.com')}
-          >
-            📢 Marketer
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-sm btn-outline-warning" 
-            onClick={() => setDemoCredentials('superadmin@campaignflow.io')}
-          >
-            🛡️ SuperAdmin
-          </button>
-        </div>
-      </div>
 
       <div className="text-center mt-4 text-muted small">
         Don't have a workspace? <Link to="/register" className="fw-semibold text-success text-decoration-none">Create business account</Link>
