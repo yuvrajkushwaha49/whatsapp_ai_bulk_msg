@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
+import '../styles/switchClientModal.css';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -15,6 +16,20 @@ export default function AppLayout() {
   const location = useLocation();
   const isInbox = location.pathname.startsWith('/inbox');
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
+
+  const isImpersonating = localStorage.getItem('cf_impersonating') === 'true';
+  const impersonatedBiz = localStorage.getItem('cf_impersonated_biz');
+
+  const handleReturnToAdmin = () => {
+    const superAdminToken = localStorage.getItem('cf_superadmin_token');
+    if (superAdminToken) {
+      localStorage.setItem('cf_token', superAdminToken);
+      localStorage.removeItem('cf_superadmin_token');
+    }
+    localStorage.removeItem('cf_impersonating');
+    localStorage.removeItem('cf_impersonated_biz');
+    window.location.href = '/admin';
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
@@ -61,6 +76,23 @@ export default function AppLayout() {
 
       {/* Main Content Area */}
       <div className={`main-content ${isInbox ? 'main-content-inbox' : ''}`}>
+        {/* SuperAdmin Client View Banner */}
+        {isImpersonating && (
+          <div className="admin-impersonation-bar">
+            <div className="admin-impersonation-content">
+              <i className="bi bi-shield-shaded me-2"></i>
+              <span>
+                Viewing as <strong>{impersonatedBiz || 'Client'}</strong> (Super Admin Client View Mode)
+              </span>
+            </div>
+            <button
+              onClick={handleReturnToAdmin}
+              className="btn btn-sm btn-light text-dark fw-bold admin-impersonation-exit-btn"
+            >
+              <i className="bi bi-box-arrow-left me-1"></i> Return to Super Admin Suite
+            </button>
+          </div>
+        )}
         <main
           className={`content-container ${
             isInbox ? 'inbox-container-reset' : ''

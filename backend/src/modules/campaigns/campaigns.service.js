@@ -230,7 +230,7 @@ export async function preflightCheck(businessId, { campaignId, whatsappAccountId
   };
 }
 
-export async function createCampaign(businessId, { name, purpose, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [], groupIds = [], variableMappings = {}, scheduledAt = null }) {
+export async function createCampaign(businessId, { name, purpose, whatsappAccountId, whatsappAccountIds = [], templateId, tagIds = [], contactIds = [], groupIds = [], variableMappings = {}, scheduledAt = null }, userId = null, ipAddress = '127.0.0.1') {
   const audience = await previewAudience(businessId, { tagIds, contactIds, groupIds });
 
   // Support single or multiple sending accounts
@@ -256,6 +256,7 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
       business_id: Number(businessId),
       whatsapp_account_id: primaryAccountId,
       template_id: Number(templateId),
+      created_by: userId ? Number(userId) : null,
       name,
       purpose,
       status: initialStatus,
@@ -300,6 +301,16 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
     campaign.total_recipients = eligibleContacts.length;
 
     if (isScheduled) {
+      createAuditLog({
+        businessId: Number(businessId),
+        userId: userId ? Number(userId) : null,
+        action: 'CAMPAIGN_SCHEDULE',
+        entityType: 'CAMPAIGNS',
+        entityId: newId,
+        details: { message: `Campaign "${name}" scheduled for broadcast at ${parsedScheduledAt.toISOString()}` },
+        ipAddress
+      }).catch(() => {});
+
       createNotification({
         businessId: Number(businessId),
         title: 'Campaign Scheduled',
@@ -313,9 +324,9 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
   }
 
   const result = await executeQuery(
-    `INSERT INTO campaigns (business_id, whatsapp_account_id, template_id, name, purpose, status, total_recipients, variable_mappings, scheduled_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [businessId, primaryAccountId, templateId, name, purpose, initialStatus, audience.estimatedCount, JSON.stringify(enrichedMappings), parsedScheduledAt]
+    `INSERT INTO campaigns (business_id, whatsapp_account_id, template_id, created_by, name, purpose, status, total_recipients, variable_mappings, scheduled_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [businessId, primaryAccountId, templateId, userId || null, name, purpose, initialStatus, audience.estimatedCount, JSON.stringify(enrichedMappings), parsedScheduledAt]
   );
   const campaignId = result.insertId;
 
@@ -364,10 +375,12 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
   if (isScheduled) {
     createAuditLog({
       businessId,
+      userId: userId || null,
       action: 'CAMPAIGN_SCHEDULE',
       entityType: 'CAMPAIGNS',
       entityId: campaignId,
-      details: { message: `Campaign "${name}" scheduled for broadcast at ${parsedScheduledAt.toISOString()}` }
+      details: { message: `Campaign "${name}" scheduled for broadcast at ${parsedScheduledAt.toISOString()}` },
+      ipAddress
     }).catch(() => {});
 
     createNotification({
@@ -377,14 +390,33 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
       type: 'info',
       link: `/campaigns/${campaignId}`
     }).catch(() => {});
+  } else {
+    createAuditLog({
+      businessId,
+      userId: userId || null,
+      action: 'CAMPAIGN_CREATE',
+      entityType: 'CAMPAIGNS',
+      entityId: campaignId,
+      details: { message: `Campaign "${name}" created with ${contacts.length} recipients` },
+      ipAddress
+    }).catch(() => {});
   }
 
   return { id: campaignId, name, total_recipients: contacts.length, status: initialStatus, scheduled_at: parsedScheduledAt };
 }
 
-export async function startCampaign(businessId, campaignId) {
+export async function startCampaign(businessId, campaignId, userId = null, ipAddress = '127.0.0.1') {
   const preflight = await preflightCheck(businessId, { campaignId });
   await enqueueCampaign(campaignId, businessId);
+  createAuditLog({
+    businessId,
+    userId: userId || null,
+    action: 'CAMPAIGN_LAUNCH',
+    entityType: 'CAMPAIGNS',
+    entityId: campaignId,
+    details: { message: `Campaign broadcast launched` },
+    ipAddress
+  }).catch(() => {});
   return { success: true, message: 'Campaign queued for dispatch' };
 }
 
@@ -412,7 +444,7 @@ export async function cancelCampaign(businessId, campaignId) {
   return { success: true, status: 'cancelled' };
 }
 
-export async function resendCampaign(businessId, campaignId, { target = 'all', mode = 'new', name = null } = {}) {
+export async function resendCampaign(businessId, campaignId, { target = 'all', mode = 'new', name = null } = {}, userId = null, ipAddress = '127.0.0.1') {
   const bId = Number(businessId);
   const cId = Number(campaignId);
 
@@ -457,10 +489,12 @@ export async function resendCampaign(businessId, campaignId, { target = 'all', m
 
       createAuditLog({
         businessId: bId,
+        userId: userId ? Number(userId) : null,
         action: 'CAMPAIGN_LAUNCH',
         entityType: 'CAMPAIGNS',
         entityId: cId,
-        details: { message: `Re-dispatched campaign "${source.name}" to ${targetRecipients.length} recipients (Filter: ${target})`, resendMode: 'existing' }
+        details: { message: `Re-dispatched campaign "${source.name}" to ${targetRecipients.length} recipients (Filter: ${target})`, resendMode: 'existing' },
+        ipAddress
       }).catch(() => {});
 
       createNotification({
@@ -514,10 +548,12 @@ export async function resendCampaign(businessId, campaignId, { target = 'all', m
 
       createAuditLog({
         businessId: bId,
+        userId: userId ? Number(userId) : null,
         action: 'CAMPAIGN_LAUNCH',
         entityType: 'CAMPAIGNS',
         entityId: newId,
-        details: { message: `Resent campaign as new broadcast "${newCampaign.name}" with ${targetRecipients.length} recipients`, originalCampaignId: cId }
+        details: { message: `Resent campaign as new broadcast "${newCampaign.name}" with ${targetRecipients.length} recipients`, originalCampaignId: cId },
+        ipAddress
       }).catch(() => {});
 
       createNotification({
@@ -587,10 +623,12 @@ export async function resendCampaign(businessId, campaignId, { target = 'all', m
 
     createAuditLog({
       businessId: bId,
+      userId: userId ? Number(userId) : null,
       action: 'CAMPAIGN_LAUNCH',
       entityType: 'CAMPAIGNS',
       entityId: cId,
-      details: { message: `Re-dispatched campaign "${source.name}" to ${targetRecipients.length} recipients`, filter: target }
+      details: { message: `Re-dispatched campaign "${source.name}" to ${targetRecipients.length} recipients`, filter: target },
+      ipAddress
     }).catch(() => {});
 
     createNotification({
@@ -611,9 +649,9 @@ export async function resendCampaign(businessId, campaignId, { target = 'all', m
   } else {
     const campaignName = name?.trim() || `${source.name} (Resend)`;
     const newCampRes = await executeQuery(
-      `INSERT INTO campaigns (business_id, whatsapp_account_id, template_id, name, purpose, status, total_recipients, variable_mappings, created_at)
-       VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, NOW())`,
-      [bId, source.whatsapp_account_id, source.template_id, campaignName, source.purpose, targetRecipients.length, typeof source.variable_mappings === 'string' ? source.variable_mappings : JSON.stringify(source.variable_mappings || {})]
+      `INSERT INTO campaigns (business_id, whatsapp_account_id, template_id, created_by, name, purpose, status, total_recipients, variable_mappings, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, NOW())`,
+      [bId, source.whatsapp_account_id, source.template_id, userId || null, campaignName, source.purpose, targetRecipients.length, typeof source.variable_mappings === 'string' ? source.variable_mappings : JSON.stringify(source.variable_mappings || {})]
     );
     const newCampaignId = newCampRes.insertId;
 
@@ -627,10 +665,12 @@ export async function resendCampaign(businessId, campaignId, { target = 'all', m
 
     createAuditLog({
       businessId: bId,
+      userId: userId ? Number(userId) : null,
       action: 'CAMPAIGN_LAUNCH',
       entityType: 'CAMPAIGNS',
       entityId: newCampaignId,
-      details: { message: `Resent campaign as new broadcast "${campaignName}" with ${targetRecipients.length} recipients`, originalCampaignId: cId }
+      details: { message: `Resent campaign as new broadcast "${campaignName}" with ${targetRecipients.length} recipients`, originalCampaignId: cId },
+      ipAddress
     }).catch(() => {});
 
     createNotification({

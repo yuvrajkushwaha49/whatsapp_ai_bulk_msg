@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   PieChart,
   Pie,
   Cell,
@@ -13,473 +15,877 @@ import {
   CartesianGrid
 } from 'recharts';
 import api from '../../services/api';
-import AiwavoHeader from '../../components/AiwavoHeader';
-import '../../styles/dashboard.css';
+import { useAuth } from '../../hooks/useAuth';
+import '../../styles/adminDashboard.css';
 
 export default function AdminOverview() {
-  const { onToggleSidebar } = useOutletContext() || {};
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [stats, setStats] = useState(null);
-  const [metaConfigStatus, setMetaConfigStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState('Last 30 Days');
   const [feedback, setFeedback] = useState({ type: '', text: '' });
 
-  const fetchData = async () => {
+  // Add Business Modal
+  const [showAddBusinessModal, setShowAddBusinessModal] = useState(false);
+  const [newBizForm, setNewBizForm] = useState({
+    businessName: '',
+    name: '',
+    email: '',
+    password: '',
+    timezone: 'Asia/Kolkata'
+  });
+  const [creatingBiz, setCreatingBiz] = useState(false);
+
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [dashboardRes, metaRes] = await Promise.all([
-        api.get('/admin/dashboard').catch(() => ({ data: { success: false } })),
-        api.get('/admin/meta-integration').catch(() => ({ data: { success: false } }))
-      ]);
-
-      if (dashboardRes.data?.success) setStats(dashboardRes.data.data);
-      if (metaRes.data?.success) setMetaConfigStatus(metaRes.data.data);
+      const res = await api.get('/admin/dashboard');
+      if (res.data?.success) {
+        setStats(res.data.data);
+      }
     } catch (err) {
-      console.error('Failed to load SuperAdmin Dashboard data', err);
+      console.error('Failed to load SuperAdmin Dashboard', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchDashboardData();
   }, []);
 
-  // Delivery Overview Donut Data
-  const totalSent = stats?.totalMessagesSent || 150;
-  const totalDelivered = stats?.totalDelivered || 140;
-  const totalRead = stats?.totalRead || 115;
-  const totalFailed = Math.max(0, totalSent - totalDelivered);
+  const handleCreateBusiness = async (e) => {
+    e.preventDefault();
+    if (!newBizForm.businessName.trim() || !newBizForm.name.trim() || !newBizForm.email.trim() || !newBizForm.password.trim()) {
+      setFeedback({ type: 'danger', text: 'Please fill in all required fields.' });
+      return;
+    }
 
-  const deliveryDonutData = [
-    { name: 'Read', value: totalRead, color: '#3b82f6' },
-    { name: 'Delivered', value: Math.max(0, totalDelivered - totalRead), color: '#10b981' },
-    { name: 'Failed / Pending', value: totalFailed, color: '#f59e0b' }
-  ];
+    setCreatingBiz(true);
+    setFeedback({ type: '', text: '' });
+    try {
+      const res = await api.post('/admin/businesses', newBizForm);
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: `🎉 Business "${newBizForm.businessName}" created successfully! Owner login: ${newBizForm.email}`
+        });
+        setShowAddBusinessModal(false);
+        setNewBizForm({
+          businessName: '',
+          name: '',
+          email: '',
+          password: '',
+          timezone: 'Asia/Kolkata'
+        });
+        fetchDashboardData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || 'Failed to create business and owner.'
+      });
+    } finally {
+      setCreatingBiz(false);
+    }
+  };
 
-  const trendData = stats?.trendData || [
-    { day: 'Mon', sent: 12, delivered: 11, read: 9 },
-    { day: 'Tue', sent: 18, delivered: 17, read: 14 },
-    { day: 'Wed', sent: 25, delivered: 24, read: 20 },
-    { day: 'Thu', sent: 32, delivered: 30, read: 26 },
-    { day: 'Fri', sent: 40, delivered: 38, read: 32 },
-    { day: 'Sat', sent: 45, delivered: 43, read: 36 },
-    { day: 'Sun', sent: 50, delivered: 48, read: 42 }
-  ];
+  // Real database stats
+  const totalBusinesses = stats?.totalBusinesses ?? 0;
+  const activeBusinesses = stats?.activeBusinesses ?? 0;
+  const totalWANumbers = stats?.totalWhatsAppAccounts ?? 0;
+  const activeNumbers = stats?.connectedAccounts ?? 0;
+  const totalMessagesSent = stats?.totalMessagesSent ?? 0;
+  const totalRevenue = stats?.totalRevenueEstimated ?? 0;
+
+  // Real database Business Growth chart series
+  const businessGrowthData = (stats?.businessGrowth && stats.businessGrowth.length > 0)
+    ? stats.businessGrowth
+    : [{ date: 'Today', businesses: totalBusinesses }];
+
+  // Real database Messages Overview chart series (Client-wise message counts)
+  const messagesOverviewData = (stats?.messagesOverview && stats.messagesOverview.length > 0)
+    ? stats.messagesOverview
+    : [{ client: 'All Clients', shortClient: 'All Clients', sent: totalMessagesSent, delivered: stats?.totalDelivered || 0 }];
+
+  // Real database WhatsApp Accounts Donut series
+  const waAccountsDonutData = (stats?.waAccountsOverview && stats.waAccountsOverview.length > 0)
+    ? stats.waAccountsOverview
+    : [
+      { name: 'Active', value: activeNumbers, percentage: `${totalWANumbers ? ((activeNumbers / totalWANumbers) * 100).toFixed(1) : 0}%`, color: '#10b981' },
+      { name: 'Pending Approval', value: stats?.pendingAccounts || 0, percentage: `${totalWANumbers ? (((stats?.pendingAccounts || 0) / totalWANumbers) * 100).toFixed(1) : 0}%`, color: '#f59e0b' },
+      { name: 'Inactive', value: stats?.attentionRequiredAccounts || 0, percentage: `${totalWANumbers ? (((stats?.attentionRequiredAccounts || 0) / totalWANumbers) * 100).toFixed(1) : 0}%`, color: '#ef4444' }
+    ];
+
+  // Real database Revenue Analytics series
+  const revenueAnalyticsData = (stats?.revenueAnalytics && stats.revenueAnalytics.length > 0)
+    ? stats.revenueAnalytics
+    : [{ month: 'Nov', revenue: totalRevenue, fill: '#7c3aed', isCurrent: true }];
+
+  // Real database Latest Businesses
+  const latestBusinesses = (stats?.latestBusinesses && stats.latestBusinesses.length > 0)
+    ? stats.latestBusinesses
+    : [];
+
+  // Real database Recent Activity Feed
+  const recentActivityList = (stats?.recentActivity && stats.recentActivity.length > 0)
+    ? stats.recentActivity.map(act => {
+      let iconClass = 'admin-activity-blue';
+      let icon = 'bi-people-fill';
+
+      if (act.type === 'number' || act.action?.includes('WA')) {
+        iconClass = 'admin-activity-green';
+        icon = 'bi-whatsapp';
+      } else if (act.type === 'subscription' || act.action?.includes('SUBSCRIPTION')) {
+        iconClass = 'admin-activity-purple';
+        icon = 'bi-layers-fill';
+      } else if (act.type === 'admin' || act.action?.includes('ADMIN') || act.action?.includes('LOGIN')) {
+        iconClass = 'admin-activity-blue';
+        icon = 'bi-person-badge';
+      }
+
+      return {
+        id: act.id,
+        icon,
+        iconClass,
+        text: act.message || `${act.action} - ${act.business_name}`,
+        time: act.timeAgo || 'Recently'
+      };
+    })
+    : [];
 
   return (
-    <div>
-      <AiwavoHeader
-        title="Super Admin Command Center"
-        subtitle="Global Platform Governance, Real-time Multi-Tenant Analytics & System Health"
-        onToggleSidebar={onToggleSidebar}
-      />
-
-      <div className="p-4">
-        {/* Top Control & Quick Navigation Ribbon */}
-        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-          <div className="d-flex align-items-center gap-2">
-            <span className="badge bg-warning text-dark px-3 py-2 fw-bold fs-7 shadow-xs">
-              <i className="bi bi-shield-lock-fill me-1"></i> SUPER ADMIN ACTIVE
-            </span>
-            <span className="badge bg-light text-muted border px-3 py-2">
-              <span className="badge bg-success rounded-circle me-1" style={{ width: 8, height: 8, display: 'inline-block' }}></span>
-              Multi-Tenant Architecture Live
-            </span>
-          </div>
-
-          <div className="d-flex align-items-center gap-2 flex-wrap">
-            <button
-              onClick={fetchData}
-              className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-xs"
-            >
-              <i className={`bi bi-arrow-clockwise ${loading ? 'spin' : ''}`}></i>
-              <span>Refresh Metrics</span>
-            </button>
-            <button
-              onClick={() => navigate('/admin/tenants')}
-              className="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-xs"
-            >
-              <i className="bi bi-plus-circle-fill"></i>
-              <span>+ Add Business</span>
-            </button>
-            <button
-              onClick={() => navigate('/admin/numbers')}
-              className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-xs"
-            >
-              <i className="bi bi-diagram-3-fill"></i>
-              <span>Number Matrix</span>
-            </button>
-            <button
-              onClick={() => navigate('/admin/billing')}
-              className="btn btn-outline-success btn-sm d-flex align-items-center gap-1 shadow-xs"
-            >
-              <i className="bi bi-credit-card-2-front-fill"></i>
-              <span>Plans & Billing</span>
-            </button>
+    <div className="admin-dashboard-wrapper">
+      {/* Top Header */}
+      <header className="admin-dash-header">
+        <div className="admin-dash-title-wrap">
+          <div>
+            <h1 className="admin-dash-title">Super Admin Dashboard</h1>
+            <p className="admin-dash-subtitle">Manage businesses, WhatsApp accounts, subscriptions and platform activity.</p>
           </div>
         </div>
 
-        {feedback.text && (
-          <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4 shadow-sm`} role="alert">
-            {feedback.text}
-            <button type="button" className="btn-close" onClick={() => setFeedback({ type: '', text: '' })}></button>
+        <div className="admin-dash-header-actions">
+          {/* Date Selector Pill */}
+          <div className="admin-date-pill dropdown">
+            <button
+              className="btn btn-sm p-0 d-flex align-items-center gap-2 border-0 bg-transparent text-dark fw-semibold admin-date-btn"
+              type="button"
+              data-bs-toggle="dropdown"
+            >
+              <i className="bi bi-calendar3 text-muted"></i>
+              <span>{timeRange}</span>
+              <i className="bi bi-chevron-down small text-muted"></i>
+            </button>
+            <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1">
+              {['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year'].map(r => (
+                <li key={r}>
+                  <button
+                    className={`dropdown-item small ${timeRange === r ? 'active bg-primary' : ''}`}
+                    onClick={() => setTimeRange(r)}
+                  >
+                    {r}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
-        )}
 
-        {/* 5 High-Impact KPI Metric Cards */}
-        <div className="row g-3 mb-4">
-          <div className="col-12 col-sm-6 col-xl">
-            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/tenants')}>
-              <div className="stat-icon-wrapper stat-icon-blue">
-                <i className="bi bi-buildings-fill"></i>
-              </div>
-              <div>
-                <div className="stat-label">Total Businesses</div>
-                <div className="stat-value">{stats?.totalBusinesses || 0}</div>
-                <div className="small text-success d-flex align-items-center gap-1">
-                  <i className="bi bi-check-circle-fill"></i>
-                  <span>{stats?.activeBusinesses || 0} Active Tenants</span>
-                </div>
-              </div>
+          {/* Notification Bell */}
+          <div className="admin-notif-btn" onClick={() => navigate('/admin/logs')} title="Platform Audit Notifications">
+            <i className="bi bi-bell fs-6"></i>
+            <span className="admin-notif-dot"></span>
+          </div>
+
+          {/* User Profile Pill */}
+          <div className="admin-profile-pill">
+            <div className="admin-avatar-circle">
+              {(user?.name || 'Yuvraj Singh').charAt(0).toUpperCase()}
+            </div>
+            <div className="admin-profile-info">
+              <span className="admin-profile-name">{user?.name || 'Yuvraj Singh'}</span>
+              <span className="admin-profile-role">Super Admin</span>
             </div>
           </div>
+        </div>
+      </header>
 
-          <div className="col-12 col-sm-6 col-xl">
-            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/numbers')}>
-              <div className="stat-icon-wrapper stat-icon-green">
-                <i className="bi bi-whatsapp"></i>
-              </div>
-              <div>
-                <div className="stat-label">WhatsApp Accounts</div>
-                <div className="stat-value">{stats?.totalWhatsAppAccounts || 0}</div>
-                <div className="small text-success">
-                  {stats?.connectedAccounts || 0} Verified Active
-                </div>
-              </div>
-            </div>
+      {/* Alert Feedback */}
+      {feedback.text && (
+        <div className={`alert alert-${feedback.type} alert-dismissible fade show mb-4 shadow-sm admin-feedback-banner`} role="alert">
+          {feedback.text}
+          <button type="button" className="btn-close" onClick={() => setFeedback({ type: '', text: '' })}></button>
+        </div>
+      )}
+
+      {/* Row 1: 6 Top KPI Metric Cards */}
+      {/* Row 1: 6 Top KPI Metric Cards */}
+      <section className="admin-kpi-grid">
+        {/* Card 1: Total Businesses */}
+        <div className="admin-kpi-card admin-kpi-card-purple admin-kpi-clickable" onClick={() => navigate('/admin/tenants')}>
+          <div className="admin-kpi-icon admin-kpi-icon-purple">
+            <i className="bi bi-people-fill"></i>
           </div>
-
-          <div className="col-12 col-sm-6 col-xl">
-            <div className="stat-card">
-              <div className="stat-icon-wrapper stat-icon-purple">
-                <i className="bi bi-send-check-fill"></i>
-              </div>
-              <div>
-                <div className="stat-label">Platform Messages</div>
-                <div className="stat-value">{Number(stats?.totalMessagesSent || 0).toLocaleString()}</div>
-                <div className="small text-muted">
-                  {totalDelivered} Delivered ({totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 100}%)
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-12 col-sm-6 col-xl">
-            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/billing')}>
-              <div className="stat-icon-wrapper stat-icon-orange">
-                <i className="bi bi-cash-stack"></i>
-              </div>
-              <div>
-                <div className="stat-label">Monthly MRR</div>
-                <div className="stat-value">${Number(stats?.totalRevenueEstimated || 79).toFixed(2)}</div>
-                <div className="small text-success">Active Subscriptions</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-12 col-sm-6 col-xl">
-            <div className="stat-card">
-              <div className="stat-icon-wrapper" style={{ background: 'rgba(14, 165, 233, 0.1)', color: '#0ea5e9' }}>
-                <i className="bi bi-people-fill"></i>
-              </div>
-              <div>
-                <div className="stat-label">Platform Users</div>
-                <div className="stat-value">{stats?.totalUsers || 0}</div>
-                <div className="small text-muted">Owners & Agents</div>
-              </div>
+          <div className="admin-kpi-details">
+            <span className="admin-kpi-label">Total Businesses</span>
+            <span className="admin-kpi-value">{totalBusinesses}</span>
+            <div className="admin-kpi-growth">
+              <span className="admin-kpi-growth-val"><i className="bi bi-arrow-up-short"></i> +12%</span>
+              <span className="admin-kpi-growth-lbl">vs last 30 days</span>
             </div>
           </div>
         </div>
 
-        {/* Analytics Charts Row */}
-        <div className="row g-3 mb-4">
-          {/* Chart 1: Global Message Trend */}
-          <div className="col-12 col-lg-7">
-            <div className="cf-card h-100">
-              <div className="cf-card-header d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="mb-0 fw-bold">Platform-wide Message Dispatch Velocity</h6>
-                  <small className="text-muted">Total message dispatches aggregated across all clients over time</small>
-                </div>
-                <span className="badge bg-light text-primary border">Last 7 Days</span>
-              </div>
-              <div className="cf-card-body">
-                <div style={{ width: '100%', height: 240 }}>
-                  <ResponsiveContainer>
-                    <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="adminSentGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
-                        </linearGradient>
-                        <linearGradient id="adminReadGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                      <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#ffffff',
-                          borderRadius: '8px',
-                          border: '1px solid #e2e8f0',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-                        }}
-                      />
-                      <Area type="monotone" dataKey="sent" name="Sent" stroke="#2563eb" strokeWidth={2} fillOpacity={1} fill="url(#adminSentGrad)" />
-                      <Area type="monotone" dataKey="read" name="Read" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#adminReadGrad)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="d-flex justify-content-center gap-4 mt-2 small text-muted">
-                  <span className="d-flex align-items-center gap-1">
-                    <span className="badge bg-primary rounded-circle" style={{ width: 8, height: 8 }}></span>
-                    Sent Messages
-                  </span>
-                  <span className="d-flex align-items-center gap-1">
-                    <span className="badge bg-success rounded-circle" style={{ width: 8, height: 8 }}></span>
-                    Read Messages
-                  </span>
-                </div>
+        {/* Card 2: Active Businesses */}
+        <div className="admin-kpi-card admin-kpi-card-green admin-kpi-clickable" onClick={() => navigate('/admin/tenants')}>
+          <div className="admin-kpi-icon admin-kpi-icon-green">
+            <i className="bi bi-people-fill"></i>
+          </div>
+          <div className="admin-kpi-details">
+            <span className="admin-kpi-label">Active Businesses</span>
+            <span className="admin-kpi-value">{activeBusinesses}</span>
+            <div className="admin-kpi-growth">
+              <span className="admin-kpi-growth-val"><i className="bi bi-arrow-up-short"></i> +10%</span>
+              <span className="admin-kpi-growth-lbl">vs last 30 days</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Total WA Numbers */}
+        <div className="admin-kpi-card admin-kpi-card-blue admin-kpi-clickable" onClick={() => navigate('/admin/numbers')}>
+          <div className="admin-kpi-icon admin-kpi-icon-blue">
+            <i className="bi bi-telephone-fill"></i>
+          </div>
+          <div className="admin-kpi-details">
+            <span className="admin-kpi-label">Total WA Numbers</span>
+            <span className="admin-kpi-value">{totalWANumbers}</span>
+            <div className="admin-kpi-growth">
+              <span className="admin-kpi-growth-val"><i className="bi bi-arrow-up-short"></i> +18%</span>
+              <span className="admin-kpi-growth-lbl">vs last 30 days</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Active Numbers */}
+        <div className="admin-kpi-card admin-kpi-card-mint admin-kpi-clickable" onClick={() => navigate('/admin/numbers')}>
+          <div className="admin-kpi-icon admin-kpi-icon-mint">
+            <i className="bi bi-telephone-fill"></i>
+          </div>
+          <div className="admin-kpi-details">
+            <span className="admin-kpi-label">Active Numbers</span>
+            <span className="admin-kpi-value">{activeNumbers}</span>
+            <div className="admin-kpi-growth">
+              <span className="admin-kpi-growth-val"><i className="bi bi-arrow-up-short"></i> +16%</span>
+              <span className="admin-kpi-growth-lbl">vs last 30 days</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 5: Messages Sent */}
+        <div className="admin-kpi-card admin-kpi-card-violet">
+          <div className="admin-kpi-icon admin-kpi-icon-violet">
+            <i className="bi bi-send-fill"></i>
+          </div>
+          <div className="admin-kpi-details">
+            <span className="admin-kpi-label">Messages Sent</span>
+            <span className="admin-kpi-value">{Number(totalMessagesSent).toLocaleString('en-IN')}</span>
+            <div className="admin-kpi-growth">
+              <span className="admin-kpi-growth-val"><i className="bi bi-arrow-up-short"></i> +27%</span>
+              <span className="admin-kpi-growth-lbl">vs last 30 days</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 6: Total Revenue */}
+        <div className="admin-kpi-card admin-kpi-card-amber admin-kpi-clickable" onClick={() => navigate('/admin/billing')}>
+          <div className="admin-kpi-icon admin-kpi-icon-amber">
+            <i className="bi bi-coin"></i>
+          </div>
+          <div className="admin-kpi-details">
+            <span className="admin-kpi-label">Total Revenue</span>
+            <span className="admin-kpi-value">${Number(totalRevenue).toLocaleString()}</span>
+            <div className="admin-kpi-growth">
+              <span className="admin-kpi-growth-val"><i className="bi bi-arrow-up-short"></i> +24%</span>
+              <span className="admin-kpi-growth-lbl">vs last 30 days</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Row 2: Two Large Charts (Business Growth & Messages Overview) */}
+      <section className="row g-3 mb-4">
+        {/* Left Chart: Business Growth */}
+        <div className="col-12 col-lg-6">
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">
+                <i className="bi bi-people-fill admin-icon-purple"></i>
+                <span>Business Growth</span>
+              </h2>
+              <span className="admin-card-badge-green">
+                <i className="bi bi-arrow-up-short"></i> +12%
+              </span>
+            </div>
+
+            <div className="admin-chart-box-lg">
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={businessGrowthData} margin={{ top: 25, right: 15, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} domain={[0, 'auto']} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#ffffff',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="businesses"
+                    stroke="#7c3aed"
+                    strokeWidth={2.5}
+                    dot={{ stroke: '#7c3aed', strokeWidth: 2, fill: '#ffffff', r: 4 }}
+                    activeDot={{ r: 6, fill: '#7c3aed' }}
+                    fill="url(#growthGrad)"
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+
+              {/* Floating Pill on top peak */}
+              <div className="admin-growth-peak-badge">
+                {totalBusinesses} Businesses
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Chart 2: Delivery & Read Breakdown Donut */}
-          <div className="col-12 col-lg-5">
-            <div className="cf-card h-100">
-              <div className="cf-card-header d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="mb-0 fw-bold">Delivery & Conversion Health</h6>
-                  <small className="text-muted">Global delivery success vs read rate</small>
-                </div>
-                <span className="badge bg-success-subtle text-success">
-                  {totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 100}% Delivery Rate
+        {/* Right Chart: Messages Overview (Grouped Bars by Client) */}
+        <div className="col-12 col-lg-6">
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">
+                <i className="bi bi-send-fill admin-icon-purple"></i>
+                <span>Messages Overview</span>
+                <span className="badge bg-light text-primary border ms-2 fw-semibold admin-badge-count">
+                  {totalMessagesSent} Total (All Clients)
+                </span>
+              </h2>
+              <div className="d-flex align-items-center gap-3 small">
+                <span className="admin-chart-legend-label">
+                  <span className="admin-legend-dot-green"></span>
+                  Sent
+                </span>
+                <span className="admin-chart-legend-label">
+                  <span className="admin-legend-dot-blue"></span>
+                  Delivered
                 </span>
               </div>
-              <div className="cf-card-body d-flex flex-column justify-content-center">
-                <div className="d-flex align-items-center justify-content-around">
-                  <div style={{ width: 140, height: 140 }}>
-                    <ResponsiveContainer>
-                      <PieChart>
-                        <Pie
-                          data={deliveryDonutData}
-                          innerRadius={45}
-                          outerRadius={65}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {deliveryDonutData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
+            </div>
 
-                  <div className="d-flex flex-column gap-2">
-                    {deliveryDonutData.map((item, i) => (
-                      <div key={i} className="d-flex align-items-center justify-content-between gap-3" style={{ minWidth: 140 }}>
-                        <div className="d-flex align-items-center gap-2 small">
-                          <span className="rounded-circle" style={{ width: 10, height: 10, backgroundColor: item.color }}></span>
-                          <span className="text-dark fw-medium">{item.name}</span>
-                        </div>
-                        <span className="fw-bold text-dark small">{item.value}</span>
+            <div className="admin-chart-box-md">
+              <ResponsiveContainer width="100%" height={210}>
+                <BarChart data={messagesOverviewData} margin={{ top: 20, right: 15, left: -15, bottom: 0 }} barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="shortClient" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickLine={false}
+                    domain={[0, 'auto']}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="admin-chart-tooltip">
+                            <div className="admin-tooltip-title">
+                              <i className="bi bi-building me-1 text-primary"></i>
+                              {data.client || data.shortClient}
+                            </div>
+                            <div className="d-flex align-items-center gap-2 small text-success">
+                              <span>Sent:</span> <span className="fw-medium">{data.sent || 0} msgs</span>
+                            </div>
+                            <div className="d-flex align-items-center gap-2 small text-primary">
+                              <span>Delivered:</span> <span className="fw-medium">{data.delivered || 0} msgs</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="sent" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />
+                  <Bar dataKey="delivered" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Client-wise Mini Message Breakdown Footer */}
+            <div className="d-flex flex-wrap align-items-center gap-2 pt-2 px-1 border-top mt-2 admin-breakdown-footer">
+              <span className="text-muted fw-semibold">Clients ({messagesOverviewData.length}):</span>
+              {messagesOverviewData.map((item, idx) => (
+                <span key={idx} className="badge bg-light text-dark border d-flex align-items-center gap-1 py-1 px-2">
+                  <span className="fw-medium">{item.client || item.shortClient}:</span>
+                  <span className="text-success fw-medium">{item.sent} sent</span>
+                  <span className="text-muted">/ {item.delivered} deliv</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Row 3: 3 Cards (WhatsApp Accounts Overview, Revenue Analytics, Quick Actions) */}
+      <section className="row g-3 mb-4">
+        {/* Card 1: WhatsApp Accounts Overview */}
+        <div className="col-12 col-lg-4">
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">
+                <i className="bi bi-whatsapp admin-icon-green"></i>
+                <span>WhatsApp Accounts Overview</span>
+              </h2>
+            </div>
+
+            <div className="admin-donut-wrapper">
+              {/* Donut Chart with Center Text */}
+              <div className="admin-donut-box">
+                <ResponsiveContainer width={140} height={140}>
+                  <PieChart>
+                    <Pie
+                      data={waAccountsDonutData}
+                      innerRadius={46}
+                      outerRadius={65}
+                      paddingAngle={3}
+                      dataKey="value"
+                      isAnimationActive={false}
+                    >
+                      {waAccountsDonutData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+
+                <div className="admin-donut-center-text">
+                  <div className="admin-donut-number">{totalWANumbers}</div>
+                  <div className="admin-donut-sub">Total<br />Numbers</div>
+                </div>
+              </div>
+
+              {/* Legend with exact numbers & percentages */}
+              <div className="d-flex flex-column justify-content-center">
+                {waAccountsDonutData.map((item, i) => {
+                  const dotClass = item.name === 'Active'
+                    ? 'admin-dot-active'
+                    : item.name?.includes('Pending')
+                      ? 'admin-dot-pending'
+                      : 'admin-dot-inactive';
+                  return (
+                    <div key={i} className="admin-legend-item">
+                      <div className="d-flex align-items-center">
+                        <span className={`admin-legend-dot ${dotClass}`}></span>
+                        <span className="text-dark fw-medium">{item.name}</span>
                       </div>
+                      <div>
+                        <strong className="text-dark">{item.value}</strong>
+                        <span className="text-muted ms-1">({item.percentage})</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Revenue Analytics */}
+        <div className="col-12 col-lg-4">
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">
+                <i className="bi bi-bar-chart-fill admin-icon-purple"></i>
+                <span>Revenue Analytics</span>
+              </h2>
+              <span className="admin-card-badge-green">
+                <i className="bi bi-arrow-up-short"></i> +24%
+              </span>
+            </div>
+
+            <div className="admin-revenue-chart-box">
+              <ResponsiveContainer width="100%" height={190}>
+                <BarChart data={revenueAnalyticsData} margin={{ top: 25, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickLine={false}
+                    tickFormatter={(v) => (v === 0 ? '$0' : `$${v}`)}
+                    domain={[0, 'auto']}
+                  />
+                  <Tooltip
+                    formatter={(val) => [`$${val}`, 'Revenue']}
+                    contentStyle={{
+                      backgroundColor: '#ffffff',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+                    }}
+                  />
+                  <Bar dataKey="revenue" radius={[6, 6, 0, 0]} maxBarSize={28} isAnimationActive={false}>
+                    {revenueAnalyticsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
-                  </div>
-                </div>
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
 
-                <div className="p-3 bg-light rounded-3 border mt-3">
-                  <div className="d-flex justify-content-between text-muted small mb-1">
-                    <span>Meta Cloud API Success Rate</span>
-                    <strong className="text-success">98.4%</strong>
-                  </div>
-                  <div className="progress" style={{ height: 6 }}>
-                    <div className="progress-bar bg-success" style={{ width: '98.4%' }}></div>
-                  </div>
-                </div>
+              {/* Floating tag on November bar */}
+              <div className="admin-revenue-floating-badge">
+                ${Number(totalRevenue).toLocaleString()}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Real-time Microservices & Gateway Health Banner */}
-        <div className="cf-card mb-4">
-          <div className="cf-card-header d-flex justify-content-between align-items-center">
-            <h6 className="mb-0 fw-bold d-flex align-items-center gap-2">
-              <i className="bi bi-heart-pulse-fill text-danger"></i>
-              <span>Platform Microservices & Infrastructure Heartbeat</span>
-            </h6>
-            <span className="badge bg-success-subtle text-success">
-              <i className="bi bi-shield-check me-1"></i> All Microservices 100% Operational
-            </span>
+        {/* Card 3: Quick Actions */}
+        <div className="col-12 col-lg-4">
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">
+                <i className="bi bi-lightning-charge-fill admin-icon-purple"></i>
+                <span>Quick Actions</span>
+              </h2>
+            </div>
+
+            <div className="admin-quick-actions-grid">
+              {/* Action 1: + Add Business */}
+              <button
+                className="admin-action-btn admin-action-purple"
+                onClick={() => setShowAddBusinessModal(true)}
+              >
+                <i className="bi bi-people-fill fs-5"></i>
+                <span>+ Add Business</span>
+              </button>
+
+              {/* Action 2: + Add WA Number */}
+              <button
+                className="admin-action-btn admin-action-green"
+                onClick={() => navigate('/admin/numbers')}
+              >
+                <i className="bi bi-whatsapp fs-5"></i>
+                <span>+ Add WA Number</span>
+              </button>
+
+              {/* Action 3: Manage Plans */}
+              <button
+                className="admin-action-btn admin-action-orange"
+                onClick={() => navigate('/admin/billing')}
+              >
+                <i className="bi bi-layers-fill fs-5"></i>
+                <span>Manage Plans</span>
+              </button>
+
+              {/* Action 4: Add Admin */}
+              <button
+                className="admin-action-btn admin-action-blue"
+                onClick={() => setShowAddBusinessModal(true)}
+              >
+                <i className="bi bi-person-plus-fill fs-5"></i>
+                <span>Add Admin</span>
+              </button>
+            </div>
           </div>
-          <div className="cf-card-body">
-            <div className="row g-3">
-              <div className="col-sm-6 col-md-3">
-                <div className="p-3 border rounded-3 bg-light h-100">
-                  <div className="text-muted small">REST API Gateway</div>
-                  <div className="fw-bold text-success d-flex align-items-center gap-1 mt-1">
-                    <span className="badge bg-success rounded-circle" style={{ width: 8, height: 8 }}></span>
-                    HEALTHY (~16ms latency)
-                  </div>
+        </div>
+      </section>
+
+      {/* Row 4: Two Tables / Lists (Recent Activity & Latest Businesses) */}
+      <section className="row g-3">
+        {/* Left Column: Recent Activity */}
+        <div className="col-12 col-lg-5">
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">
+                <i className="bi bi-clock-history admin-icon-purple"></i>
+                <span>Recent Activity</span>
+              </h2>
+              <span className="admin-card-link" onClick={() => navigate('/admin/logs')}>
+                View All <i className="bi bi-arrow-right"></i>
+              </span>
+            </div>
+
+            <div className="admin-activity-list">
+              {recentActivityList.length === 0 ? (
+                <div className="text-center py-4 text-muted small">
+                  No activity logs found in database.
                 </div>
-              </div>
-              <div className="col-sm-6 col-md-3">
-                <div className="p-3 border rounded-3 bg-light h-100">
-                  <div className="text-muted small">MySQL Database Pool</div>
-                  <div className="fw-bold text-success d-flex align-items-center gap-1 mt-1">
-                    <span className="badge bg-success rounded-circle" style={{ width: 8, height: 8 }}></span>
-                    CONNECTED (Pool: 10/10)
+              ) : (
+                recentActivityList.map((item, i) => (
+                  <div key={item.id || i} className="admin-activity-item">
+                    <div className={`admin-activity-icon ${item.iconClass || 'admin-activity-blue'}`}>
+                      <i className={`bi ${item.icon}`}></i>
+                    </div>
+                    <div
+                      className="admin-activity-text"
+                      dangerouslySetInnerHTML={{ __html: item.text }}
+                    />
+                    <div className="admin-activity-time">{item.time}</div>
                   </div>
-                </div>
-              </div>
-              <div className="col-sm-6 col-md-3">
-                <div className="p-3 border rounded-3 bg-light h-100">
-                  <div className="text-muted small">Queue Engine (BullMQ)</div>
-                  <div className="fw-bold text-success d-flex align-items-center gap-1 mt-1">
-                    <span className="badge bg-success rounded-circle" style={{ width: 8, height: 8 }}></span>
-                    ACTIVE (0 Failed Jobs)
-                  </div>
-                </div>
-              </div>
-              <div className="col-sm-6 col-md-3">
-                <div className="p-3 border rounded-3 bg-light h-100">
-                  <div className="text-muted small">Meta Cloud API (v21.0)</div>
-                  <div className={`fw-bold d-flex align-items-center gap-1 mt-1 ${metaConfigStatus?.readinessStatus === 'ready' ? 'text-success' : 'text-warning'}`}>
-                    <span className={`badge ${metaConfigStatus?.readinessStatus === 'ready' ? 'bg-success' : 'bg-warning'} rounded-circle`} style={{ width: 8, height: 8 }}></span>
-                    {metaConfigStatus?.readinessStatus === 'ready' ? 'VERIFIED & ENCRYPTED' : 'CONFIG REQUIRED'}
-                  </div>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
         </div>
 
-        {/* Two-Column Feed: Recent Businesses & Global Audit Stream */}
-        <div className="row g-4">
-          {/* Left: Recent Registered Businesses */}
-          <div className="col-12 col-lg-6">
-            <div className="cf-card h-100">
-              <div className="cf-card-header d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="mb-0 fw-bold">Active Client Businesses</h6>
-                  <small className="text-muted">Registered tenants on CampaignFlow SaaS</small>
-                </div>
-                <button
-                  onClick={() => navigate('/admin/tenants')}
-                  className="btn btn-outline-primary btn-sm"
-                >
-                  View All ({stats?.totalBusinesses || 0})
-                </button>
-              </div>
+        {/* Right Column: Latest Businesses */}
+        <div className="col-12 col-lg-7">
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">
+                <i className="bi bi-buildings-fill admin-icon-purple"></i>
+                <span>Latest Businesses</span>
+              </h2>
+              <span className="admin-card-link" onClick={() => navigate('/admin/tenants')}>
+                View All <i className="bi bi-arrow-right"></i>
+              </span>
+            </div>
 
-              <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0">
-                  <thead className="table-light">
+            <div className="table-responsive">
+              <table className="admin-table-clean">
+                <thead>
+                  <tr>
+                    <th>Business Name</th>
+                    <th>Plan</th>
+                    <th>WhatsApp Numbers</th>
+                    <th>Message Usage</th>
+                    <th>Status</th>
+                    <th>Joined On</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {latestBusinesses.length === 0 ? (
                     <tr>
-                      <th>Business</th>
-                      <th>Primary Owner</th>
-                      <th>Plan</th>
-                      <th className="text-end">Manage</th>
+                      <td colSpan="6" className="text-center py-4 text-muted small">
+                        No businesses found in database. Click <strong>+ Add Business</strong> above to create one.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {(stats?.recentBusinesses || []).map(b => (
-                      <tr key={b.id}>
-                        <td>
-                          <div className="fw-bold text-dark">{b.name}</div>
-                          <code className="small text-muted">{b.slug}</code>
+                  ) : (
+                    latestBusinesses.map((biz, idx) => (
+                      <tr key={biz.id || idx}>
+                        <td
+                          className="fw-semibold text-dark admin-kpi-clickable"
+                          onClick={() => biz.id && navigate(`/admin/businesses/${biz.id}`)}
+                          title="Click to view tenant governance details"
+                        >
+                          {biz.name} <i className="bi bi-arrow-up-right text-muted admin-mini-arrow-icon"></i>
                         </td>
                         <td>
-                          <div className="fw-semibold text-dark small">{b.owner_name || 'No Owner'}</div>
-                          <div className="small text-muted" style={{ fontSize: '0.72rem' }}>{b.owner_email || 'N/A'}</div>
-                        </td>
-                        <td>
-                          <span className="badge bg-primary-subtle text-primary">
-                            {b.plan_name}
+                          <span className={`admin-plan-badge ${biz.planClass}`}>
+                            {biz.plan}
                           </span>
                         </td>
-                        <td className="text-end">
-                          <button
-                            onClick={() => navigate('/admin/tenants')}
-                            className="btn btn-outline-secondary btn-sm py-1 px-2"
-                            title="Inspect Tenant"
-                          >
-                            <i className="bi bi-arrow-right"></i>
-                          </button>
+                        <td className="fw-semibold text-muted">{biz.numbers}</td>
+                        <td>
+                          <div className="small fw-semibold text-success mb-1">
+                            {biz.usageCurrent} <span className="text-muted fw-normal">/ {biz.usageMax}</span>
+                          </div>
+                          <div className="progress admin-progress-track">
+                            <div
+                              className="progress-bar bg-success"
+                              role="progressbar"
+                              style={{ width: `${biz.progress}%` }}
+                            />
+                          </div>
                         </td>
+                        <td>
+                          <span className="admin-status-pill">{biz.status}</span>
+                        </td>
+                        <td className="text-muted small">{biz.joinedOn}</td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Real-time Global Audit Trail */}
-          <div className="col-12 col-lg-6">
-            <div className="cf-card h-100">
-              <div className="cf-card-header d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="mb-0 fw-bold">Live Global Activity Trail</h6>
-                  <small className="text-muted">Recent events executed across all client workspaces</small>
-                </div>
-                <button
-                  onClick={() => navigate('/admin/logs')}
-                  className="btn btn-outline-dark btn-sm"
-                >
-                  Open Full Logs
-                </button>
-              </div>
-
-              <div className="p-3">
-                <div className="list-group list-group-flush">
-                  {(stats?.recentActivity || []).map(act => (
-                    <div key={act.id} className="list-group-item px-0 py-2 d-flex justify-content-between align-items-center border-bottom">
-                      <div className="d-flex align-items-center gap-2">
-                        <div className="rounded-circle bg-light border p-2 text-primary d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
-                          <i className="bi bi-activity small"></i>
-                        </div>
-                        <div>
-                          <div className="fw-bold small text-dark d-flex align-items-center gap-2">
-                            <span>{act.action}</span>
-                            <span className="badge bg-light text-secondary border" style={{ fontSize: '0.65rem' }}>
-                              {act.business_name || 'System'}
-                            </span>
-                          </div>
-                          <div className="text-muted" style={{ fontSize: '0.72rem' }}>
-                            Actor: {act.user_name || 'Automated Worker'}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-muted small" style={{ fontSize: '0.72rem' }}>
-                        {new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Modal: + Add Business & Owner */}
+      {showAddBusinessModal && (
+        <div className="modal show d-block admin-modal-backdrop-show" tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+              <div className="modal-header bg-primary text-white py-3 px-4">
+                <div className="d-flex align-items-center gap-2">
+                  <i className="bi bi-buildings-fill fs-5"></i>
+                  <div>
+                    <h5 className="modal-title fw-semibold mb-0">Create New Business & Tenant Owner</h5>
+                    <small className="text-white-50">Registers a new tenant with dedicated Owner account</small>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  disabled={creatingBiz}
+                  onClick={() => setShowAddBusinessModal(false)}
+                ></button>
+              </div>
+
+              <form onSubmit={handleCreateBusiness}>
+                <div className="modal-body p-4">
+                  <div className="row g-4">
+                    <div className="col-12">
+                      <div className="d-flex align-items-center gap-2 text-primary fw-semibold pb-2 border-bottom">
+                        <i className="bi bi-building"></i>
+                        <span>Business Information</span>
+                      </div>
+                    </div>
+
+                    <div className="col-md-7">
+                      <label className="form-label fw-semibold small text-muted">
+                        Business / Company Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. TechGrow Media / Acme Corp"
+                        value={newBizForm.businessName}
+                        onChange={(e) => setNewBizForm({ ...newBizForm, businessName: e.target.value })}
+                        required
+                        disabled={creatingBiz}
+                      />
+                    </div>
+
+                    <div className="col-md-5">
+                      <label className="form-label fw-semibold small text-muted">Timezone</label>
+                      <select
+                        className="form-select"
+                        value={newBizForm.timezone}
+                        onChange={(e) => setNewBizForm({ ...newBizForm, timezone: e.target.value })}
+                        disabled={creatingBiz}
+                      >
+                        <option value="Asia/Kolkata">Asia/Kolkata (IST +5:30)</option>
+                        <option value="Asia/Dubai">Asia/Dubai (GST +4:00)</option>
+                        <option value="Europe/London">Europe/London (GMT/BST)</option>
+                        <option value="America/New_York">America/New_York (EST/EDT)</option>
+                        <option value="UTC">UTC</option>
+                      </select>
+                    </div>
+
+                    <div className="col-12 mt-3">
+                      <div className="d-flex align-items-center gap-2 text-primary fw-semibold pb-2 border-bottom">
+                        <i className="bi bi-person-badge"></i>
+                        <span>Owner Credentials (Tenant Admin)</span>
+                      </div>
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="form-label fw-semibold small text-muted">
+                        Owner Full Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Ankit Verma"
+                        value={newBizForm.name}
+                        onChange={(e) => setNewBizForm({ ...newBizForm, name: e.target.value })}
+                        required
+                        disabled={creatingBiz}
+                      />
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="form-label fw-semibold small text-muted">
+                        Owner Email Address <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        className="form-control"
+                        placeholder="e.g. ankit@techgrow.com"
+                        value={newBizForm.email}
+                        onChange={(e) => setNewBizForm({ ...newBizForm, email: e.target.value })}
+                        required
+                        disabled={creatingBiz}
+                      />
+                    </div>
+
+                    <div className="col-12">
+                      <label className="form-label fw-semibold small text-muted">
+                        Initial Login Password <span className="text-danger">*</span>
+                      </label>
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          className="form-control font-monospace"
+                          placeholder="Set password (e.g. Pass@12345)"
+                          value={newBizForm.password}
+                          onChange={(e) => setNewBizForm({ ...newBizForm, password: e.target.value })}
+                          required
+                          disabled={creatingBiz}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          disabled={creatingBiz}
+                          onClick={() => {
+                            const gen = 'Pass@' + Math.random().toString(36).slice(-6) + '!';
+                            setNewBizForm({ ...newBizForm, password: gen });
+                          }}
+                        >
+                          Generate Random
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-footer bg-light py-3 px-4 d-flex justify-content-between">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm px-4"
+                    disabled={creatingBiz}
+                    onClick={() => setShowAddBusinessModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm px-4 d-flex align-items-center gap-2"
+                    disabled={creatingBiz}
+                  >
+                    {creatingBiz ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                        <span>Creating Business...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-circle-fill"></i>
+                        <span>Create Business & Owner</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

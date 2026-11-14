@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
+import '../styles/adminDashboard.css';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -59,3 +60,4 @@ export default function AdminLayout() {
     </div>
   );
 }
+

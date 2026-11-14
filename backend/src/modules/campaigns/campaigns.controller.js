@@ -38,7 +38,7 @@ export async function preflight(req, res, next) {
 
 export async function create(req, res, next) {
   try {
-    const result = await campaignsService.createCampaign(req.businessId, req.body);
+    const result = await campaignsService.createCampaign(req.businessId, req.body, req.userId, req.ip);
     res.status(201).json({ success: true, message: 'Campaign created successfully', data: result });
   } catch (error) {
     next(error);
@@ -47,7 +47,7 @@ export async function create(req, res, next) {
 
 export async function start(req, res, next) {
   try {
-    const result = await campaignsService.startCampaign(req.businessId, req.params.id);
+    const result = await campaignsService.startCampaign(req.businessId, req.params.id, req.userId, req.ip);
     res.json({ success: true, ...result });
   } catch (error) {
     next(error);
@@ -56,7 +56,7 @@ export async function start(req, res, next) {
 
 export async function pause(req, res, next) {
   try {
-    const result = await campaignsService.pauseCampaign(req.businessId, req.params.id);
+    const result = await campaignsService.pauseCampaign(req.businessId, req.params.id, req.userId, req.ip);
     res.json({ success: true, message: 'Campaign paused', data: result });
   } catch (error) {
     next(error);
@@ -65,7 +65,7 @@ export async function pause(req, res, next) {
 
 export async function cancel(req, res, next) {
   try {
-    const result = await campaignsService.cancelCampaign(req.businessId, req.params.id);
+    const result = await campaignsService.cancelCampaign(req.businessId, req.params.id, req.userId, req.ip);
     res.json({ success: true, message: 'Campaign cancelled', data: result });
   } catch (error) {
     next(error);
@@ -74,7 +74,7 @@ export async function cancel(req, res, next) {
 
 export async function resend(req, res, next) {
   try {
-    const result = await campaignsService.resendCampaign(req.businessId, req.params.id, req.body);
+    const result = await campaignsService.resendCampaign(req.businessId, req.params.id, req.body, req.userId, req.ip);
     res.json(result);
   } catch (error) {
     next(error);

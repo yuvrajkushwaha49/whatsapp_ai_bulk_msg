@@ -145,7 +145,8 @@ export async function listAuditLogs({
 
     // Enrich logs with user and business info
     const enrichedLogs = paginated.map(l => {
-      const u = store.users.find(usr => usr.id === l.user_id);
+      const u = store.users.find(usr => usr.id === l.user_id)
+        || (l.business_id ? store.users.find(usr => usr.business_id === l.business_id && usr.role === 'owner') : null);
       const b = store.businesses.find(biz => biz.id === l.business_id);
       return {
         ...l,
@@ -212,6 +213,7 @@ export async function listAuditLogs({
     SELECT COUNT(*) as total
     FROM audit_logs a
     LEFT JOIN users u ON a.user_id = u.id
+    LEFT JOIN users owner_u ON (a.user_id IS NULL AND a.business_id = owner_u.business_id AND owner_u.role = 'owner')
     LEFT JOIN businesses b ON a.business_id = b.id
     ${whereClause}
   `;
@@ -223,10 +225,13 @@ export async function listAuditLogs({
     SELECT 
       a.id, a.business_id, a.user_id, a.action, a.entity_type, a.entity_id, 
       a.details, a.ip_address, a.created_at,
-      u.name as user_name, u.email as user_email, u.role as user_role,
+      COALESCE(u.name, owner_u.name) as user_name,
+      COALESCE(u.email, owner_u.email) as user_email,
+      COALESCE(u.role, owner_u.role) as user_role,
       b.name as business_name
     FROM audit_logs a
     LEFT JOIN users u ON a.user_id = u.id
+    LEFT JOIN users owner_u ON (a.user_id IS NULL AND a.business_id = owner_u.business_id AND owner_u.role = 'owner')
     LEFT JOIN businesses b ON a.business_id = b.id
     ${whereClause}
     ORDER BY a.created_at DESC

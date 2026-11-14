@@ -8,3 +8,5 @@ uploads/
 .DS_Store
 backend/.dev_store.json
 .dev_store.json
+scratch/
+

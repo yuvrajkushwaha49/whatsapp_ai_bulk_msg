@@ -34,6 +34,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard';
 // Super Admin Suite Pages
 import AdminOverview from './pages/admin/AdminOverview';
 import AdminTenants from './pages/admin/AdminTenants';
+import AdminBusinessDetail from './pages/admin/AdminBusinessDetail';
 import AdminNumbers from './pages/admin/AdminNumbers';
 import AdminBilling from './pages/admin/AdminBilling';
 import AdminLogs from './pages/admin/AdminLogs';
@@ -135,6 +136,10 @@ export default function App() {
         <Route index element={<AdminOverview />} />
         <Route path="dashboard" element={<AdminOverview />} />
         <Route path="tenants" element={<AdminTenants />} />
+        <Route path="tenants/:id" element={<AdminBusinessDetail />} />
+        <Route path="businesses" element={<AdminTenants />} />
+        <Route path="businesses/:id" element={<AdminBusinessDetail />} />
+        <Route path="business-list" element={<AdminTenants />} />
         <Route path="numbers" element={<AdminNumbers />} />
         <Route path="billing" element={<AdminBilling />} />
         <Route path="logs" element={<AdminLogs />} />

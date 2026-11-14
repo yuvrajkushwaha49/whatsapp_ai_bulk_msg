@@ -34,6 +34,17 @@ export async function checkScheduledCampaigns() {
           logger.error(`[Scheduler:Fallback] Enqueue failed for campaign #${camp.id}:`, err);
         });
 
+        const creatorId = camp.created_by || (store.users?.find(u => u.business_id === camp.business_id && u.role === 'owner')?.id) || null;
+        createAuditLog({
+          businessId: camp.business_id,
+          userId: creatorId,
+          action: 'CAMPAIGN_AUTO_LAUNCH',
+          entityType: 'CAMPAIGNS',
+          entityId: camp.id,
+          details: { message: `Scheduled broadcast triggered automatically for "${camp.name}"` },
+          ipAddress: '127.0.0.1'
+        }).catch(() => {});
+
         createNotification({
           businessId: camp.business_id,
           title: 'Scheduled Campaign Broadcasting',
@@ -52,11 +63,13 @@ export async function checkScheduledCampaigns() {
 
     // Query campaigns ready to dispatch (UTC safe)
     const dueCampaigns = await executeQuery(
-      `SELECT id, business_id, name, scheduled_at 
-       FROM campaigns 
-       WHERE status = 'scheduled' 
-         AND scheduled_at IS NOT NULL 
-         AND scheduled_at <= UTC_TIMESTAMP()`
+      `SELECT c.id, c.business_id, c.name, c.scheduled_at,
+              COALESCE(c.created_by, owner_u.id) as user_id
+       FROM campaigns c
+       LEFT JOIN users owner_u ON owner_u.business_id = c.business_id AND owner_u.role = 'owner'
+       WHERE c.status = 'scheduled' 
+         AND c.scheduled_at IS NOT NULL 
+         AND c.scheduled_at <= UTC_TIMESTAMP()`
     );
 
     if (!dueCampaigns || dueCampaigns.length === 0) {
@@ -84,10 +97,12 @@ export async function checkScheduledCampaigns() {
 
         createAuditLog({
           businessId: camp.business_id,
+          userId: camp.user_id || null,
           action: 'CAMPAIGN_AUTO_LAUNCH',
           entityType: 'CAMPAIGNS',
           entityId: camp.id,
-          details: { message: `Scheduled broadcast triggered automatically for "${camp.name}"` }
+          details: { message: `Scheduled broadcast triggered automatically for "${camp.name}"` },
+          ipAddress: '127.0.0.1'
         }).catch(() => {});
 
         createNotification({

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -178,6 +178,7 @@ function DashboardSkeleton() {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
   const sidebarOpen = outletContext?.sidebarOpen;
@@ -746,7 +747,15 @@ export default function Dashboard() {
                         ? 'bi-tag-fill'
                         : 'bi-bell-fill';
                   return (
-                    <div key={`sched-${camp.id || idx}`} className="aiwavo-list-item">
+                    <div
+                      key={`sched-${camp.id || idx}`}
+                      className="aiwavo-list-item aiwavo-clickable-item"
+                      onClick={() => (camp.id ? navigate(`/campaigns/${camp.id}`) : navigate('/campaigns'))}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (camp.id ? navigate(`/campaigns/${camp.id}`) : navigate('/campaigns'))}
+                      title={`View ${camp.name} details`}
+                    >
                       <div className="aiwavo-list-left">
                         <div className="aiwavo-item-icon icon-purple">
                           <i className={`bi ${iconClass}`}></i>
@@ -760,6 +769,7 @@ export default function Dashboard() {
                           <i className="bi bi-calendar3 me-1"></i>
                           {camp.date}
                         </span>
+                        <i className="bi bi-chevron-right text-muted ms-2 small aiwavo-arrow-hover"></i>
                       </div>
                     </div>
                   );
@@ -805,8 +815,21 @@ export default function Dashboard() {
                       const rateVal = Math.min(Number(c.deliveryRate || 0), 100);
                       const isCompleted = c.status === 'Completed';
                       return (
-                        <tr key={`camp-row-${c.id || idx}`}>
-                          <td>{c.name}</td>
+                        <tr
+                          key={`camp-row-${c.id || idx}`}
+                          className="aiwavo-clickable-row"
+                          onClick={() => (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns'))}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns'))}
+                          title={`View ${c.name} details`}
+                        >
+                          <td className="aiwavo-campaign-name-cell">
+                            <div className="d-flex align-items-center justify-content-between">
+                              <span className="aiwavo-campaign-name-link">{c.name}</span>
+                              <i className="bi bi-box-arrow-up-right small text-muted opacity-50 ms-2 aiwavo-row-icon"></i>
+                            </div>
+                          </td>
                           <td>
                             <span
                               className={`aiwavo-status-pill ${isCompleted ? 'status-connected' : 'status-running'

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import AiwavoHeader from '../../components/AiwavoHeader';
+import '../../styles/adminDashboard.css';
 
 export default function AdminTenants() {
   const { onToggleSidebar } = useOutletContext() || {};
+  const navigate = useNavigate();
 
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,8 +105,8 @@ export default function AdminTenants() {
   return (
     <div>
       <AiwavoHeader
-        title="Tenant Governance & Businesses"
-        subtitle="Master Multi-Tenant Directory, Client Owners, and Account Provisioning"
+        title="Business Management"
+        subtitle="Master Business Directory, Client Owners, and Account Provisioning"
         onToggleSidebar={onToggleSidebar}
       />
 
@@ -119,18 +121,18 @@ export default function AdminTenants() {
         <div className="cf-card">
           <div className="cf-card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
-              <h5 className="mb-0 fw-bold">Tenant Directory ({businesses.length})</h5>
-              <small className="text-muted">Manage all registered client businesses, tenant owners, and account access</small>
+              <h5 className="mb-0 fw-bold">Business Directory ({businesses.length})</h5>
+              <small className="text-muted">Manage all registered client businesses, business owners, and account access</small>
             </div>
             <div className="d-flex align-items-center gap-2">
-              <div className="input-group input-group-sm" style={{ width: 250 }}>
+              <div className="input-group input-group-sm admin-search-input-box">
                 <span className="input-group-text bg-white border-end-0">
                   <i className="bi bi-search text-muted"></i>
                 </span>
                 <input
                   type="text"
                   className="form-control border-start-0"
-                  placeholder="Search tenants or owners..."
+                  placeholder="Search businesses or owners..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -156,7 +158,7 @@ export default function AdminTenants() {
             <table className="table cf-table align-middle">
               <thead>
                 <tr>
-                  <th>Tenant / Business Name</th>
+                  <th>Business Name</th>
                   <th>Primary Owner</th>
                   <th>Users</th>
                   <th>Subscription Plan</th>
@@ -183,7 +185,14 @@ export default function AdminTenants() {
                   filteredBusinesses.map(b => (
                     <tr key={b.id}>
                       <td>
-                        <div className="fw-bold text-dark">{b.name}</div>
+                        <div
+                          className="fw-semibold text-dark cursor-pointer text-primary-hover"
+                          role="button"
+                          onClick={() => navigate(`/admin/businesses/${b.id}`)}
+                          title="Click to view business details"
+                        >
+                          {b.name} <i className="bi bi-arrow-up-right small text-muted"></i>
+                        </div>
                         <code className="small text-muted">{b.slug}</code>
                       </td>
                       <td>
@@ -211,10 +220,17 @@ export default function AdminTenants() {
                       </td>
                       <td className="text-end">
                         <button
+                          onClick={() => navigate(`/admin/businesses/${b.id}`)}
+                          className="btn btn-sm btn-outline-primary me-2"
+                          title="View Business Details & Settings"
+                        >
+                          Details
+                        </button>
+                        <button
                           onClick={() => handleToggleStatus(b.id, b.status)}
                           className={`btn btn-sm ${b.status === 'active' ? 'btn-outline-danger' : 'btn-outline-success'}`}
                         >
-                          {b.status === 'active' ? 'Suspend Tenant' : 'Activate Tenant'}
+                          {b.status === 'active' ? 'Suspend' : 'Activate'}
                         </button>
                       </td>
                     </tr>
@@ -228,7 +244,7 @@ export default function AdminTenants() {
 
       {/* Modal: Create Business & Owner */}
       {showAddModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+        <div className="modal show d-block admin-modal-backdrop-show" tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered modal-lg">
             <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
               <div className="modal-header bg-primary text-white py-3 px-4">
@@ -394,3 +410,4 @@ export default function AdminTenants() {
     </div>
   );
 }
+

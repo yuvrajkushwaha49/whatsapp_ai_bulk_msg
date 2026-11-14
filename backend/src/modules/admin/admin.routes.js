@@ -94,6 +94,50 @@ router.patch('/businesses/:id/status', async (req, res, next) => {
   }
 });
 
+// Get comprehensive tenant governance details
+router.get('/businesses/:id', async (req, res, next) => {
+  try {
+    const detail = await adminService.getBusinessDetail(req.params.id);
+    res.json({ success: true, data: detail });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update tenant governance settings (name, timezone, status, allowed numbers)
+router.patch('/businesses/:id', async (req, res, next) => {
+  try {
+    const result = await adminService.updateBusinessGovernance(req.params.id, req.body);
+    res.json({ success: true, message: 'Business governance updated successfully', data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Reset tenant owner password
+router.post('/businesses/:id/reset-owner-password', async (req, res, next) => {
+  try {
+    const result = await adminService.resetBusinessOwnerPassword(req.params.id, req.body.password);
+    res.json({ success: true, message: `Owner password updated for ${result.email}`, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Impersonate / Launch Client Workspace
+router.post('/impersonate/:businessId', async (req, res, next) => {
+  try {
+    const result = await adminService.impersonateClient(req.params.businessId);
+    res.json({
+      success: true,
+      message: `Impersonation session created for ${result.business.name}`,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ==============================================================================
 // Super Admin Multi-Tenant Billing & Plan Control
 // ==============================================================================

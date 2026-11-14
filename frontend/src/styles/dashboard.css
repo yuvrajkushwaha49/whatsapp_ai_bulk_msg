@@ -638,6 +638,27 @@
   background: #f1f5f9;
 }
 
+.aiwavo-clickable-item {
+  cursor: pointer;
+  user-select: none;
+}
+
+.aiwavo-clickable-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateX(3px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.aiwavo-arrow-hover {
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.aiwavo-clickable-item:hover .aiwavo-arrow-hover {
+  transform: translateX(2px);
+  color: #6366f1 !important;
+}
+
 .aiwavo-list-left {
   display: flex;
   align-items: center;
@@ -791,6 +812,35 @@
 .aiwavo-campaigns-table tr td:last-child {
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
+}
+
+.aiwavo-clickable-row {
+  cursor: pointer;
+  user-select: none;
+}
+
+.aiwavo-clickable-row:hover td {
+  background: #f1f5f9;
+}
+
+.aiwavo-campaign-name-link {
+  font-weight: 600;
+  color: #0f172a;
+  transition: color 0.15s ease;
+}
+
+.aiwavo-row-icon {
+  transition: transform 0.15s ease, opacity 0.15s ease, color 0.15s ease;
+}
+
+.aiwavo-clickable-row:hover .aiwavo-campaign-name-link {
+  color: #4f46e5;
+}
+
+.aiwavo-clickable-row:hover .aiwavo-row-icon {
+  opacity: 1 !important;
+  color: #4f46e5 !important;
+  transform: translate(2px, -2px);
 }
 
 .aiwavo-rate-cell {
@@ -4297,6 +4347,31 @@
 .cc-sender-card.selected .cc-sender-checkbox {
   background: #00a859;
   border-color: #00a859;
+}
+
+.cc-sender-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.2s ease;
+}
+
+.cc-sender-card.selected .cc-sender-radio {
+  border-color: #00a859;
+}
+
+.cc-sender-radio-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00a859;
 }
 
 .cc-sender-wa-icon {

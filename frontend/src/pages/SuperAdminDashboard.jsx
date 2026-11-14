@@ -44,6 +44,17 @@ export default function SuperAdminDashboard() {
   const [newAllowedNumberInput, setNewAllowedNumberInput] = useState('');
   const [savingAllowedNumbers, setSavingAllowedNumbers] = useState(false);
 
+  // Add Business & Owner modal state
+  const [showAddBusinessModal, setShowAddBusinessModal] = useState(false);
+  const [newBusinessForm, setNewBusinessForm] = useState({
+    businessName: '',
+    name: '',
+    email: '',
+    password: '',
+    timezone: 'Asia/Kolkata'
+  });
+  const [creatingBusiness, setCreatingBusiness] = useState(false);
+
   useEffect(() => {
     fetchAdminData();
     fetchPlatformMetaConfig();
@@ -367,6 +378,42 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const handleCreateBusiness = async (e) => {
+    e.preventDefault();
+    if (!newBusinessForm.businessName.trim() || !newBusinessForm.name.trim() || !newBusinessForm.email.trim() || !newBusinessForm.password.trim()) {
+      setFeedback({ type: 'danger', text: 'Please fill in all required fields (Business Name, Owner Name, Email, Password).' });
+      return;
+    }
+    setCreatingBusiness(true);
+    setFeedback({ type: '', text: '' });
+    try {
+      const res = await api.post('/admin/businesses', newBusinessForm);
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: `🎉 Business "${newBusinessForm.businessName}" created successfully! Owner login: ${newBusinessForm.email}`
+        });
+        setShowAddBusinessModal(false);
+        setNewBusinessForm({
+          businessName: '',
+          name: '',
+          email: '',
+          password: '',
+          timezone: 'Asia/Kolkata'
+        });
+        await fetchAdminData();
+        await fetchMatrixData();
+      }
+    } catch (err) {
+      setFeedback({
+        type: 'danger',
+        text: err.response?.data?.message || 'Failed to create business and owner account.'
+      });
+    } finally {
+      setCreatingBusiness(false);
+    }
+  };
+
   const webhookCallbackUrl = `${window.location.origin.replace('5173', '5000')}/api/webhooks/whatsapp`;
 
   return (
@@ -561,14 +608,25 @@ export default function SuperAdminDashboard() {
 
           {/* Tenant Governance Table */}
           <div className="cf-card">
-            <div className="cf-card-header">
-              <h5 className="mb-0">Tenant Directory ({businesses.length})</h5>
+            <div className="cf-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div>
+                <h5 className="mb-0">Tenant Directory ({businesses.length})</h5>
+                <small className="text-muted">Manage all client businesses and tenant owners</small>
+              </div>
+              <button
+                className="btn btn-primary btn-sm d-flex align-items-center gap-2 shadow-xs"
+                onClick={() => setShowAddBusinessModal(true)}
+              >
+                <i className="bi bi-plus-circle-fill"></i>
+                <span>Add Business & Owner</span>
+              </button>
             </div>
             <div className="table-responsive">
               <table className="table cf-table">
                 <thead>
                   <tr>
                     <th>Tenant Name / Slug</th>
+                    <th>Owner Account</th>
                     <th>Users</th>
                     <th>Subscription Plan</th>
                     <th>Timezone</th>
@@ -580,7 +638,7 @@ export default function SuperAdminDashboard() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="7" className="text-center py-5">
+                      <td colSpan="8" className="text-center py-5">
                         <div className="spinner-border text-success" role="status"></div>
                       </td>
                     </tr>
@@ -590,6 +648,10 @@ export default function SuperAdminDashboard() {
                         <td>
                           <div className="fw-bold text-dark">{b.name}</div>
                           <code className="small text-muted">{b.slug}</code>
+                        </td>
+                        <td>
+                          <div className="fw-semibold text-dark small">{b.owner_name || 'N/A'}</div>
+                          <div className="small text-muted">{b.owner_email || 'N/A'}</div>
                         </td>
                         <td>
                           <span className="badge bg-light text-dark border">
@@ -1951,6 +2013,172 @@ export default function SuperAdminDashboard() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create Business & Owner */}
+      {showAddBusinessModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+              <div className="modal-header bg-primary text-white py-3 px-4">
+                <div className="d-flex align-items-center gap-2">
+                  <i className="bi bi-buildings-fill fs-5"></i>
+                  <div>
+                    <h5 className="modal-title fw-bold mb-0">Create New Business & Tenant Owner</h5>
+                    <small className="text-white-50">Registers a new tenant with dedicated Owner account & free trial</small>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  disabled={creatingBusiness}
+                  onClick={() => setShowAddBusinessModal(false)}
+                ></button>
+              </div>
+
+              <form onSubmit={handleCreateBusiness}>
+                <div className="modal-body p-4">
+                  <div className="row g-4">
+                    {/* Business Details */}
+                    <div className="col-12">
+                      <div className="d-flex align-items-center gap-2 text-primary fw-bold pb-2 border-bottom">
+                        <i className="bi bi-building"></i>
+                        <span>Business Information</span>
+                      </div>
+                    </div>
+
+                    <div className="col-md-7">
+                      <label className="form-label fw-semibold small text-muted">
+                        Business / Company Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Acme Corp / Rahul Enterprises"
+                        value={newBusinessForm.businessName}
+                        onChange={(e) => setNewBusinessForm({ ...newBusinessForm, businessName: e.target.value })}
+                        required
+                        disabled={creatingBusiness}
+                      />
+                    </div>
+
+                    <div className="col-md-5">
+                      <label className="form-label fw-semibold small text-muted">Timezone</label>
+                      <select
+                        className="form-select"
+                        value={newBusinessForm.timezone}
+                        onChange={(e) => setNewBusinessForm({ ...newBusinessForm, timezone: e.target.value })}
+                        disabled={creatingBusiness}
+                      >
+                        <option value="Asia/Kolkata">Asia/Kolkata (IST +5:30)</option>
+                        <option value="Asia/Dubai">Asia/Dubai (GST +4:00)</option>
+                        <option value="Europe/London">Europe/London (GMT/BST)</option>
+                        <option value="America/New_York">America/New_York (EST/EDT)</option>
+                        <option value="UTC">UTC</option>
+                      </select>
+                    </div>
+
+                    {/* Owner Account Details */}
+                    <div className="col-12 mt-3">
+                      <div className="d-flex align-items-center gap-2 text-primary fw-bold pb-2 border-bottom">
+                        <i className="bi bi-person-badge"></i>
+                        <span>Owner Credentials (Primary Tenant Administrator)</span>
+                      </div>
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="form-label fw-semibold small text-muted">
+                        Owner Full Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Rahul Sharma"
+                        value={newBusinessForm.name}
+                        onChange={(e) => setNewBusinessForm({ ...newBusinessForm, name: e.target.value })}
+                        required
+                        disabled={creatingBusiness}
+                      />
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="form-label fw-semibold small text-muted">
+                        Owner Email Address <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        className="form-control"
+                        placeholder="e.g. rahul@acmecorp.com"
+                        value={newBusinessForm.email}
+                        onChange={(e) => setNewBusinessForm({ ...newBusinessForm, email: e.target.value })}
+                        required
+                        disabled={creatingBusiness}
+                      />
+                      <small className="text-muted">This will be the login email for the owner.</small>
+                    </div>
+
+                    <div className="col-12">
+                      <label className="form-label fw-semibold small text-muted">
+                        Initial Login Password <span className="text-danger">*</span>
+                      </label>
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          className="form-control font-monospace"
+                          placeholder="Set password (e.g. Rahul@12345)"
+                          value={newBusinessForm.password}
+                          onChange={(e) => setNewBusinessForm({ ...newBusinessForm, password: e.target.value })}
+                          required
+                          disabled={creatingBusiness}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          disabled={creatingBusiness}
+                          onClick={() => {
+                            const gen = 'Pass@' + Math.random().toString(36).slice(-6) + '!';
+                            setNewBusinessForm({ ...newBusinessForm, password: gen });
+                          }}
+                        >
+                          Generate Random
+                        </button>
+                      </div>
+                      <small className="text-muted">You can share these credentials with the owner to let them sign in.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-footer bg-light py-3 px-4 d-flex justify-content-between">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm px-4"
+                    disabled={creatingBusiness}
+                    onClick={() => setShowAddBusinessModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm px-4 d-flex align-items-center gap-2"
+                    disabled={creatingBusiness}
+                  >
+                    {creatingBusiness ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                        <span>Creating Tenant & Owner...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-circle-fill"></i>
+                        <span>Create Business & Owner</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
@@ -97,20 +97,23 @@ export default function CampaignBuilder() {
       const [accRes, tagRes, tplRes, contactRes, groupRes] = await Promise.all([
         api.get('/whatsapp/accounts'),
         api.get('/contacts/tags'),
-        api.get('/whatsapp/templates?status=APPROVED'),
+        api.get('/whatsapp/templates?status=APPROVED&limit=100'),
         api.get('/contacts?limit=500'),
         api.get('/contact-groups')
       ]);
 
+      let initialAccountId = 1;
       if (accRes.data?.success && accRes.data.data.length > 0) {
         setAccounts(accRes.data.data);
-        setSelectedAccountIds([accRes.data.data[0].id]);
+        initialAccountId = accRes.data.data[0].id;
+        setSelectedAccountIds([initialAccountId]);
       } else {
         const fallbackAccounts = [
           { id: 1, display_name: 'Yuvraj', phone_number: '+91 86014 67210', waba_id: '1618945099958602', messaging_limit_tier: 'TIER_250', quality_rating: 'GREEN' },
           { id: 2, display_name: 'Kalaakchar', phone_number: '+91 70814 99089', waba_id: '1763651071618866', messaging_limit_tier: 'TIER_250', quality_rating: 'GREEN' }
         ];
         setAccounts(fallbackAccounts);
+        initialAccountId = 1;
         setSelectedAccountIds([1]);
       }
       if (tagRes.data?.success) setTags(tagRes.data.data);
@@ -121,14 +124,21 @@ export default function CampaignBuilder() {
         }
       }
       if (tplRes.data?.success && tplRes.data.data.length > 0) {
-        setTemplates(tplRes.data.data);
-        const welcomeTpl = tplRes.data.data.find(t => t.name === 'welcome_msg');
-        const defaultTpl = welcomeTpl || tplRes.data.data[0];
-        setTemplateId(defaultTpl.id);
-        setVariableMappings({
-          var_1: 'contact.name',
-          customer_name: 'contact.name'
-        });
+        const allLoadedTemplates = tplRes.data.data;
+        setTemplates(allLoadedTemplates);
+
+        // Preselect template for initial account
+        const accountTpls = allLoadedTemplates.filter(t => 
+          t.whatsapp_account_id === initialAccountId || 
+          t.whatsapp_account_id === Number(initialAccountId)
+        );
+        const activeTpls = accountTpls.length > 0 ? accountTpls : allLoadedTemplates;
+        const welcomeTpl = activeTpls.find(t => t.name === 'welcome_msg');
+        const defaultTpl = welcomeTpl || activeTpls[0];
+        if (defaultTpl) {
+          setTemplateId(defaultTpl.id);
+          applyTemplateMappings(defaultTpl);
+        }
       }
       if (contactRes.data?.contacts) {
         setAvailableContacts(contactRes.data.contacts);
@@ -141,18 +151,49 @@ export default function CampaignBuilder() {
     }
   };
 
-  const toggleAccountSelection = (accountId) => {
+  const applyTemplateMappings = (chosen) => {
+    if (!chosen) {
+      setVariableMappings({});
+      return;
+    }
+    const comps = Array.isArray(chosen?.components)
+      ? chosen.components
+      : (typeof chosen?.components === 'string' ? JSON.parse(chosen?.components || '[]') : []);
+    const body = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+    const phs = Array.from(new Set(body?.text?.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []));
+    const updated = {};
+    phs.forEach((ph, idx) => {
+      const clean = ph.replace(/[{}]/g, '');
+      updated[clean] = idx === 0 ? 'contact.name' : '';
+      updated[`var_${idx + 1}`] = idx === 0 ? 'contact.name' : '';
+    });
+    if (chosen?.name === 'welcome_msg') {
+      updated.customer_name = 'contact.name';
+      updated.var_1 = 'contact.name';
+    }
+    setVariableMappings(updated);
+  };
+
+  // Single-selection handler for WhatsApp Sending Account
+  const selectAccount = (accountId) => {
     const id = Number(accountId);
-    if (selectedAccountIds.includes(id)) {
-      if (selectedAccountIds.length === 1) {
-        setError('At least one sending WhatsApp account must remain selected.');
-        return;
-      }
-      setError('');
-      setSelectedAccountIds(selectedAccountIds.filter(x => x !== id));
+    setSelectedAccountIds([id]);
+    setError('');
+
+    // Filter templates specifically for this selected account
+    const accTemplates = templates.filter(t => 
+      t.whatsapp_account_id === id || 
+      t.whatsapp_account_id === Number(id)
+    );
+
+    if (accTemplates.length > 0) {
+      const welcomeTpl = accTemplates.find(t => t.name === 'welcome_msg');
+      const defaultTpl = welcomeTpl || accTemplates[0];
+      setTemplateId(defaultTpl.id);
+      applyTemplateMappings(defaultTpl);
     } else {
-      setError('');
-      setSelectedAccountIds([...selectedAccountIds, id]);
+      setTemplateId('');
+      setVariableMappings({});
     }
   };
 
@@ -571,7 +612,22 @@ export default function CampaignBuilder() {
     }
   };
 
-  const selectedTemplateObj = templates.find(t => t.id === Number(templateId));
+  const currentSelectedAccountId = selectedAccountIds[0];
+  const currentSelectedAccount = accounts.find(a => a.id === currentSelectedAccountId);
+
+  // Strictly filter approved templates for the currently selected WhatsApp account
+  const accountTemplates = useMemo(() => {
+    if (!currentSelectedAccountId) return [];
+    return templates.filter(t => 
+      t.whatsapp_account_id === currentSelectedAccountId || 
+      t.whatsapp_account_id === Number(currentSelectedAccountId)
+    );
+  }, [templates, currentSelectedAccountId]);
+
+  const selectedTemplateObj = useMemo(() => {
+    return templates.find(t => t.id === Number(templateId)) || accountTemplates[0] || null;
+  }, [templates, accountTemplates, templateId]);
+
   const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
 
   // Filter contacts by opt-in status and live search query
@@ -745,18 +801,18 @@ export default function CampaignBuilder() {
               </div>
             </div>
 
-            {/* Senders Section */}
+            {/* Senders Section (Single Sending Number) */}
             <div className="mb-4">
               <div className="cc-senders-header">
                 <label className="cc-form-label mb-0">
-                  Select Sending WhatsApp Account(s) <span className="text-danger">*</span>
+                  Select Sending WhatsApp Account <span className="text-danger">*</span>
                 </label>
                 <span className="cc-badge-senders-count">
-                  {selectedAccountIds.length} {selectedAccountIds.length === 1 ? 'Sender Selected' : 'Senders Selected'}
+                  {currentSelectedAccount ? `${currentSelectedAccount.display_name} (${currentSelectedAccount.phone_number})` : '1 Number Required'}
                 </span>
               </div>
               <p className="cc-senders-desc">
-                Select one or more connected WhatsApp numbers. If multiple accounts are selected, CampaignFlow automatically round-robins messages across them to distribute the load and increase sending speed.
+                Select the connected WhatsApp number to send this campaign broadcast. Only approved templates belonging to this number will be available in Step 3.
               </p>
 
               {/* Account Cards Grid */}
@@ -775,16 +831,21 @@ export default function CampaignBuilder() {
                   </div>
                 ) : (
                   accounts.map((acc) => {
-                    const isSelected = selectedAccountIds.includes(acc.id);
+                    const isSelected = selectedAccountIds[0] === acc.id;
 
                     return (
                       <div
                         key={acc.id}
-                        onClick={() => toggleAccountSelection(acc.id)}
+                        onClick={() => selectAccount(acc.id)}
                         className={`cc-sender-card ${isSelected ? 'selected' : ''}`}
+                        role="radio"
+                        aria-checked={isSelected}
+                        tabIndex={0}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && selectAccount(acc.id)}
+                        title={`Select ${acc.display_name}`}
                       >
-                        <div className="cc-sender-checkbox">
-                          {isSelected && <i className="bi bi-check-lg"></i>}
+                        <div className="cc-sender-radio">
+                          {isSelected && <span className="cc-sender-radio-dot"></span>}
                         </div>
 
                         <div className="cc-sender-wa-icon">
@@ -812,15 +873,6 @@ export default function CampaignBuilder() {
                   })
                 )}
               </div>
-
-              {selectedAccountIds.length > 1 && (
-                <div className="alert alert-info py-2 small d-flex align-items-center gap-2 mb-0 rounded-3">
-                  <i className="bi bi-arrow-repeat fs-5 text-info"></i>
-                  <div>
-                    <strong>Multi-Sender Load Balancing Active:</strong> Messages will be distributed evenly via Round-Robin across the <strong>{selectedAccountIds.length}</strong> selected WhatsApp numbers.
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="d-flex justify-content-end mt-4">
@@ -1626,7 +1678,15 @@ export default function CampaignBuilder() {
           <div className="cf-card-body">
             <div className="row g-4">
               <div className="col-12 col-md-6">
-                <label className="form-label fw-bold">Choose WhatsApp Approved Template <span className="text-danger">*</span></label>
+                <label className="form-label fw-bold">
+                  Choose WhatsApp Approved Template <span className="text-danger">*</span>
+                </label>
+                {currentSelectedAccount && (
+                  <div className="small text-muted mb-2 d-flex align-items-center gap-1">
+                    <i className="bi bi-whatsapp text-success"></i>
+                    <span>Templates for <strong>{currentSelectedAccount.display_name}</strong> ({currentSelectedAccount.phone_number}):</span>
+                  </div>
+                )}
                 <select
                   className="form-select mb-3"
                   value={templateId}
@@ -1634,31 +1694,31 @@ export default function CampaignBuilder() {
                     const newId = e.target.value;
                     setTemplateId(newId);
                     const chosen = templates.find(t => String(t.id) === String(newId));
-                    const comps = Array.isArray(chosen?.components)
-                      ? chosen.components
-                      : (typeof chosen?.components === 'string' ? JSON.parse(chosen?.components || '[]') : []);
-                    const body = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
-                    const phs = Array.from(new Set(body?.text?.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []));
-                    const updated = {};
-                    phs.forEach((ph, idx) => {
-                      const clean = ph.replace(/[{}]/g, '');
-                      updated[clean] = idx === 0 ? 'contact.name' : '';
-                      updated[`var_${idx + 1}`] = idx === 0 ? 'contact.name' : '';
-                    });
-                    if (chosen?.name === 'welcome_msg') {
-                      updated.customer_name = 'contact.name';
-                      updated.var_1 = 'contact.name';
-                    }
-                    setVariableMappings(updated);
+                    applyTemplateMappings(chosen);
                   }}
                   required
+                  disabled={accountTemplates.length === 0}
                 >
-                  {templates.map(tpl => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name} ({tpl.language}) - {tpl.category}
-                    </option>
-                  ))}
+                  {accountTemplates.length === 0 ? (
+                    <option value="">No approved templates found for this number</option>
+                  ) : (
+                    accountTemplates.map(tpl => (
+                      <option key={tpl.id} value={tpl.id}>
+                        {tpl.name} ({tpl.language}) - {tpl.category}
+                      </option>
+                    ))
+                  )}
                 </select>
+
+                {accountTemplates.length === 0 && (
+                  <div className="alert alert-warning py-2 small d-flex align-items-center gap-2 mb-3 rounded-3">
+                    <i className="bi bi-exclamation-triangle-fill fs-5 text-warning flex-shrink-0"></i>
+                    <div>
+                      No approved WhatsApp templates found for <strong>{currentSelectedAccount?.display_name || 'this number'}</strong>.
+                      Please sync templates in <Link to="/templates" className="alert-link">Message Templates</Link> or go back to Step 1 and choose another sending number.
+                    </div>
+                  </div>
+                )}
 
                 {(() => {
                   const tplComps = Array.isArray(selectedTemplateObj?.components)
@@ -1774,7 +1834,7 @@ export default function CampaignBuilder() {
               <button
                 type="button"
                 onClick={handleRunPreflight}
-                disabled={loading}
+                disabled={loading || !templateId || accountTemplates.length === 0}
                 className="btn btn-cf-primary d-flex align-items-center gap-2"
               >
                 {loading ? 'Running Checks...' : (
